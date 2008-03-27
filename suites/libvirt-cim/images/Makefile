@@ -48,9 +48,11 @@ $(XMT_INITRD):
 	(cd $(XMT_BASE) && wget $(XMT_URL))
 
 $(XMT_DIMAGE): $(XMT_IRAMFS)
+	chmod +x xmt-makefv.sh
 	./xmt-makefv.sh $(XMT_IRAMFS) $(XMT_DIMAGE)
 
 $(XMT_IRAMFS): $(XMT_INITRD)
+	chmod +x xmt-convert.sh
 	(cd $(XMT_BASE) && sh ../xmt-convert.sh `basename $(XMT_INITRD)`)
 
 xmtestimage: $(XMT_IRAMFS) $(DEFAULT_KERNEL) $(XMT_DIMAGE)
