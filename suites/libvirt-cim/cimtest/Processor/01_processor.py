@@ -1,0 +1,75 @@
+#!/usr/bin/python
+#
+# Copyright 2008 IBM Corp.
+#
+# Authors:
+#    Guolian Yun <yunguol@cn.ibm.com>
+#    Kaitlin Rupert <karupert@us.ibm.com>
+#    Zhengang Li <lizg@cn.ibm.com>
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+#
+
+import sys
+import pywbem
+from VirtLib import utils
+from VirtLib import live
+from XenKvmLib import devices
+from XenKvmLib.test_xml import testxml
+from XenKvmLib.classes import get_typed_class
+from XenKvmLib.vxml import XenXML, KVMXML, get_class
+from CimTest.Globals import log_param, logger
+from CimTest.Globals import do_main
+
+SUPPORTED_TYPES = ['Xen', 'KVM', 'XenFV']
+
+test_dom = "domain"
+test_vcpus = 1
+
+@do_main(SUPPORTED_TYPES)
+def main():
+    options = main.options
+    log_param()
+    status = 0
+    vsxml = get_class(options.virt)(test_dom, vcpus=test_vcpus)
+    vsxml.define(options.ip)
+    vsxml.start(options.ip)
+
+    # Processor instance enumerate need the domain to be active
+    domlist = live.active_domain_list(options.ip, options.virt)
+    if test_dom not in domlist:
+        status = 1
+        logger.error("Domain not started, we're not able to check vcpu")
+    else:
+        for i in range(0, test_vcpus):
+            devid = "%s/%s" % (test_dom, i)
+            key_list = { 'DeviceID' : devid,
+                         'CreationClassName' : get_typed_class(options.virt, "Processor"),
+                         'SystemName' : test_dom,
+                         'SystemCreationClassName' : get_typed_class(options.virt, "ComputerSystem")
+                       }
+            try:
+                dev = eval(('devices.' + get_typed_class(options.virt, 'Processor')))(options.ip, key_list)
+                logger.info("Checked device %s" % devid)
+            except Exception, details:
+                logger.error("Error check device %s: %s" % (devid, details))
+                status = 1
+
+    vsxml.stop(options.ip)
+    vsxml.undefine(options.ip)
+    return status
+
+if __name__ == "__main__":
+    sys.exit(main())

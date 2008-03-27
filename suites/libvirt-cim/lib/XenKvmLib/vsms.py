@@ -1,0 +1,228 @@
+#!/usr/bin/python
+#
+# Copyright 2008 IBM Corp.
+#
+# Authors:
+#    Dan Smith <danms@us.ibm.com>
+#    Kaitlin Rupert <karupert@us.ibm.com>
+#    Zhengang Li <lizg@cn.ibm.com>
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+#
+
+import pywbem
+from CimTest.CimExt import CIMMethodClass, CIMClassMOF
+from CimTest import Globals
+from XenKvmLib import vxml
+from XenKvmLib.classes import get_typed_class, get_class_type, virt_types
+
+RASD_TYPE_PROC = 3
+RASD_TYPE_MEM = 4
+RASD_TYPE_NET_ETHER = 10
+RASD_TYPE_NET_OTHER = 11
+RASD_TYPE_DISK = 17
+
+def eval_cls(basename):
+    def func(f):
+        def body(virt):
+            if virt in virt_types:
+                return eval(get_typed_class(virt, basename))
+        return body
+    return func
+
+class CIM_VirtualSystemManagementService(CIMMethodClass):
+    conn = None
+    inst = None
+
+    def __init__(self, server):
+        
+        self.conn = pywbem.WBEMConnection('http://%s' % server,
+                                          (Globals.CIM_USER, Globals.CIM_PASS),
+                                          Globals.CIM_NS)
+        
+        self.inst = self.__class__.__name__
+
+
+class Xen_VirtualSystemManagementService(CIM_VirtualSystemManagementService):
+    pass
+
+class KVM_VirtualSystemManagementService(CIM_VirtualSystemManagementService):
+    pass
+
+@eval_cls('VirtualSystemManagementService')
+def get_vsms_class(virt):
+    pass
+
+def enumerate_instances(server, virt='Xen'):
+    conn = pywbem.WBEMConnection('http://%s' % server,
+                                 (Globals.CIM_USER, Globals.CIM_PASS),
+                                 Globals.CIM_NS)
+
+    cn = get_typed_class(virt, 'VirtualSystemManagementService')
+    try:
+        instances = conn.EnumerateInstances(cn)
+    except pywbem.CIMError, arg:
+        print arg[1]
+        return []
+
+    return instances 
+
+# classes to define VSSD parameters
+class CIM_VirtualSystemSettingData(CIMClassMOF):
+    def __init__(self, name='test_domain', set_vs_id = True):
+        type = get_class_type(self.__class__.__name__)
+        self.InstanceID = '%s:%s' % (type, name)
+        self.Caption = self.Description = 'Virtual System'
+        self.ElementName = name
+        self.VirtualSystemType = type
+        self.CreationClassName = self.__class__.__name__
+        self.isFullVirt = (type == 'KVM')
+ 
+        if set_vs_id == True:
+            self.VirtualSystemIdentifier = name
+
+class Xen_VirtualSystemSettingData(CIM_VirtualSystemSettingData):
+    pass
+
+class KVM_VirtualSystemSettingData(CIM_VirtualSystemSettingData):
+    pass
+
+@eval_cls('VirtualSystemSettingData')
+def get_vssd_class(virt):
+    pass
+
+# classes to define RASD parameters
+class CIM_DiskResourceAllocationSettingData(CIMClassMOF):
+    def __init__(self, dev, source, name):
+        self.ResourceType = RASD_TYPE_DISK
+        if dev != None:
+            self.VirtualDevice = dev
+            self.InstanceID = '%s/%s' % (name, dev)
+        if source != None:
+            self.Address = source
+
+class Xen_DiskResourceAllocationSettingData(CIM_DiskResourceAllocationSettingData):
+    pass
+
+class KVM_DiskResourceAllocationSettingData(CIM_DiskResourceAllocationSettingData):
+    pass
+
+@eval_cls('DiskResourceAllocationSettingData')
+def get_dasd_class(virt):
+    pass
+
+class CIM_NetResourceAllocationSettingData(CIMClassMOF):
+    def __init__(self, type, mac, name):
+        self.NetworkType = type
+        if type == 'ethernet' or type == 'bridge' :
+            self.ResourceType = RASD_TYPE_NET_ETHER
+        else:
+            self.ResourceType = RASD_TYPE_NET_OTHER
+        
+        if mac != None:
+            self.InstanceID = '%s/%s' % (name, mac)
+
+class Xen_NetResourceAllocationSettingData(CIM_NetResourceAllocationSettingData):
+    pass
+
+class KVM_NetResourceAllocationSettingData(CIM_NetResourceAllocationSettingData):
+    pass
+
+@eval_cls('NetResourceAllocationSettingData')
+def get_nasd_class(virt):
+    pass
+
+class CIM_ProcResourceAllocationSettingData(CIMClassMOF):
+    def __init__(self, vcpu, name):
+        self.ResourceType = RASD_TYPE_PROC
+        
+        if vcpu != None:
+            self.VirtualQuantity = vcpu
+        
+        if name != None:
+            self.InstanceID = '%s/0' % name
+
+class Xen_ProcResourceAllocationSettingData(CIM_ProcResourceAllocationSettingData):
+    pass
+
+class KVM_ProcResourceAllocationSettingData(CIM_ProcResourceAllocationSettingData):
+    pass
+
+@eval_cls('ProcResourceAllocationSettingData')
+def get_pasd_class(virt):
+    pass
+
+class CIM_MemResourceAllocationSettingData(CIMClassMOF):
+    def __init__(self, megabytes, name):
+        self.ResourceType = RASD_TYPE_MEM
+        
+        if megabytes != None:
+            self.VirtualQuantity = megabytes
+        
+        if name != None:
+            self.InstanceID = '%s/mem' % name
+
+class Xen_MemResourceAllocationSettingData(CIM_MemResourceAllocationSettingData):
+    pass
+
+class KVM_MemResourceAllocationSettingData(CIM_MemResourceAllocationSettingData):
+    pass
+
+@eval_cls('MemResourceAllocationSettingData')
+def get_masd_class(virt):
+    pass
+
+def default_vssd_rasd_str(dom_name='test_domain', 
+                          disk_dev='xvda',
+                          disk_source=vxml.XenXML.disk_path,
+                          net_type='ethernet',
+                          net_mac=vxml.XenXML.default_mac,
+                          proc_vcpu=1,
+                          mem_mb=512,
+                          virt='Xen'):
+    class_vssd = get_vssd_class(virt)
+    vssd = class_vssd(name=dom_name)
+
+    class_dasd = get_dasd_class(virt)
+    if virt == 'KVM':
+        disk_dev = 'hda'
+        disk_source = vxml.KVMXML.disk_path
+    elif virt == 'XenFV':
+        disk_dev = 'hda'
+        disk_source = vxml.XenFVXML.disk_path
+    d = class_dasd(
+                dev=disk_dev, 
+                source=disk_source,
+                name=dom_name)
+    class_nasd = get_nasd_class(virt)
+    if virt == 'KVM':
+        net_mac= vxml.KVMXML.default_mac
+    elif virt == 'XenFV':
+        net_mac = vxml.XenFVXML.default_mac
+    n = class_nasd(
+                type=net_type, 
+                mac=net_mac,
+                name=dom_name)
+    class_pasd = get_pasd_class(virt)
+    p = class_pasd(
+                vcpu=proc_vcpu,
+                name=dom_name)
+    class_masd = get_masd_class(virt)
+    m = class_masd(
+                megabytes=mem_mb,
+                name=dom_name)
+
+    return vssd.mof(), [d.mof(), n.mof(), p.mof(), m.mof()]
+

@@ -1,0 +1,131 @@
+#!/bin/bash
+
+# Copyright 2008 IBM Corp.
+# Author: Dan Smith <danms@us.ibm.com>
+#
+# Create an x86-bootable disk image from an initramfs image
+#
+# Usage:
+#
+#  ./xmt-makefv <initramfs> <imagename>
+#
+# Requires: kpartx, parted, tune2fs, mkinitrd, grub
+
+PARTED="parted -s"
+TMPMOUNT=/tmp/cimtest_image_temp
+SIZE=16
+
+die() {
+    echo "FAILED: $i" >&2
+ 
+    umount $TMPMOUT >/dev/null 2>&1
+    kpartx -d $loop >/dev/null 2>&1
+    losetup -d $loop >/dev/null 2>&1
+
+    exit 1
+}
+
+make_empty() {
+    local size=$1
+    local file=$2
+
+    dd if=/dev/zero of=$file bs=1M count=$size >/dev/null 2>&1
+}
+
+partition() {
+    local file=$1
+
+    $PARTED $file mklabel msdos
+    $PARTED $file mkpartfs primary ext2 0 $(($SIZE - 1))
+}
+
+mount_partition() {
+    local file=$1
+    local loopdev=$(losetup -f | awk -F / '{print $NF}')
+
+    mkdir -p $TMPMOUNT || die "Failed to create temp: $TMPMOUNT"
+
+    losetup /dev/$loopdev $file || die "Failed to losetup $file"
+    kpartx -a /dev/$loopdev || die "Failed to kpartx $loopdev"
+    tune2fs -j /dev/mapper/${loopdev}p1 >/dev/null 2>&1|| die "Failed to add journal"
+    mount /dev/mapper/${loopdev}p1 $TMPMOUNT || die "Failed to mount ${loopdev}p1"
+
+    echo $loopdev 
+}
+
+unmount_partition() {
+    local loopdev=$1
+
+    umount $TMPMOUNT || die "Failed to unmount $TMPMOUNT"
+    kpartx -d /dev/$loopdev || die "Failed to un-kpartx $loopdev"
+    losetup -d /dev/$loopdev || die "Failed to delete loop $loopdev"
+}
+
+copy_in_ramdisk() {
+    local target=$1
+    local ramdisk=$2
+
+    zcat $ramdisk | (cd $target && cpio -id >/dev/null 2>&1)
+}
+
+kernel_path() {
+    local prefix=$1
+
+    find /boot | grep vmlinuz | grep -v xen | tail -n1
+}
+
+copy_in_kernel() {
+    local target=$1
+    local kernel=$(kernel_path)
+
+    [ -f "$kernel" ] || die "Unable to find a kernel"
+
+    local ver=$(echo $kernel | awk -F 'vmlinuz-' '{print $2}')
+
+    [ -d /lib/modules/$ver ] || die "No kver $ver"
+
+    cp $kernel ${target}/vmlinuz
+
+    mkinitrd  --preload ata_piix ${target}/initrd $ver
+}
+
+grub_image() {
+    local root=$1
+    local file=$2
+
+    mkdir ${root}/grub
+    cp /boot/grub/stage? /boot/grub/e2fs_stage1_5 ${root}/grub
+
+    cat >tmp_grub <<EOF
+device (hd0) $file
+root (hd0,0)
+setup (hd0)
+EOF
+
+    grub < tmp_grub >grub.log 2>&1
+    rm tmp_grub
+
+cat >${root}/grub/grub.conf <<EOF
+default 0
+timeout 1
+title Test Environment
+    root (hd0,0)
+    kernel /vmlinuz root=/dev/sda1
+    initrd /initrd
+EOF
+
+}
+
+ramdisk=$1
+output=$2
+
+make_empty $SIZE $output
+partition $output
+loop=$(mount_partition $output)
+
+(losetup /dev/$loop >/dev/null 2>&1) || die "Failed to mount image"
+
+copy_in_ramdisk $TMPMOUNT $ramdisk
+copy_in_kernel $TMPMOUNT
+grub_image $TMPMOUNT $output
+unmount_partition $loop

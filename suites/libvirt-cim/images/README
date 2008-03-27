@@ -1,0 +1,38 @@
+#
+# Copyright 2008 IBM Corp.
+#
+# Authors:
+#    Dan Smith <danms@us.ibm.com>
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+#
+This directory is where domain components should be put to facilitate
+test domain creation in cimtest.  The following conventions are
+expected:
+
+  default-xen-kernel: This is a kernel (or link to a kernel) image
+                      that is runnable on the current system's Xen
+  default-xen-initrd: This is a valid initrd for the disk image, which
+                      may include modules specific to the above kernel
+  default-xen-dimage: This is a valid disk image that will be
+                      connected to xvda, and may require bootable
+                      components (depending on the contents of the
+                      initrd)
+
+A sample set of the above three files can be built by running "make"
+in this directory.  The Xen xm-test ramdisk image will be fetched from
+XenSource, and the default xen kernel on the system will be used.  An
+empty disk image will be created, although it is not used by the
+ramdisk.

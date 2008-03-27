@@ -1,0 +1,128 @@
+#!/usr/bin/python
+#
+# Copyright 2008 IBM Corp.
+#
+# Author:
+#    Deepti B. Kalakeri <dkalaker@in.ibm.com>
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+#
+# This tc is used to verify if appropriate exceptions are 
+# returned by Xen_SettingsDefineCapabilities asscoiation 
+# on giving invalid inputs.
+# 
+#         
+#                                                        Date : 17-02-2008
+
+import sys
+import pywbem
+from VirtLib import utils
+from CimTest.ReturnCodes import PASS
+from XenKvmLib.common_util import try_assoc
+from XenKvmLib import assoc
+from CimTest.Globals import log_param, logger, CIM_USER, CIM_PASS, CIM_NS
+from CimTest.Globals import do_main
+
+sup_types = ['Xen']
+
+expr_values = {
+   "invalid_instid_keyname"  : { 'rc'   : pywbem.CIM_ERR_FAILED, \
+                                 'desc' : '"Missing InstanceID' }, \
+   "invalid_instid_keyvalue" : { 'rc' : pywbem.CIM_ERR_FAILED, \
+                                 'desc' : 'Unable to determine resource type' },
+   "invalid_ccname_keyname"  : { 'rc'   : pywbem.CIM_ERR_INVALID_PARAMETER, 
+                                 'desc' : 'One or more parameter values passed \
+to the method were invalid' }
+              }
+
+def err_invalid_instid_keyname(conn, field):
+# Input:
+# ------
+# wbemcli ai -ac Xen_SettingsDefineCapabilities \
+# 'http://localhost:5988/root/virt:Xen_AllocationCapabilities.\
+# wrong="ProcessorPool/0"' -nl
+#
+# Output:
+# -------
+# error code  : CIM_ERR_FAILED
+# error desc  : "Missing InstanceID"
+#
+    assoc_classname = 'Xen_SettingsDefineCapabilities'
+    classname = 'Xen_AllocationCapabilities'
+    keys = { field : 'MemoryPool/0' }
+    return try_assoc(conn, classname, assoc_classname, keys, field_name=field, \
+                     expr_values=expr_values['invalid_instid_keyname'], 
+                     bug_no="")
+
+def err_invalid_instid_keyvalue(conn, field):
+# Input:
+# ------
+# wbemcli ai -ac Xen_SettingsDefineCapabilities \
+# 'http://localhost:5988/root/virt:Xen_AllocationCapabilities.\
+# InstanceID="wrong/0"' -nl
+# 
+# Output:
+# -------
+# Verify for the error
+# error code  : CIM_ERR_FAILED
+# error desc  : "Unable to determine resource type"
+    assoc_classname = 'Xen_SettingsDefineCapabilities'
+    classname = 'Xen_AllocationCapabilities'
+    keys = { 'InstanceID' : field }
+    return try_assoc(conn, classname, assoc_classname, keys, field_name=field, \
+                     expr_values=expr_values['invalid_instid_keyvalue'], 
+                     bug_no="")
+
+def err_invalid_ccname_keyname(conn, field):
+# Input:
+# ------
+# wbemcli ai -ac Xen_SettingsDefineCapabilities \
+# 'http://localhost:5988/root/virt:Wrong.InstanceID="ProcessorPool/0"' -nl
+#
+# Output:
+# -------
+# error code    : CIM_ERR_INVALID_PARAMETER
+# error desc    : One or more parameter values passed to the method were invalid
+    assoc_classname = 'Xen_SettingsDefineCapabilities'
+    classname = field
+    keys = { 'InstanceID' : 'MemoryPool/0' }
+    return try_assoc(conn, classname, assoc_classname, keys, field_name=field, \
+                     expr_values=expr_values['invalid_ccname_keyname'],
+                     bug_no="")
+
+@do_main(sup_types)
+def main():
+    options = main.options
+    status = PASS 
+    log_param()
+    conn = assoc.myWBEMConnection('http://%s' % options.ip, 
+                                  (CIM_USER, CIM_PASS), CIM_NS)
+    ret_value = err_invalid_instid_keyname(conn, field='INVALID_InstID_KeyName')
+    if ret_value != PASS:
+        logger.error("------ FAILED: Invalid InstanceID Key Name.------")
+        status = ret_value
+    ret_value = err_invalid_instid_keyvalue(conn, 
+                                            field='INVALID_InstID_KeyValue')
+    if ret_value != PASS:
+        logger.error("------ FAILED: Invalid InstanceID Key Value.------")
+        status = ret_value
+    ret_value = err_invalid_ccname_keyname(conn, field='WrongClassName')
+    if ret_value != PASS:
+        logger.error("------ FAILED: Invalid CCName Key Name.------")
+        status = ret_value
+    return status
+    
+if __name__ == "__main__":
+    sys.exit(main())

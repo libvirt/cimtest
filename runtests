@@ -1,0 +1,68 @@
+#!/usr/bin/python
+#
+# Copyright 2008 IBM Corp.
+#
+# Authors:
+#     Murillo F. Bernardes <mfb@br.ibm.com>
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+#
+
+import sys
+import os
+
+SUITES_DIR = 'suites'
+MAIN_FILE = 'main.py'
+
+# Go to the cimtest dir, in order to get relative paths working
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+def usage():
+    print "Usage: %s [test_suite]" % sys.argv[0]
+
+def available_suites():
+    ""
+    base_path = os.path.abspath(SUITES_DIR)
+
+    available = []
+    for i in os.listdir(base_path):
+        test_path = os.path.join(base_path, i)
+        main_path = os.path.join(test_path, MAIN_FILE)
+        if os.path.isdir(test_path) and os.path.exists(main_path):
+            available.append(i)
+
+    return available
+
+
+def main():
+    if len(sys.argv) < 2:
+        usage()
+        print "Available test suites:"
+        print "\t%s" % ", ".join(available_suites())
+        return 1
+
+    suite = sys.argv[1]
+    print "Starting test suite: %s" % suite
+
+    suite_path = os.path.join(SUITES_DIR, suite)
+    sys_path = os.path.abspath('lib')
+    cmd = "cd %s && PYTHONPATH=%s python %s %s" % (suite_path, sys_path, 
+                                                MAIN_FILE, 
+                                                " ".join(sys.argv[2:]))
+    return os.system(cmd)
+    
+
+if __name__ == "__main__":
+    sys.exit(main()) 
