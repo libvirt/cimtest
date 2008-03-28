@@ -93,7 +93,7 @@ def create_using_definesystem(domain_name, ip,
         undefine_test_domain(dname, options.ip, virt=virt)
         return XFAIL_RC(bug)
 
-    set_uuid(viruuid(domain_name, ip))
+    set_uuid(viruuid(domain_name, ip, virt=virt))
     myxml = dumpxml(domain_name, ip, virt=virt)
 
     name = xml_get_dom_name(myxml)
