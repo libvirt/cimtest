@@ -25,6 +25,7 @@
 import pywbem
 from CimTest.CimExt import CIMMethodClass, CIMClassMOF
 from CimTest import Globals
+from VirtLib import live
 from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class, get_class_type, virt_types
 
@@ -33,6 +34,10 @@ RASD_TYPE_MEM = 4
 RASD_TYPE_NET_ETHER = 10
 RASD_TYPE_NET_OTHER = 11
 RASD_TYPE_DISK = 17
+
+VSSD_RECOVERY_NONE     = 2
+VSSD_RECOVERY_RESTART  = 3
+VSSD_RECOVERY_PRESERVE = 123
 
 def eval_cls(basename):
     def func(f):
@@ -81,17 +86,25 @@ def enumerate_instances(server, virt='Xen'):
 
 # classes to define VSSD parameters
 class CIM_VirtualSystemSettingData(CIMClassMOF):
-    def __init__(self, name='test_domain', set_vs_id = True):
+    def __init__(self, name, virt):
         type = get_class_type(self.__class__.__name__)
         self.InstanceID = '%s:%s' % (type, name)
         self.Caption = self.Description = 'Virtual System'
-        self.ElementName = name
+        self.VirtualSystemIdentifier = self.ElementName = name
         self.VirtualSystemType = type
         self.CreationClassName = self.__class__.__name__
-        self.isFullVirt = (type == 'KVM')
+        self.AutomaticShutdownAction = VSSD_RECOVERY_NONE
+        self.AutomaticRecoveryAction = VSSD_RECOVERY_NONE
+
+        self.isFullVirt = (type == 'KVM' or virt == 'XenFV')
+        if self.isFullVirt:
+            self.BootDevice = 'hd'
+        else:
+            self.Bootloader = live.bootloader(Globals.CIM_IP, 0)
+            self.BootloaderArgs = ''
+            self.Kernel = vxml.XenXML.kernel_path
+            self.Ramdisk = vxml.XenXML.init_path
  
-        if set_vs_id == True:
-            self.VirtualSystemIdentifier = name
 
 class Xen_VirtualSystemSettingData(CIM_VirtualSystemSettingData):
     pass
@@ -193,7 +206,7 @@ def default_vssd_rasd_str(dom_name='test_domain',
                           mem_mb=512,
                           virt='Xen'):
     class_vssd = get_vssd_class(virt)
-    vssd = class_vssd(name=dom_name)
+    vssd = class_vssd(name=dom_name, virt=virt)
 
     class_dasd = get_dasd_class(virt)
     if virt == 'KVM':
