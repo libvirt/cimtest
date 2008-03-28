@@ -24,10 +24,11 @@
 
 import sys
 from XenKvmLib import enumclass
+from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import log_param, CIM_ERROR_ENUMERATE, logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'XenFV', 'KVM']
 
 def print_error(fieldname, ret_value, exp_value):
     logger.error("%s Mismatch", fieldname)
@@ -39,12 +40,13 @@ def main():
 
     log_param()
     # Expected values from the enumetation
-    cn     = 'Xen_VirtualSystemMigrationCapabilities'
+    cn     = get_typed_class(options.virt, 'VirtualSystemMigrationCapabilities')
     instid = 'MigrationCapabilities'
 
     try:
         vsmc = enumclass.enumerate_inst(options.ip,
-                                        enumclass.Xen_VirtualSystemMigrationCapabilities)
+                                        "VirtualSystemMigrationCapabilities",
+                                        options.virt)
     except Exception:
         logger.error(CIM_ERROR_ENUMERATE, cn)
         return FAIL
