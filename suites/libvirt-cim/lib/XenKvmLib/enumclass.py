@@ -215,7 +215,13 @@ class KVM_DiskResourceAllocationSettingData(CIM_DiskResourceAllocationSettingDat
 #             ex: Xen_RegisteredProfile
 # keyname   = The keyvalue 
 #             ex: InstanceID in case of Xen_RegisteredProfile
-def enumerate_inst(server, classname):
+def enumerate_inst(server, classname, virt="Xen"):
+    classname = "%s" % classname
+    new_classname = classname.split('_')
+    if len(new_classname) == 2:
+        classname = classname[1]
+
+    classname = eval(get_typed_class(virt, classname))
     instances = []
     conn = pywbem.WBEMConnection('http://%s' % server,
                                  (Globals.CIM_USER, Globals.CIM_PASS),
