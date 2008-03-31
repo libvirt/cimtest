@@ -25,7 +25,7 @@ import sys
 import pywbem
 from pywbem.cim_obj import CIMInstanceName
 from VirtLib import utils
-from VirtLib.live import active_domain_list
+from VirtLib.live import domain_list
 from XenKvmLib import vsms, vxml
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import do_main
@@ -50,7 +50,7 @@ def main():
                                         'Name':default_dom,
                                         'CreationClassName':classname})
     
-    list_before = active_domain_list(options.ip, options.virt)
+    list_before = domain_list(options.ip, options.virt)
     status = PASS
     rc = -1
     
@@ -62,7 +62,7 @@ def main():
         logger.error(details)
         status = FAIL
 
-    list_after = active_domain_list(options.ip, options.virt)
+    list_after = domain_list(options.ip, options.virt)
 
     status = PASS
     if default_dom not in list_before:
