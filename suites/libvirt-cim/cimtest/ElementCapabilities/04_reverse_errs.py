@@ -24,11 +24,12 @@ import sys
 import pywbem
 from pywbem.cim_obj import CIMInstanceName
 from XenKvmLib import assoc
+from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
 from CimTest.Globals import log_param, logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'XenFV', 'KVM']
 
 exp_rc = 6 #CIM_ERR_NOT_FOUND
 exp_desc = "No such instance"
@@ -37,13 +38,12 @@ def try_assoc(ref, ref_class, exp_rc, exp_desc, options):
     conn = assoc.myWBEMConnection('http://%s' % options.ip,
                                   (Globals.CIM_USER, Globals.CIM_PASS),
                                   Globals.CIM_NS)
-    log_param()
     status = FAIL
     rc = -1
     names = []
 
     try:
-        names = conn.AssociatorNames(ref, AssocClass = "Xen_ElementCapabilities")
+        names = conn.AssociatorNames(ref, AssocClass = get_typed_class(options.virt, "ElementCapabilities"))
         rc = 0
     except pywbem.CIMError, (rc, desc):
         if rc == exp_rc and desc.find(exp_desc) >= 0:
@@ -56,16 +56,19 @@ def try_assoc(ref, ref_class, exp_rc, exp_desc, options):
         logger.error(details)
     finally:
         if rc == 0:
-            logger.error("Xen_ElementCapabilities associator should NOT return excepted result with a wrong key name and value of %s input" % ref_class)
+            logger.error("ElementCapabilities associator should NOT return excepted result \
+                         with a wrong key name and value of %s input" % ref_class)
             status = FAIL
     
     return status
 
 @do_main(sup_types)
 def main():
+    options = main.options
+    log_param()
     rc = PASS
-    cap_list = {"Xen_VirtualSystemManagementCapabilities" : "ManagementCapabilities",
-                "Xen_VirtualSystemMigrationCapabilities" : "MigrationCapabilities"}
+    cap_list = {get_typed_class(options.virt, "VirtualSystemManagementCapabilities") : "ManagementCapabilities",
+                get_typed_class(options.virt, "VirtualSystemMigrationCapabilities") : "MigrationCapabilities"}
 
     for k, v in cap_list.items():
         instanceref = CIMInstanceName(k, 
@@ -75,9 +78,9 @@ def main():
             status = FAIL
             return status
 
-    elecref = CIMInstanceName("Xen_EnabledLogicalElementCapabilities",
+    elecref = CIMInstanceName(get_typed_class(options.virt, "EnabledLogicalElementCapabilities"),
                               keybindings = {"InstanceID" : "wrong"})
-    rc = try_assoc(elecref, "Xen_EnabledLogicalElementCapabilities",
+    rc = try_assoc(elecref, get_typed_class(options.virt, "EnabledLogicalElementCapabilities"),
                    exp_rc, exp_desc, options)
     if rc != PASS:
         status = FAIL
