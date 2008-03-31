@@ -25,12 +25,13 @@
 import sys
 from VirtLib import utils
 from XenKvmLib import assoc
-from XenKvmLib import enumclass 
+from XenKvmLib import enumclass
+from XenKvmLib.classes import get_typed_class 
 from CimTest import Globals
 from CimTest.Globals import log_param, logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'XenFV', 'KVM']
 
 @do_main(sup_types)
 def main():
@@ -41,44 +42,48 @@ def main():
     try:
         key_list = { 'InstanceID' : "MemoryPool/0" }
         mempool = enumclass.getInstance(options.ip,
-                                        enumclass.Xen_MemoryPool,
-                                        key_list)
+                                        "MemoryPool",
+                                        key_list,
+                                        options.virt)
     except Exception:
-        logger.error(Globals.CIM_ERROR_GETINSTANCE % enumclass.Xen_MemoryPool)
+        logger.error(Globals.CIM_ERROR_GETINSTANCE  % "MemoryPool")
         return FAIL
 
     try:
         key_list = { 'InstanceID' : "ProcessorPool/0" }
         procpool = enumclass.getInstance(options.ip,
-                                         enumclass.Xen_ProcessorPool,
-                                         key_list)
+                                         "ProcessorPool",
+                                         key_list,
+                                         options.virt)
     except Exception:
-        logger.error(Globals.CIM_ERROR_GETINSTANCE % enumclass.Xen_ProcessorPool)  
+        logger.error(Globals.CIM_ERROR_GETINSTANCE % "ProcessorPool")  
         return FAIL
      
     try:
-        memdata = assoc.AssociatorNames(options.ip, "Xen_ResourceAllocationFromPool",
-                                        "Xen_MemoryPool",
+        memdata = assoc.AssociatorNames(options.ip, "ResourceAllocationFromPool",
+                                        "MemoryPool",
+                                        options.virt,
                                         InstanceID = mempool.InstanceID)
     except Exception:
         logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % mempool.InstanceID)
         status = FAIL
      
     for i in range(len(memdata)):
-        if memdata[i].classname != "Xen_MemResourceAllocationSettingData":
+        if memdata[i].classname != get_typed_class(options.virt, "MemResourceAllocationSettingData"):
             logger.error("ERROR: Association result error")
             status = FAIL
                 
     try:
-        procdata = assoc.AssociatorNames(options.ip, "Xen_ResourceAllocationFromPool",
-                                         "Xen_ProcessorPool",
+        procdata = assoc.AssociatorNames(options.ip, "ResourceAllocationFromPool",
+                                         "ProcessorPool",
+                                         options.virt,
                                          InstanceID = procpool.InstanceID)
     except Exception:
         logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % procpool.InstanceID)
         status = FAIL
       
     for j in range(len(procdata)):
-        if procdata[j].classname != "Xen_ProcResourceAllocationSettingData":
+        if procdata[j].classname != get_typed_class(options.virt, "ProcResourceAllocationSettingData"):
 	    logger.error("ERROR: Association result error")
             status = FAIL
 
