@@ -25,11 +25,12 @@ from VirtLib import utils
 from VirtLib import live
 from XenKvmLib import assoc
 from XenKvmLib import hostsystem
+from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'XenFV', 'KVM']
 
 @do_main(sup_types)
 def main():
@@ -37,15 +38,16 @@ def main():
     Globals.log_param()
 
     try:
-        host_sys = hostsystem.enumerate(options.ip)[0]
+        host_sys = hostsystem.enumerate(options.ip, options.virt)[0]
     except Exception:
-        Globals.logger.error(Globals.CIM_ERROR_ENUMERATE, 'Xen_HostSystem')
+        Globals.logger.error(Globals.CIM_ERROR_ENUMERATE, get_typed_class(options.virt, 'HostSystem'))
         return FAIL
 
     try:
         elc = assoc.AssociatorNames(options.ip,
-                                     "Xen_ElementCapabilities",
-                                     "Xen_HostSystem", 
+                                     "ElementCapabilities",
+                                     "HostSystem", 
+                                     options.virt,
                                      Name = host_sys.Name,
                                      CreationClassName = host_sys.CreationClassName)
     except Exception:
@@ -53,8 +55,8 @@ def main():
         return FAIL
 
 
-    valid_elc_name = ["Xen_VirtualSystemManagementCapabilities",
-                      "Xen_VirtualSystemMigrationCapabilities"]
+    valid_elc_name = [get_typed_class(options.virt, "VirtualSystemManagementCapabilities"),
+                      get_typed_class(options.virt, "VirtualSystemMigrationCapabilities")]
     valid_elc_id = ["ManagementCapabilities", 
                     "MigrationCapabilities"]
 
@@ -70,19 +72,20 @@ def main():
             return FAIL
 
 
-    cs = live.domain_list(options.ip)
+    cs = live.domain_list(options.ip, options.virt)
     for system in cs:  
         try:
 	    elec = assoc.AssociatorNames(options.ip,
-                                         "Xen_ElementCapabilities",
-                                         "Xen_ComputerSystem",
+                                         "ElementCapabilities",
+                                         "ComputerSystem",
+                                         options.virt,
                                          Name = system,
                                          CreationClassName = "Xen_ComputerSystem")
   	except Exception:
             Globals.logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % system)
             return FAIL     
          
-        if elec[0].classname != "Xen_EnabledLogicalElementCapabilities":
+        if elec[0].classname != get_typed_class(options.virt, "EnabledLogicalElementCapabilities"):
 	    Globals.logger.error("ElementCapabilities association classname error")
             return FAIL
         elif elec[0].keybindings['InstanceID'] != system:
