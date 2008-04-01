@@ -25,11 +25,12 @@ import pywbem
 from pywbem.cim_obj import CIMInstanceName
 from XenKvmLib import assoc
 from XenKvmLib import hostsystem
+from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
 from CimTest.Globals import log_param, logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'XenFV', 'KVM']
 
 exp_rc = 6 #CIM_ERR_NOT_FOUND
 exp_desc = "No such instance"
@@ -38,13 +39,12 @@ def try_assoc(ref, ref_class, exp_rc, exp_desc, options):
     conn = assoc.myWBEMConnection('http://%s' % options.ip,
                                   (Globals.CIM_USER, Globals.CIM_PASS),
                                   Globals.CIM_NS)
-    log_param()
     status = FAIL
     rc = -1
     names = []
 
     try:
-        names = conn.AssociatorNames(ref, AssocClass = "Xen_ElementCapabilities")
+        names = conn.AssociatorNames(ref, AssocClass = get_typed_class(options.virt, "ElementCapabilities"))
         rc = 0
     except pywbem.CIMError, (rc, desc):
         if rc == exp_rc and desc.find(exp_desc) >= 0:
@@ -57,7 +57,8 @@ def try_assoc(ref, ref_class, exp_rc, exp_desc, options):
         logger.error(details)
     finally:
         if rc == 0:
-            logger.error("Xen_ElementCapabilities associator should NOT return excepted result with a wrong key name and value of %s input" % ref_class)
+            logger.error("ElementCapabilities associator should NOT return excepted \
+                         result with a wrong key name and value of %s input" % ref_class)
             status = FAIL
      
     return status
@@ -67,18 +68,22 @@ def try_assoc(ref, ref_class, exp_rc, exp_desc, options):
 def main():
     options = main.options
     rc = PASS
+    log_param()
 
-    instanceref = CIMInstanceName("Xen_HostSystem",
+    hs = get_typed_class(options.virt, "HostSystem")
+    cs = get_typed_class(options.virt, "ComputerSystem")
+
+    instanceref = CIMInstanceName(hs,
                                   keybindings = {"Name" : "wrong", "CreationClassName" : "wrong"})
-    rc = try_assoc(instanceref, "Xen_HostSystem", exp_rc, exp_desc, options)
+    rc = try_assoc(instanceref, hs, exp_rc, exp_desc, options)
     
     if rc != PASS:
         status = FAIL
         return status
 
-    instance_cs = CIMInstanceName("Xen_ComputerSystem",
+    instance_cs = CIMInstanceName(cs,
                                   keybindings = {"Name" : "wrong", "CreationClassName" : "Xen_ComputerSystem"})
-    rc = try_assoc(instance_cs, "Xen_ComputerSystem", exp_rc, exp_desc, options)
+    rc = try_assoc(instance_cs, cs, exp_rc, exp_desc, options)
     if rc != PASS:
         status = FAIL         
         return status
