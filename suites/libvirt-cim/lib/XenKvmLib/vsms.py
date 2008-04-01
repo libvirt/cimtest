@@ -26,7 +26,7 @@ import pywbem
 from CimTest.CimExt import CIMMethodClass, CIMClassMOF
 from CimTest import Globals
 from VirtLib import live
-from XenKvmLib import vxml
+from XenKvmLib import const
 from XenKvmLib.classes import get_typed_class, get_class_type, virt_types
 
 RASD_TYPE_PROC = 3
@@ -102,8 +102,8 @@ class CIM_VirtualSystemSettingData(CIMClassMOF):
         else:
             self.Bootloader = live.bootloader(Globals.CIM_IP, 0)
             self.BootloaderArgs = ''
-            self.Kernel = vxml.XenXML.kernel_path
-            self.Ramdisk = vxml.XenXML.init_path
+            self.Kernel = const.Xen_kernel_path
+            self.Ramdisk = const.Xen_init_path
  
 
 class Xen_VirtualSystemSettingData(CIM_VirtualSystemSettingData):
@@ -199,9 +199,9 @@ def get_masd_class(virt):
 
 def default_vssd_rasd_str(dom_name='test_domain', 
                           disk_dev='xvda',
-                          disk_source=vxml.XenXML.disk_path,
+                          disk_source=const.Xen_disk_path,
                           net_type='ethernet',
-                          net_mac=vxml.XenXML.default_mac,
+                          net_mac=const.Xen_default_mac,
                           proc_vcpu=1,
                           mem_mb=512,
                           virt='Xen'):
@@ -211,19 +211,19 @@ def default_vssd_rasd_str(dom_name='test_domain',
     class_dasd = get_dasd_class(virt)
     if virt == 'KVM':
         disk_dev = 'hda'
-        disk_source = vxml.KVMXML.disk_path
+        disk_source = const.KVM_disk_path
     elif virt == 'XenFV':
         disk_dev = 'hda'
-        disk_source = vxml.XenFVXML.disk_path
+        disk_source = const.XenFV_disk_path
     d = class_dasd(
                 dev=disk_dev, 
                 source=disk_source,
                 name=dom_name)
     class_nasd = get_nasd_class(virt)
     if virt == 'KVM':
-        net_mac= vxml.KVMXML.default_mac
+        net_mac= const.KVM_default_mac
     elif virt == 'XenFV':
-        net_mac = vxml.XenFVXML.default_mac
+        net_mac = const.XenFV_default_mac
     n = class_nasd(
                 type=net_type, 
                 mac=net_mac,
