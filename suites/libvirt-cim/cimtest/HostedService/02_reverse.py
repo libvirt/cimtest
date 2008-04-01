@@ -25,12 +25,13 @@ import sys
 from VirtLib import utils
 from XenKvmLib import assoc
 from XenKvmLib import hostsystem
+from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
 from CimTest.Globals import do_main
 from CimTest.Globals import log_param, logger
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
 
-sup_types = ['Xen', 'KVM']
+sup_types = ['Xen', 'XenFV', 'KVM']
 
 @do_main(sup_types)
 def main():
@@ -52,7 +53,7 @@ def main():
                                                k,
                                                options.virt,
                                                Name = v,
-                                               CreationClassName = "%s_%s" % (options.virt, k),
+                                               CreationClassName = get_typed_class(options.virt, k),
                                                SystemCreationClassName = host_sys.CreationClassName,
                                                SystemName = host_sys.Name)
         except Exception:
@@ -66,7 +67,7 @@ def main():
         ccn = assoc_host[0].keybindings['CreationClassName']
         name = assoc_host[0].keybindings['Name']
         
-        if ccn != "%s_HostSystem" % options.virt:
+        if ccn != get_typed_class(options.virt, "HostSystem"):
             logger.error("CreationClassName Error")
             return FAIL
         elif name != host_sys.Name:
