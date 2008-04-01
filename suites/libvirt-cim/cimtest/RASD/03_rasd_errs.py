@@ -111,7 +111,6 @@ def verify_rasd_err(field, keys, rasd_type):
         if ret_value != PASS:
             logger.error("------ FAILED: to verify %s.------", field)
             status = ret_value
-        logger.error(CIM_ERROR_GETINSTANCE, rasd_type['cn'])
     except Exception, detail:
         logger.error(CIM_ERROR_GETINSTANCE, rasd_type['cn'])
         logger.error("Exception: %s", detail)
