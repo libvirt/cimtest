@@ -25,12 +25,13 @@ import sys
 from VirtLib import utils
 from XenKvmLib import assoc
 from XenKvmLib import hostsystem
+from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
 from CimTest.Globals import do_main
 from CimTest.Globals import log_param, logger
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
 
-sup_types = ['Xen', 'KVM']
+sup_types = ['Xen', 'XenFV', 'KVM']
 
 @do_main(sup_types)
 def main():
@@ -56,9 +57,9 @@ def main():
         logger.error("No association return")
         return FAIL
 
-    valid_services = ["%s_ResourcePoolConfigurationService" % options.virt, 
-                      "%s_VirtualSystemManagementService" % options.virt,
-                      "%s_VirtualSystemMigrationService" % options.virt]
+    valid_services = [get_typed_class(options.virt, "ResourcePoolConfigurationService"), 
+                      get_typed_class(options.virt, "VirtualSystemManagementService"),
+                      get_typed_class(options.virt, "VirtualSystemMigrationService")]
     for item in service:
         ccn = item.keybindings["CreationClassName"]
         if ccn not in valid_services:
