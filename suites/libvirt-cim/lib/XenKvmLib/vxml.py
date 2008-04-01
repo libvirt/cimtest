@@ -33,10 +33,12 @@
 import os
 import platform
 import tempfile
+import pywbem
 from xml.dom import minidom, Node
 from xml import xpath
 from VirtLib import utils, live
-from XenKvmLib.test_doms import set_uuid
+from XenKvmLib.test_doms import set_uuid, viruuid
+from XenKvmLib import vsms
 from CimTest.Globals import logger, CIM_IP
 from CimTest.ReturnCodes import SKIP
 from XenKvmLib.classes import virt_types
@@ -386,7 +388,42 @@ class VirtXML(Virsh, XMLClass):
         return vbr
 
 
-class XenXML(VirtXML):
+class VirtCIM:
+    def __init__(self, virt, dom_name, disk_dev, disk_source,
+                 net_type, net_mac, vcpus, mem):
+        self.virt = virt
+        self.domain_name = dom_name
+        self.vssd = vsms.get_vssd_class(virt)(name=dom_name, virt=virt)
+        self.dasd = vsms.get_dasd_class(virt)(dev=disk_dev,
+                                              source=disk_source,
+                                              name=dom_name)
+        self.nasd = vsms.get_nasd_class(virt)(type=net_type, 
+                                              mac=net_mac,
+                                              name=dom_name)
+        self.pasd = vsms.get_pasd_class(virt)(vcpu=vcpus, name=dom_name)
+        self.masd = vsms.get_masd_class(virt)(megabytes=mem, name=dom_name)
+
+    def cim_define(self, ip):
+        service = vsms.get_vsms_class(self.virt)(ip)
+        sys_settings = str(self.vssd)
+        res_settings = [str(self.dasd), str(self.nasd), str(self.pasd), str(self.masd)]
+        try:
+            service.DefineSystem(SystemSettings=sys_settings,
+                                 ResourceSettings=res_settings,
+                                 ReferenceConfiguration=' ')
+        except pywbem.CIMError, (rc, desc):
+            logger.error('Got CIM error %s with return code %s' % (desc, rc))
+            return False
+
+        except Exception, details:
+            loggerr.error('Got error %s with exception %s' % (details, details.__class__.__name__))
+            return False
+
+        set_uuid(viruuid(self.domain_name, ip, self.virt))
+        return True
+
+
+class XenXML(VirtXML, VirtCIM):
     
     image_dir = "/tmp"
     kernel_path = os.path.join(image_dir, 'default-xen-kernel')
@@ -411,6 +448,9 @@ class XenXML(VirtXML):
         self._os(self.kernel_path, self.init_path)
         self._devices(disk_file_path, disk, self.default_net_type, mac)
 
+        VirtCIM.__init__(self, 'Xen', test_dom, disk, disk_file_path, 
+                         self.default_net_type, mac, vcpus, mem)
+
     def _os(self, os_kernel, os_initrd):
         os = self.get_node('/domain/os')
         self.add_sub_node(os, 'type', 'linux')
@@ -432,12 +472,15 @@ class XenXML(VirtXML):
     def set_bootloader(self, ip, gtype=0):
         bldr = live.bootloader(ip, gtype)
         self.add_sub_node('/domain', 'bootloader', bldr)
+        self.vssd.Bootloader = bldr
         return bldr
 
     def set_bridge(self, ip):
+        self.nasd.NetworkType = 'bridge'
         return self._set_bridge(ip)
 
     def set_vbridge(self, ip):
+        self.nasd.NetworkType = 'bridge'
         return self._set_vbridge(ip, 'Xen')
 
 
