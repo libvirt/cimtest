@@ -219,8 +219,7 @@ def enumerate_inst(server, classname, virt="Xen"):
     classname = "%s" % classname
     new_classname = classname.split('_')
     if len(new_classname) == 2:
-        classname = classname[1]
-
+        classname = new_classname[1]
     classname = eval(get_typed_class(virt, classname))
     instances = []
     conn = pywbem.WBEMConnection('http://%s' % server,
@@ -243,7 +242,7 @@ def enumerate(server, basename, keys, virt="Xen"):
         basename = new_base[1]
 
     classname = eval(get_typed_class(virt, basename))
-    instances = enumerate_inst(server, classname)
+    instances = enumerate_inst(server, classname, virt)
 
     list = []
 
