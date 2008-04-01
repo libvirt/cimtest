@@ -27,34 +27,33 @@
 # Date : 29-11-2007
 
 import sys
-from XenKvmLib.test_xml import testxml
 from VirtLib import utils
+from XenKvmLib import vxml
 from XenKvmLib import assoc
-from XenKvmLib.test_doms import test_domain_function, destroy_and_undefine_all
 from XenKvmLib import devices
+from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL 
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'KVM', 'XenFV']
 
 test_dom = "domu1"
 test_mac = "00:11:22:33:44:aa"
 test_vcpus = 1
-test_disk = 'xvda'
 
 
 def print_error(cn, detail):
     Globals.logger.error(Globals.CIM_ERROR_GETINSTANCE, cn)
     Globals.logger.error("Exception: %s", detail)
 
-def get_keys(cn, device_id):
+def get_keys(baseccn, device_id, basesccn, virt):
     id = "%s/%s" % (test_dom, device_id)
 
     key_list = { 'DeviceID' : id,
-                 'CreationClassName' : cn,
+                 'CreationClassName' : get_typed_class(virt, baseccn),
                  'SystemName' : test_dom,
-                 'SystemCreationClassName' : "Xen_ComputerSystem"
+                 'SystemCreationClassName' : get_typed_class(virt, basesccn)
                }
 
     return key_list
@@ -65,69 +64,51 @@ def main():
     status = PASS
     idx = 0
 
+    if options.virt == 'Xen':
+        test_disk = 'xvda'
+    else:
+        test_disk = 'hda'
     Globals.log_param()
-    destroy_and_undefine_all(options.ip)
-    test_xml = testxml(test_dom, vcpus = test_vcpus, mac = test_mac, \
-                       disk = test_disk)
+    virt_xml = vxml.get_class(options.virt)
+    cxml = virt_xml(test_dom, vcpus = test_vcpus, mac = test_mac, 
+                    disk = test_disk)
 
-    ret = test_domain_function(test_xml, options.ip, cmd = "create")
+    ret = cxml.create(options.ip)
     if not ret:
         Globals.logger.error("Failed to Create the dom: %s", test_dom)
         return FAIL 
 
-    try: 
-        cn = "Xen_LogicalDisk"
-        key_list = get_keys(cn, test_disk)
-        disk = devices.Xen_LogicalDisk(options.ip, key_list)
-    except Exception,detail:
-        print_error(cn, detail)
-        return FAIL 
+    cn_id = {
+            'LogicalDisk' : test_disk,
+            'Memory'      : 'mem',
+            'NetworkPort' : test_mac,
+            'Processor'   : test_vcpus -1 }
 
-    try: 
-        cn = "Xen_Memory"
-        key_list = get_keys(cn, "mem")
-        mem = devices.Xen_Memory(options.ip, key_list)
-    except Exception, detail:
-        print_error(cn, detail)
-        return FAIL 
-
-    try:
-        cn = "Xen_NetworkPort"
-        key_list = get_keys(cn, test_mac)
-        net = devices.Xen_NetworkPort(options.ip, key_list)
-    except Exception, detail:
-        print_error(cn, detail)
-        return FAIL 
-
-    try: 
-        cn = "Xen_Processor"
-        key_list = get_keys(cn, "0")
-        proc = devices.Xen_Processor(options.ip, key_list)
-    except Exception, detail:
-        print_error(cn, detail)
-        return FAIL 
-
-    logelelst = {
-              "Xen_LogicalDisk" : disk.DeviceID, \
-              "Xen_Memory"      : mem.DeviceID, \
-              "Xen_NetworkPort" : net.DeviceID, \
-              "Xen_Processor"   : proc.DeviceID 
-             }
-    devval = [ 
-               "domu1/xvda", \
-               "domu1/mem", \
-               "domu1/00:11:22:33:44:aa", \
-               "domu1/0"
-             ]
-
-    sccn = "Xen_ComputerSystem"
-    for cn, devid in sorted(logelelst.items()):
+    devlist = {}
+    logelelst = {}
+    exp_inst_id_val = {}
+    for cn in cn_id.keys():
+        key_list = get_keys(cn, cn_id[cn], 'ComputerSystem', options.virt)
+        exp_inst_id_val[cn] = key_list['DeviceID']
         try:
-            assoc_info = assoc.AssociatorNames(options.ip, \
-                                               "Xen_SettingsDefineState",
-                                               cn,
-                                               DeviceID = devid,
-                                               CreationClassName = cn,
+            dev_class = devices.get_class(get_typed_class(options.virt, cn))
+            devlist[cn] = dev_class(options.ip, key_list)
+            logelelst[cn] = devlist[cn].DeviceID
+        except Exception, detail:
+            print_error(cn, detail)
+            cxml.destroy(options.ip)
+            cxml.undefine(options.ip)
+            return FAIL
+
+    sccn = get_typed_class(options.virt, 'ComputerSystem')
+    for cn in logelelst.keys():
+        try:
+            ccn = get_typed_class(options.virt, cn)
+            assoc_info = assoc.AssociatorNames(options.ip, 
+                                               'SettingsDefineState',
+                                               cn, virt=options.virt,
+                                               DeviceID = logelelst[cn],
+                                               CreationClassName = ccn,
                                                SystemName = test_dom,
                                                SystemCreationClassName = sccn)
 
@@ -137,26 +118,22 @@ def main():
                 status = FAIL
                 break
 
-            if assoc_info[0]['InstanceID'] !=  devval[idx]:
+            if assoc_info[0]['InstanceID'] !=  exp_inst_id_val[cn]:
                 Globals.logger.error("InstanceID Mismatch")
-                Globals.logger.error("Returned %s instead of %s", \
-                                      assoc_info[0]['InstanceID'], \
-                                      devval[idx])
+                Globals.logger.error("Returned %s instead of %s" \
+                        % (assoc_info[0]['InstanceID'], exp_inst_id_val[cn]))
                 status = FAIL
 
             if status != PASS:
                 break
-            else:
-                idx = idx + 1
 
         except Exception, detail:
-            Globals.logger.error(Globals.CIM_ERROR_ASSOCIATORS, \
-                                  'Xen_SettingsDefineState')
+            Globals.logger.error(Globals.CIM_ERROR_ASSOCIATORS, sds_classname)
             Globals.logger.error("Exception: %s", detail)
             status = FAIL
 
-    ret = test_domain_function(test_dom, options.ip, \
-                                                   cmd = "destroy")
+    cxml.destroy(options.ip)
+    cxml.undefine(options.ip)
     return status
     
 if __name__ == "__main__":

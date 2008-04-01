@@ -93,6 +93,9 @@ class Xen_Processor(CIM_Processor):
 class KVM_Processor(CIM_Processor):
     pass
 
+def get_class(classname):
+    return eval(classname)
+
 def enumerate(server, basetype, keys, virt='Xen'):
     conn = pywbem.WBEMConnection('http://%s' % server,
                                  (Globals.CIM_USER, Globals.CIM_PASS),
