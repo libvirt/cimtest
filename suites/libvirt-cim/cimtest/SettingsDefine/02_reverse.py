@@ -55,46 +55,38 @@ from CimTest import Globals
 from CimTest.Globals import log_param, logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from VirtLib import utils
-from XenKvmLib.test_xml import testxml
-from XenKvmLib.test_doms import test_domain_function
 from XenKvmLib import assoc
+from XenKvmLib import vxml
+from XenKvmLib.classes import get_typed_class, get_class_basename
 from XenKvmLib.rasd import InstId_err
-from XenKvmLib.devices import Xen_NetworkPort, Xen_Memory, Xen_LogicalDisk, Xen_Processor
 
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'KVM', 'XenFV']
 
 test_dom    = "virtgst"
 test_vcpus  = 1
 test_mem    = 128
 test_mac    = "00:11:22:33:44:aa"
-test_disk   = 'xvdb'
-VSType      = "Xen"
 
-resources = {
-             "proc" : (test_dom + '/' + `0` ), \
-             "net"  : (test_dom + '/' + test_mac), \
-             "disk" : (test_dom + '/' + test_disk), \
-             "mem"  : (test_dom + '/' + 'mem' )
-           }
 
-def call_assoc(ip, inst, exp_id, ccn):
+def call_assoc(ip, inst, exp_id, ccn, virt):
     if inst['InstanceID'] != exp_id:
         InstId_err(inst, exp_id)
         return FAIL
 
     try:
-        associnf = assoc.Associators(ip, 'Xen_SettingsDefineState', ccn, \
-                                        InstanceID = exp_id)
+        associnf = assoc.Associators(ip, 'SettingsDefineState',
+                                     ccn, virt,
+                                     InstanceID = exp_id)
     except  BaseException, detail :
         logger.error("Exception  %s "  % detail)
         logger.error("Error while associating Xen_SettingsDefineState with %s" %
                      ccn)
         return FAIL
 
-    return SettingsDefineStateAssoc(ip, associnf)
+    return SettingsDefineStateAssoc(ip, associnf, virt)
 
-def VSSDCAssoc(ip, assocn):
+def VSSDCAssoc(ip, assocn, virt):
     """
         The association info of Xen_VirtualSystemSettingDataComponent 
         is verified. 
@@ -106,22 +98,10 @@ def VSSDCAssoc(ip, assocn):
         return status
 
     try: 
-        for i in range(len(assocn)): 
-            if assocn[i].classname == 'Xen_ProcResourceAllocationSettingData':
-                status = call_assoc(ip, assocn[i], resources['proc'],       \
-                                    'Xen_ProcResourceAllocationSettingData')
-
-            elif assocn[i].classname == 'Xen_NetResourceAllocationSettingData':
-                status = call_assoc(ip, assocn[i], resources['net'],        \
-                                    'Xen_NetResourceAllocationSettingData')
-
-            elif assocn[i].classname =='Xen_DiskResourceAllocationSettingData':
-                status = call_assoc(ip, assocn[i], resources['disk'],       \
-                                     'Xen_DiskResourceAllocationSettingData')
-
-            elif assocn[i].classname == 'Xen_MemResourceAllocationSettingData':
-                status = call_assoc(ip, assocn[i], resources['mem'],        \
-                                     'Xen_MemResourceAllocationSettingData')
+        for rasd in assocn:
+            rasd_cn = get_class_basename(rasd.classname)
+            if rasd_cn in rasd_devid.keys():
+                status = call_assoc(ip, rasd, rasd_devid[rasd_cn], rasd_cn, virt)
             else:
                 status = FAIL
 
@@ -141,7 +121,7 @@ def check_id(inst, exp_id):
 
     return PASS
    
-def SettingsDefineStateAssoc(ip, associnfo_setDef):
+def SettingsDefineStateAssoc(ip, associnfo_setDef, virt):
     """
         The association info of Xen_SettingsDefineState is verified. 
     """
@@ -152,20 +132,10 @@ def SettingsDefineStateAssoc(ip, associnfo_setDef):
         return status
 
     try: 
-        for i in range(len(associnfo_setDef)): 
-        
-            if associnfo_setDef[i]['CreationClassName'] == 'Xen_Processor':
-                status = check_id(associnfo_setDef[i], resources['proc'])
-
-            elif associnfo_setDef[i]['CreationClassName'] == 'Xen_NetworkPort':
-                status = check_id(associnfo_setDef[i], resources['net'])
-
-            elif associnfo_setDef[i]['CreationClassName'] == 'Xen_LogicalDisk':
-                status = check_id(associnfo_setDef[i], resources['disk'])
-
-            elif associnfo_setDef[i]['CreationClassName'] == 'Xen_Memory':
-                status = check_id(associnfo_setDef[i], resources['mem'])
-
+        for dev in associnfo_setDef:
+            dev_cn = get_class_basename(dev['CreationClassName'])
+            if dev_cn in dev_devid.keys():
+                status = check_id(dev, dev_devid[dev_cn])
             else:
                 status = FAIL
 
@@ -177,42 +147,70 @@ def SettingsDefineStateAssoc(ip, associnfo_setDef):
         logger.error("Exception in SettingsDefineStateAssoc function: %s" 
                      % detail)
         status = FAIL
-        test_domain_function(test_dom, ip, "destroy")
 
     return status
+
 
 @do_main(sup_types)
 def main():
     options = main.options
 
+    vt = options.virt
+    if vt == 'Xen':
+        test_disk = 'xvdb'
+    else:
+        test_disk = 'hdb'
+    
     status = PASS 
     log_param()
-    test_domain_function(test_dom, options.ip, "destroy")
-    bld_xml = testxml(test_dom, mem = test_mem, vcpus = test_vcpus, 
-                      mac = test_mac, disk = test_disk)
-
-    ret = test_domain_function(bld_xml, options.ip, cmd = "create")
+    virt_xml = vxml.get_class(options.virt)
+    cxml = virt_xml(test_dom, mem = test_mem, vcpus = test_vcpus,
+                    mac = test_mac, disk = test_disk)
+    ret = cxml.create(options.ip)
     if not ret:
         logger.error("Failed to create the dom: %s", test_dom)
         status = FAIL
         return status
 
+
+    if vt == 'XenFV':
+        VSType = 'Xen'
+    else:
+        VSType = vt
+
     instIdval = "%s:%s" % (VSType, test_dom)
 
+    vssdc_cn = get_typed_class(vt, 'VirtualSystemSettingDataComponent')
+    vssd_cn = get_typed_class(vt, 'VirtualSystemSettingData')
+    sds_cn = get_typed_class(vt, 'SettingsDefineState')
+
+    global rasd_devid
+    rasd_devid = {
+            'ProcResourceAllocationSettingData' : '%s/%s' % (test_dom, test_vcpus-1),
+            'NetResourceAllocationSettingData'  : '%s/%s' % (test_dom, test_mac),
+            'DiskResourceAllocationSettingData' : '%s/%s' % (test_dom, test_disk),
+            'MemResourceAllocationSettingData'  : '%s/%s' % (test_dom, 'mem')}
+    global dev_devid
+    dev_devid = {
+            'Processor'   : '%s/%s' % (test_dom, test_vcpus-1),
+            'NetworkPort' : '%s/%s' % (test_dom, test_mac),
+            'LogicalDisk' : '%s/%s' % (test_dom, test_disk),
+            'Memory'      : '%s/%s' % (test_dom, 'mem')}
+
     try:
-        assocn = assoc.AssociatorNames(options.ip, 
-                                       'Xen_VirtualSystemSettingDataComponent',
-                                       'Xen_VirtualSystemSettingData', 
+        assocn = assoc.AssociatorNames(options.ip, vssdc_cn, vssd_cn,
+                                       virt = options.virt,
                                        InstanceID = instIdval)
-        status = VSSDCAssoc(options.ip, assocn)
+            
+        status = VSSDCAssoc(options.ip, assocn, options.virt)
 
     except  BaseException, detail :
-        logger.error(Globals.CIM_ERROR_ASSOCIATORS, 
-                        'Xen_VirtualSystemSettingDataComponent')
+        logger.error(Globals.CIM_ERROR_ASSOCIATORS, vssdc_cn)
         logger.error("Exception : %s" % detail)
         status = FAIL 
 
-    test_domain_function(test_dom, options.ip, "destroy")
+    cxml.destroy(options.ip)
+    cxml.undefine(options.ip)
     return status
 
 if __name__ == "__main__":
