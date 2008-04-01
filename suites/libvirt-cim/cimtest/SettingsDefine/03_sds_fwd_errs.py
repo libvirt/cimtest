@@ -147,20 +147,18 @@ import sys
 import pywbem
 from VirtLib import utils
 from XenKvmLib import assoc
-from XenKvmLib.test_xml import testxml
+from XenKvmLib import vxml
 from XenKvmLib.common_util import try_assoc
-from XenKvmLib.test_doms import test_domain_function, destroy_and_undefine_all
+from XenKvmLib.classes import get_typed_class
 from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import log_param, logger, CIM_USER, CIM_PASS, CIM_NS
 from CimTest.Globals import do_main
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'KVM', 'XenFV']
 
-ac_classname = 'Xen_SettingsDefineState'
 test_dom = "domu1"
 test_mac = "00:11:22:33:44:aa"
 test_vcpus = 1
-test_disk = 'xvda'
 
 expr_values = {
     "INVALID_DevID_Keyname"   : { 'rc'   : pywbem.CIM_ERR_FAILED, \
@@ -181,23 +179,24 @@ expr_values = {
                      'desc' : 'No such instance (SystemName)'}
 }
 
-def get_name_val(classname, device_id):
+def get_name_val(classname, device_id, sccn):
     devid = "%s/%s" % (test_dom, device_id)
     name_val = [
                 'DeviceID'                , devid, \
                 'CreationClassName'       , classname, \
-                'SystemCreationClassName' , "Xen_ComputerSystem", \
+                'SystemCreationClassName' , sccn, \
                 'SystemName'              , test_dom
                ]
     return name_val
 
-def try_invalid_assoc(classname, name_val, i, field):
+def try_invalid_assoc(classname, name_val, i, field, virt):
     keys = {}
     temp = name_val[i]
     name_val[i] = field
     for j in range(len(name_val)/2):
         k = j * 2
         keys[name_val[k]] = name_val[k+1]
+    ac_classname = get_typed_class(virt, 'SettingsDefineState')
     ret_val = try_assoc(conn, classname, ac_classname, keys, field_name=field, \
                               expr_values=expr_values[field], bug_no='')
     if ret_val != PASS:
@@ -211,11 +210,16 @@ def main():
     log_param()
     status = PASS
 
-    destroy_and_undefine_all(options.ip)
-    test_xml = testxml(test_dom, vcpus = test_vcpus, mac = test_mac, \
-                       disk = test_disk)
+    if options.virt == 'Xen':
+        test_disk = 'xvda'
+    else:
+        test_disk = 'hda'
 
-    ret = test_domain_function(test_xml, options.ip, cmd = "create")
+    virt_xml = vxml.get_class(options.virt)
+    cxml= virt_xml(test_dom, vcpus = test_vcpus, mac = test_mac,
+                   disk = test_disk)
+
+    ret = cxml.create(options.ip)
     if not ret:
         logger.error("Failed to Create the dom: %s", test_dom)
         return FAIL
@@ -225,10 +229,10 @@ def main():
                                                         CIM_PASS), CIM_NS)
 
     class_id = {
-                'Xen_LogicalDisk' : test_disk, \
-                'Xen_Memory'      : 'mem', \
-                'Xen_NetworkPort' : test_mac, \
-                'Xen_Processor'   : '0'
+                get_typed_class(options.virt, 'LogicalDisk') : test_disk,
+                get_typed_class(options.virt, 'Memory')      : 'mem',
+                get_typed_class(options.virt, 'NetworkPort') : test_mac,
+                get_typed_class(options.virt, 'Processor')   : test_vcpus - 1
                }
 
     tc_scen = [
@@ -238,14 +242,17 @@ def main():
                 'INVALID_SysName_Keyname', 'INVALID_SysName_Keyval'
               ]
 
+    sccn = get_typed_class(options.virt, 'ComputerSystem')
     for classname, devid in sorted(class_id.items()):
-        name_val = get_name_val(classname, devid)
+        name_val = get_name_val(classname, devid, sccn)
         for i in range(len(tc_scen)):
-            retval = try_invalid_assoc(classname, name_val, i, tc_scen[i])
+            retval = try_invalid_assoc(classname, name_val, i,
+                                       tc_scen[i], options.virt)
             if retval != PASS:
                 status = retval
 
-    test_domain_function(test_dom, options.ip, cmd = "destroy")
+    cxml.destroy(options.ip)
+    cxml.destroy(options.ip)
     return status
 
 if __name__ == "__main__":
