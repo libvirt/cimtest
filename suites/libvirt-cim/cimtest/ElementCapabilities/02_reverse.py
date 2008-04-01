@@ -26,24 +26,26 @@ from VirtLib import utils
 from VirtLib import live
 from XenKvmLib import assoc
 from XenKvmLib import hostsystem
-from XenKvmLib import vsms 
+from XenKvmLib import vsms
+from XenKvmLib.classes import get_typed_class 
 from CimTest.Globals import log_param, logger, CIM_ERROR_ENUMERATE, CIM_ERROR_ASSOCIATORNAMES
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 
-sup_types = ['xen']
+sup_types = ['Xen', 'XenFV', 'KVM']
 
-def call_assoc(ip, cn, id):
+def call_assoc(ip, cn, id, virt="Xen"):
     status = PASS
     ec_ele = []
     try:
         ec_ele = assoc.AssociatorNames(ip,
-                                       "Xen_ElementCapabilities",
-                                       cn, 
+                                       "ElementCapabilities",
+                                       cn,
+                                       virt, 
                                        InstanceID = id)
     except Exception:
         logger.error(CIM_ERROR_ASSOCIATORNAMES,
-                     'Xen_ElementCapabilities')
+                     'ElementCapabilities')
         status = FAIL
 
     return status, ec_ele 
@@ -55,16 +57,17 @@ def filter(list, cn, exp_result):
         return FAIL, new_list
     return PASS, new_list
 
-def verify_host(inst_list, ip):
-    status, list = filter(inst_list, 'Xen_HostSystem', 1) 
+def verify_host(inst_list, ip, virt="Xen"):
+    hs = get_typed_class(virt, 'HostSystem')
+    status, list = filter(inst_list, hs, 1) 
     if status != PASS:
         return status
 
     inst = list[0]
     try:
-        host_sys = hostsystem.enumerate(ip)[0]
+        host_sys = hostsystem.enumerate(ip, virt)[0]
     except Exception:
-        logger.error(CIM_ERROR_ENUMERATE, 'Xen_HostSystem')
+        logger.error(CIM_ERROR_ENUMERATE, 'HostSystem')
         return FAIL
 
     creationclassname = inst.keybindings['CreationClassName']
@@ -79,17 +82,18 @@ def verify_host(inst_list, ip):
 
     return PASS
 
-def verify_service(inst_list, ip):
-    status, list = filter(inst_list, 'Xen_VirtualSystemManagementService', 1) 
+def verify_service(inst_list, ip, virt):
+    service = get_typed_class(virt, "VirtualSystemManagementService")
+    status, list = filter(inst_list, service, 1) 
     if status != PASS:
         return status
 
     inst = list[0]
     try:
-        service = vsms.enumerate_instances(ip)[0]
+        service = vsms.enumerate_instances(ip, virt)[0]
     except Exception:
         logger.error(CIM_ERROR_ENUMERATE, 
-                     'Xen_VirtualSystemManagementService')
+                     'VirtualSystemManagementService')
         return FAIL
 
     creationclassname = inst.keybindings['CreationClassName']
@@ -109,28 +113,30 @@ def main():
     options = main.options
     log_param()
     
-    cap_list = {"Xen_VirtualSystemManagementCapabilities" : "ManagementCapabilities",
-                "Xen_VirtualSystemMigrationCapabilities" : "MigrationCapabilities"}
-                
+    cap_list = {"VirtualSystemManagementCapabilities" : "ManagementCapabilities",
+                "VirtualSystemMigrationCapabilities" : "MigrationCapabilities"}
+    import pdb
+    #pdb.set_trace()                
     for k, v in cap_list.iteritems():
-        status, ec_ele = call_assoc(options.ip, k, v)
+        status, ec_ele = call_assoc(options.ip, k, v, options.virt)
         if status != PASS:
             return
-
-        status = verify_host(ec_ele, options.ip)
+        
+        status = verify_host(ec_ele, options.ip, options.virt)
         if status != PASS:
             return status 
    
         if v == 'ManagementCapabilities':
-            status = verify_service(ec_ele, options.ip)
+            status = verify_service(ec_ele, options.ip, options.virt)
             if status != PASS:
                 return status 
 
-    cs = live.domain_list(options.ip)
+    cs = live.domain_list(options.ip, options.virt)
     for system in cs:
         status, elec_cs = call_assoc(options.ip, 
-                                     "Xen_EnabledLogicalElementCapabilities", 
-                                     system)
+                                     "EnabledLogicalElementCapabilities", 
+                                     system,
+                                     options.virt)
         if status != PASS:
             return
 
@@ -138,9 +144,9 @@ def main():
             logger.error("No ELEC instances returned")
             return FAIL
 
-        if elec_cs[0].keybindings['CreationClassName'] != "Xen_ComputerSystem":
+        if elec_cs[0].keybindings['CreationClassName'] != get_typed_class(options.virt, "ComputerSystem"):
             logger.error("Excpeted CreationClassName %s, got %s" %
-                         ("Xen_ComputerSystem", 
+                         ("ComputerSystem", 
                           elec_cs[0].keybindings['CreationClassName']))
             return FAIL
         elif elec_cs[0].keybindings['Name'] != system:
