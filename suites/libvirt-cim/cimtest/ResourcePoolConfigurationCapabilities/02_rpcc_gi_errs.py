@@ -4,7 +4,7 @@
 #
 # Authors:
 #    Deepti B. Kalakeri<dkalaker@in.ibm.com> 
-#    
+#    Guolian Yun <yunguol@cn.ibm.com>    
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public
@@ -48,12 +48,13 @@
 import sys
 import pywbem
 from XenKvmLib import assoc
+from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import log_param, logger, CIM_USER, CIM_PASS, CIM_NS
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.common_util import try_getinstance
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'XenFV', 'KVM']
 
 expr_values = {
                 "invalid_instid" :  { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
@@ -66,7 +67,7 @@ def main():
     log_param()
     status = PASS
     conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, CIM_PASS), CIM_NS)
-    classname = 'Xen_ResourcePoolConfigurationCapabilities'
+    classname = get_typed_class(options.virt, 'ResourcePoolConfigurationCapabilities')
 
     field = 'INVALID_Instid_KeyName'
     keys = { field : "RPCC" }
