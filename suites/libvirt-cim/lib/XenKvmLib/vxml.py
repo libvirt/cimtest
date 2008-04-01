@@ -40,7 +40,7 @@ from VirtLib import utils, live
 from XenKvmLib.test_doms import set_uuid, viruuid
 from XenKvmLib import vsms
 from XenKvmLib import const
-from CimTest.Globals import logger, CIM_IP
+from CimTest.Globals import logger, CIM_IP, CIM_PORT, CIM_NS, CIM_USER, CIM_PASS
 from CimTest.ReturnCodes import SKIP
 from XenKvmLib.classes import virt_types
 
@@ -561,3 +561,17 @@ def get_class(virt):
     if virt in virt_types:
         return eval(virt + 'XML')
 
+def set_default(server):
+    dict = {}
+    dict['default_sysname'] = live.full_hostname(server)
+    dict['default_port'] = CIM_PORT
+    dict['default_url'] = "%s:%s" % (dict['default_sysname'], dict['default_port'])
+    dict['default_ns'] = CIM_NS
+    dict['default_name'] = "Test"
+    dict['default_dump'] = False
+    dict['default_print_ind'] = False
+    dict['default_username'] = CIM_USER
+    dict['default_password'] = CIM_PASS
+    dict['default_auth'] = (dict['default_username'], dict['default_password'])
+
+    return dict
