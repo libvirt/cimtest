@@ -25,19 +25,18 @@
 #
 
 import sys
-from XenKvmLib.test_xml import testxml
 from VirtLib import utils
 from XenKvmLib import assoc
-from XenKvmLib.test_doms import test_domain_function
+from XenKvmLib import vxml
 from XenKvmLib import devices
+from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import log_param, logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'KVM', 'XenFV']
 
 test_dom = "test_domain"
 test_mac = "00:11:22:33:44:55"
-test_disk = "xvdb"
 test_cpu = 1
 
 @do_main(sup_types)
@@ -45,17 +44,25 @@ def main():
     options= main.options
 
     log_param()
+    if options.virt == 'Xen':
+        test_disk = 'xvdb'
+    else:
+        test_disk = 'hdb'
+
     status = PASS
-    test_xml = testxml(test_dom, vcpus = test_cpu, mac = test_mac, \
-                       disk = test_disk)
+    virt_xml = vxml.get_class(options.virt)
+    cxml = virt_xml(test_dom, vcpus = test_cpu, mac = test_mac, disk = test_disk)
+    ret = cxml.create(options.ip)
+    if not ret:
+        logger.error('Unable to create domain %s' % test_dom)
+        return FAIL
 
-    test_domain_function(test_xml, options.ip, "destroy")
-    test_domain_function(test_xml, options.ip, "create")
+    sd_classname = get_typed_class(options.virt, 'SystemDevice')
+    cs_classname = get_typed_class(options.virt, 'ComputerSystem')
 
-    devs = assoc.AssociatorNames(options.ip, "Xen_SystemDevice",
-                                 "Xen_ComputerSystem", 
-                                 Name=test_dom,
-                                 CreationClassName="Xen_ComputerSystem")
+    devs = assoc.AssociatorNames(options.ip, sd_classname, cs_classname,
+                                 virt=options.virt,
+                                 Name=test_dom, CreationClassName=cs_classname)
     if devs == None:
         logger.error("System association failed")
         return FAIL
@@ -63,40 +70,37 @@ def main():
         logger.error("No devices returned")
         return FAIL
 
-    devlist = ["Xen_NetworkPort", "Xen_Memory", "Xen_LogicalDisk", \
-               "Xen_Processor"]
+    cn_devid = {
+            get_typed_class(options.virt, "NetworkPort") : '%s/%s' % (test_dom, test_mac),
+            get_typed_class(options.virt, "Memory")      : '%s/mem' % test_dom,
+            get_typed_class(options.virt, "LogicalDisk") : '%s/%s' % (test_dom, test_disk),
+            get_typed_class(options.virt, "Processor")   : '%s/%s' % (test_dom, test_cpu-1)
+            }
 
     key_list = {'DeviceID' : '',
                 'CreationClassName' : '',
                 'SystemName' : test_dom,
-                'SystemCreationClassname' : "Xen_ComputerSystem"
+                'SystemCreationClassname' : cs_classname
                }
  
-    for items in devlist:
+    for dev_cn in cn_devid.keys():
         for dev in devs:
             key_list['CreationClassName'] = dev['CreationClassname']
             key_list['DeviceID'] = dev['DeviceID']
             device = devices.device_of(options.ip, key_list)
-            if device.CreationClassName != items:
+            if device.CreationClassName != dev_cn:
                 continue
             devid = device.DeviceID
 
-            if items == "Xen_NetworkPort":
-                _devid = "%s/%s" % (test_dom, test_mac)
-            elif items == "Xen_LogicalDisk":
-                _devid = "%s/%s" % (test_dom, test_disk)
-            elif items == "Xen_Processor":
-                _devid = "%s/%d" % (test_dom, test_cpu-1)
-            elif items == "Xen_Memory":
-                _devid = "%s/mem" % test_dom
-                
+            _devid = cn_devid[dev_cn]
             if devid != _devid:
                 logger.error("DeviceID `%s` != `%s'" % (devid, _devid))
                 status = FAIL
             else:
                 logger.info("Examined %s" % _devid)
             
-    test_domain_function(test_xml, options.ip, "destroy")
+    cxml.destroy(options.ip)
+    cxml.undefine(options.ip)
 
     return status
         
