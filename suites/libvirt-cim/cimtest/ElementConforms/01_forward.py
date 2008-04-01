@@ -3,6 +3,7 @@
 # Copyright 2008 IBM Corp.
 #
 # Authors:
+#    Guolian Yun <yunguol@cn.ibm.com>
 #    Kaitlin Rupert <karupert@us.ibm.com>
 #    Veerendra Chandrappa <vechandr@in.ibm.com>
 #
@@ -35,11 +36,12 @@ import sys
 from VirtLib import utils, live
 from XenKvmLib import assoc
 from XenKvmLib.test_doms import destroy_and_undefine_all
+from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import log_param, logger, CIM_ERROR_ASSOCIATORS, do_main
 from CimTest import Globals 
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'XenFV', 'KVM']
 
 def verify_cs(item, id):
     if item['EnabledState'] != 2 and  \
@@ -79,7 +81,7 @@ def main():
 
     log_param()
     status = PASS
-    destroy_and_undefine_all(options.ip)
+    destroy_and_undefine_all(options.ip, options.virt)
 
     prev_namespace = Globals.CIM_NS
     Globals.CIM_NS = 'root/interop'
@@ -89,32 +91,36 @@ def main():
               "InstID1"  : "CIM:DSP1042-SystemVirtualization-1.0.0" ,
               "InstID2"  : "CIM:DSP1057-VirtualSystem-1.0.0a"
              }
+    hs = get_typed_class(options.virt, "HostSystem")
+    cs = get_typed_class(options.virt, "ComputerSystem")
+
     devlist = [  
-              "Xen_HostSystem" , \
-              "Xen_ComputerSystem"
+              hs , \
+              cs
              ]
 
     for args, devid in inst_lst.items() :
         try:
-            assoc_info = assoc.Associators(options.ip, \
-                                               "Xen_ElementConformsToProfile",
-                                               "Xen_RegisteredProfile",
-                                               InstanceID = devid)  
+            assoc_info = assoc.Associators(options.ip, 
+                                           "ElementConformsToProfile",
+                                           "RegisteredProfile",
+                                           options.virt,
+                                           InstanceID = devid)  
             if len(assoc_info) < 1:
                 status = FAIL
-                logger.error("Xen_ElementConformsToProfile returned %i\
- Xen_RegisteredProfile objects" % len(assoc_info))
+                logger.error("ElementConformsToProfile returned %i\
+                             RegisteredProfile objects" % len(assoc_info))
                 break
 
             count = 0
             for info in assoc_info:
-                if info['CreationClassName'] == "Xen_ComputerSystem" :
+                if info['CreationClassName'] == cs :
+                    if options.virt == "Xen" or options.virt == "XenFV":
+                        if info['Name'] == 'Domain-0' :
+                            count = count + 1
+                            verify_cs(info, devid)
 
-                    if info['Name'] == 'Domain-0' :
-                        count = count + 1
-                        verify_cs(info, devid)
-
-                elif info['CreationClassName'] == "Xen_HostSystem" and \
+                elif info['CreationClassName'] == hs and \
                      info['Name'] == host:
                         count = count + 1
                         verify_host(info, devid)
@@ -133,7 +139,7 @@ def main():
 
 
         except BaseException, detail:
-            logger.error(CIM_ERROR_ASSOCIATORS, 'Xen_ElementConformsToProfile')
+            logger.error(CIM_ERROR_ASSOCIATORS, 'ElementConformsToProfile')
             logger.error("Exception: %s" % detail)
             status = FAIL
 
