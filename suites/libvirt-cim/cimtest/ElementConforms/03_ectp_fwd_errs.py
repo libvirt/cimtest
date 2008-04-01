@@ -55,14 +55,13 @@ import pywbem
 from VirtLib import utils
 from XenKvmLib import assoc
 from XenKvmLib.common_util import try_assoc
+from XenKvmLib.classes import get_typed_class
 from CimTest.ReturnCodes import PASS, FAIL
 from CimTest import Globals
 from CimTest.Globals import log_param, logger, CIM_USER, CIM_PASS, do_main
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'XenFV', 'KVM']
 
-classname    = 'Xen_RegisteredProfile'
-ac_classname = 'Xen_ElementConformsToProfile'
 bug          = '92642'
 
 expr_values = {
@@ -72,7 +71,9 @@ expr_values = {
                                       'desc' : 'No such instance' }
       }
 
-def try_invalid_assoc(name_val, i, field):
+def try_invalid_assoc(name_val, i, field, virt="Xen"):
+    classname = get_typed_class(virt, "RegisteredProfile")
+    ac_classname = get_typed_class(virt, "ElementConformsToProfile")
     j = 0
     keys = {}
     temp = name_val[i]
@@ -111,7 +112,7 @@ def main():
             status = retval
 
     for i in range(len(tc_scen)):
-        retval = try_invalid_assoc(vs_name_val, i, tc_scen[i])
+        retval = try_invalid_assoc(vs_name_val, i, tc_scen[i], options.virt)
         if retval != PASS:
             status = retval
 
