@@ -26,7 +26,7 @@ import sys
 from VirtLib import utils
 from XenKvmLib import assoc
 from XenKvmLib import devices
-from XenKvmLib.devices import Xen_Memory, Xen_Processor
+from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
 from CimTest.Globals import log_param, logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
@@ -42,13 +42,13 @@ def main():
     key_list = ["DeviceID", "CreationClassName", "SystemName",
                 "SystemCreationClassName"]
     try:
-        mem = devices.enumerate(options.ip, Xen_Memory, key_list)
+        mem = devices.enumerate(options.ip, 'Memory', key_list)
     except Exception:
         logger.error(Globals.CIM_ERROR_ENUMERATE % devices.Xen_Memory)
         return FAIL
 
     try:
-        proc = devices.enumerate(options.ip, Xen_Processor, key_list)
+        proc = devices.enumerate(options.ip, 'Processor', key_list)
     except Exception:
         logger.error(Globals.CIM_ERROR_ENUMERATE % devices.Xen_Processor)
         return FAIL

@@ -66,10 +66,9 @@ def main():
     devid = "%s/%s" % (test_dom, test_dev)
 
     status = 0
-    name = eval('devices.' + get_typed_class(options.virt, "LogicalDisk"))
     key_list = ["DeviceID", "CreationClassName", "SystemName", "SystemCreationClassName"]
 
-    devs = devices.enumerate(options.ip, name, key_list)
+    devs = devices.enumerate(options.ip, 'LogicalDisk', key_list)
     if devs.__class__ == str:
         logger.error("Got error instead of empty list: %s" % devs)
         status = 1    
