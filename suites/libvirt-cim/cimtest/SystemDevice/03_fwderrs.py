@@ -32,20 +32,18 @@ import sys
 import pywbem
 from pywbem.cim_obj import CIMInstanceName
 from VirtLib import utils
-from XenKvmLib.test_xml import testxml
+from XenKvmLib import vxml
 from XenKvmLib import assoc
 from XenKvmLib import devices
-from XenKvmLib.test_doms import test_domain_function, destroy_and_undefine_all
-from XenKvmLib.devices import Xen_NetworkPort, Xen_Memory, Xen_LogicalDisk, Xen_Processor
+from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import log_param, logger, do_main
 from CimTest import Globals
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'KVM', 'XenFV']
 
 test_dom = "virt1"
 test_mac = "00:11:22:33:44:55"
-test_disk = "xvda"
 test_cpu = 1
 
 exp_rc1 = 1 #CIM_ERR_FAILED
@@ -59,18 +57,23 @@ bug = 90443 # Got fixed :)
 def main():
     options = main.options
 
+    if options.virt == 'Xen':
+        test_disk = 'xvda'
+    else:
+        test_disk = 'hda'
+
     log_param()
     status = PASS
-    test_xml = testxml(test_dom, vcpus = test_cpu, mac = test_mac, disk = test_disk)
+    virt_xml = vxml.get_class(options.virt)
+    cxml = virt_xml(test_dom, vcpus = test_cpu, mac = test_mac,
+                    disk = test_disk)
 
-    test_domain_function(test_dom, options.ip, "destroy")
-    ret = test_domain_function(test_xml, options.ip, "create")
+    ret = cxml.create(options.ip)
     if not ret :
         logger.info("error while 'create' of VS")
         return FAIL
 
-    devlist = [ "Xen_NetworkPort", "Xen_Memory", 
-                "Xen_LogicalDisk", "Xen_Processor" ]
+    devlist = [ "NetworkPort", "Memory", "LogicalDisk", "Processor" ]
 
     # Building the dict for avoiding the correct key:val pairs 
     # while verifying with the Invalid values for the association
@@ -82,8 +85,9 @@ def main():
 
     try:
         for item in devlist:
-            devs = devices.enumerate(options.ip, eval(item), key_list)
-
+            devs = devices.enumerate(options.ip, item, key_list, options.virt)
+            if len(devs) == 0:
+                raise Exception('empty result returned')
             for dev in devs:
                 if dev.SystemName != test_dom:
                     continue
@@ -92,7 +96,7 @@ def main():
                 names[item] = ("DeviceID" , dev.DeviceID )
 
     except Exception, details:
-        logger.info("exception ", details , item)
+        logger.info("Exception %s for class %s" % (details , item))
         return FAIL 
 
     if len(name) <=0 or len(names) <= 0:
@@ -127,13 +131,14 @@ def main():
                     (a, b) = names[item]
                     if i == a and keyval == b and name[i, keyval] == item:
                         continue
+                    cn = get_typed_class(options.virt, item)
+                    instanceref = CIMInstanceName(cn, keybindings = {i : keyval , 
+                                        "CreationClassName" : cn})
 
-                    instanceref = CIMInstanceName(item, keybindings = \
-                                  {i : keyval , "CreationClassName" : item})
-
-                    try:    
+                    try:
+                        sd_classname = get_typed_class(options.virt, 'SystemDevice')
                         conn.AssociatorNames(instanceref, 
-                                             AssocClass = "Xen_SystemDevice")
+                                             AssocClass = sd_classname)
                         rc = 0 
 
                     except pywbem.CIMError, (rc, desc):
@@ -161,7 +166,8 @@ def main():
                 logger.info("exception" , details)
                 status = FAIL
 
-    test_domain_function(test_dom, options.ip, "destroy")
+    cxml.destroy(options.ip)
+    cxml.undefine(options.ip)
     return status
 
 if __name__ == "__main__":
