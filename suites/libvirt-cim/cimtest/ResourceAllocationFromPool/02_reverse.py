@@ -31,7 +31,7 @@ from CimTest import Globals
 from CimTest.Globals import log_param, logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
 
-sup_types = ['xen']
+sup_types = ['Xen', 'XenFV', 'KVM']
 
 @do_main(sup_types)
 def main():
@@ -42,21 +42,22 @@ def main():
     key_list = ["DeviceID", "CreationClassName", "SystemName",
                 "SystemCreationClassName"]
     try:
-        mem = devices.enumerate(options.ip, 'Memory', key_list)
+        mem = devices.enumerate(options.ip, 'Memory', key_list, options.virt)
     except Exception:
-        logger.error(Globals.CIM_ERROR_ENUMERATE % devices.Xen_Memory)
+        logger.error(Globals.CIM_ERROR_ENUMERATE % 'Memory')
         return FAIL
 
     try:
-        proc = devices.enumerate(options.ip, 'Processor', key_list)
+        proc = devices.enumerate(options.ip, 'Processor', key_list, options.virt)
     except Exception:
-        logger.error(Globals.CIM_ERROR_ENUMERATE % devices.Xen_Processor)
+        logger.error(Globals.CIM_ERROR_ENUMERATE % 'Processor')
         return FAIL
         
     for i in range(len(mem)):
         try:
-            mempool = assoc.AssociatorNames(options.ip, "Xen_ResourceAllocationFromPool",
-                                            "Xen_MemResourceAllocationSettingData", 
+            mempool = assoc.AssociatorNames(options.ip, "ResourceAllocationFromPool",
+                                            "MemResourceAllocationSettingData", 
+                                            options.virt,
                                             InstanceID = mem[i].DeviceID)
         except Exception:
             logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % mem[i].DeviceID)
@@ -72,8 +73,9 @@ def main():
             
     for j in range(len(proc)):
         try:
-            procpool = assoc.AssociatorNames(options.ip, "Xen_ResourceAllocationFromPool",
-                                             "Xen_ProcResourceAllocationSettingData",
+            procpool = assoc.AssociatorNames(options.ip, "ResourceAllocationFromPool",
+                                             "ProcResourceAllocationSettingData",
+                                             options.virt,
                                              InstanceID = proc[j].DeviceID)
         except Exception:
             logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % proc[j].DeviceID)
