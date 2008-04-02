@@ -24,11 +24,12 @@ import sys
 import pywbem
 from pywbem.cim_obj import CIMInstanceName
 from XenKvmLib import assoc
+from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
 from CimTest.Globals import log_param, logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'XenFV', 'KVM']
 
 exp_rc = 6 #CIM_ERR_NOT_FOUND
 exp_desc = "No such instance (wrong) - resource pool type mismatch"
@@ -42,7 +43,8 @@ def main():
     status = FAIL
 
 
-    poollist = {"Xen_MemoryPool" : "wrong", "Xen_ProcessorPool" : "wrong"}
+    poollist = {get_typed_class(options.virt, "MemoryPool") : "wrong", 
+                get_typed_class(options.virt, "ProcessorPool") : "wrong"}
     conn = assoc.myWBEMConnection('http://%s' % options.ip,                                        
                                   (Globals.CIM_USER, Globals.CIM_PASS),
                                   Globals.CIM_NS)
@@ -52,7 +54,8 @@ def main():
         names = []
 
         try:
-            names = conn.AssociatorNames(instanceref, AssocClass = "Xen_ResourceAllocationFromPool")
+            names = conn.AssociatorNames(instanceref, 
+                                         AssocClass = get_typed_class(options.virt, "ResourceAllocationFromPool"))
             rc = 0
         except pywbem.CIMError, (rc, desc):
             if rc == exp_rc and desc.find(exp_desc) >= 0:
