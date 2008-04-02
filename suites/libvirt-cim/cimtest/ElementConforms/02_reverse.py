@@ -3,6 +3,7 @@
 # Copyright 2008 IBM Corp.
 #
 # Authors:
+#    Guolian Yun <yunguol@cn.ibm.com>
 #    Kaitlin Rupert <karupert@us.ibm.com>
 #    Veerendra Chandrappa <vechandr@in.ibm.com>
 #
@@ -45,11 +46,13 @@ from CimTest.Globals import do_main
 from XenKvmLib import hostsystem
 from XenKvmLib import computersystem
 from XenKvmLib import assoc
-from XenKvmLib.test_doms import test_domain_function, destroy_and_undefine_all
+from XenKvmLib.test_doms import destroy_and_undefine_all
+from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib import enumclass
+from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'XenFV', 'KVM']
 
 test_dom = "domgst"
 
@@ -83,9 +86,10 @@ def main():
     status = FAIL
     log_param()
     destroy_and_undefine_all(options.ip)
-    test_xml = testxml(test_dom)
+    virt_xml = get_class(options.virt)
+    cxml = virt_xml(test_dom)
 
-    ret = test_domain_function(test_xml, options.ip, cmd = "create")
+    ret = cxml.create(options.ip)
     if not ret:
         logger.error("ERROR: Failed to Create the dom: %s" % test_dom)
         return status
@@ -93,7 +97,7 @@ def main():
     inst_list = []
 
     try:
-        cs_list = computersystem.enumerate(options.ip)
+        cs_list = computersystem.enumerate(options.ip, options.virt)
         # The len should be atleast two, as the CS returns info
         # one regarding VS and the other one for Domain-0. 
         if len(cs_list) < 1:
@@ -109,7 +113,7 @@ def main():
             return status
 
         #Getting the hostname, to verify with the value returned by the assoc.
-        host_sys = hostsystem.enumerate(options.ip)
+        host_sys = hostsystem.enumerate(options.ip, options.virt)
 
         if len(host_sys) < 1:
             logger.error("ERROR: Enumerate returned 0 host instances")
@@ -130,11 +134,12 @@ def main():
     try:
         key_list = ["InstanceID"]
         proflist = enumclass.enumerate(options.ip, \
-                                    enumclass.Xen_RegisteredProfile, \
-                                    key_list)
+                                       "RegisteredProfile", \
+                                        key_list,
+                                        options.virt)
     except Exception, detail:
         logger.error(CIM_ERROR_ENUMERATE, \
-                             'Xen_RegisteredProfile')
+                             'RegisteredProfile')
         logger.error("Exception: %s", detail)
         return status
 
@@ -148,8 +153,9 @@ def main():
             cn = item.CreationClassName
             name = item.Name
             profs = assoc.Associators(options.ip,
-                                      "Xen_ElementConformsToProfile",
-                                      cn, 
+                                      "ElementConformsToProfile",
+                                      cn,
+                                      options.virt, 
                                       CreationClassName=cn,
                                       Name=name)
             if len(profs) != 1:
@@ -161,11 +167,12 @@ def main():
                 logger.error("Verification of profile instance failed")
 
     except Exception, detail:
-        logger.error(CIM_ERROR_ASSOCIATORS, 'Xen_RegisteredProfile')
+        logger.error(CIM_ERROR_ASSOCIATORS, 'RegisteredProfile')
         logger.error("Exception: %s", detail)
         status = FAIL
 
-    ret = test_domain_function(test_dom, options.ip, cmd = "destroy")
+    cxml.destroy(options.ip)
+    cxml.undefine(options.ip)
     return status
 
 if __name__ == "__main__":
