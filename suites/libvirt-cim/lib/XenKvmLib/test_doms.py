@@ -22,11 +22,23 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 #
 import tempfile
-import uuid
 import os
 from VirtLib import utils
 from VirtLib import live
 from CimTest.Globals import CIM_FUUID
+
+try:
+    import uuid as _uuid
+    def uuid():
+        return str(_uuid.uuid1())
+except ImportError:
+    def uuid():
+        from commands import getstatusoutput as run
+        s, o = run('uuidgen')
+        if s == 0:
+            return o
+        else:
+            raise ImportError("Missing uuid library (and can't fake it)")
 
 def define_test_domain(xml, server, virt="Xen"):
     name = tempfile.mktemp()
@@ -74,7 +86,7 @@ def set_uuid(myuuid=0):
     """Generate a random uuid and record it into CIM_FUUID"""
 
     if myuuid == 0:
-        myuuid = uuid.uuid1().urn[9:]
+        myuuid = uuid()
 
     f = file(CIM_FUUID, 'a')
     f.write('%s\n' % myuuid)
