@@ -86,7 +86,7 @@ def init_list(virt="Xen"):
                 "CreationClassName": get_typed_class(virt, 'NetResourceAllocationSettingData')
                }
 
-    address = eval("%s.%s" % (get_class(virt), 'disk_path'))
+    address = vsxml.xml_get_disk_source()
     diskrasd = {
                 "InstanceID"  : '%s/%s' %(test_dom, test_disk), \
                 "ResourceType" : 17, \
@@ -133,6 +133,7 @@ def assoc_values(ip, assoc_info, virt="Xen"):
    
 @do_main(sup_types)
 def main():
+    global vsxml
     options = main.options
     status = 0 
     rc = 1
@@ -171,7 +172,7 @@ def main():
         status = assoc_values(options.ip, assoc_info, options.virt)
     except  Exception, details:
         logger.error(Globals.CIM_ERROR_ASSOCIATORS, \
-                     get_typed_class('VirtualSystemSettingDataComponent', options.virt))
+                     get_typed_class(options.virt, 'VirtualSystemSettingDataComponent'))
         logger.error("Exception : %s" % details)
         status = 1 
     
