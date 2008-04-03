@@ -63,7 +63,7 @@ def init_list(virt="Xen"):
                 "ntype2": "ethernet", \
                 "CreationClassName": get_typed_class(virt, 'NetResourceAllocationSettingData')
                }
-    address = eval("%s.%s" % (get_class(virt), 'disk_path'))
+    address = vsxml.xml_get_disk_source()
     diskrasd = {
                 "InstanceID"  : '%s/%s' %(test_dom, test_disk), \
                 "ResourceType" : 17, \
