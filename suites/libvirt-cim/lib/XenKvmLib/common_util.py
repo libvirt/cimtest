@@ -187,3 +187,46 @@ def try_getinstance(conn, classname, keys, field_name, expr_values, bug_no):
 '%s' passed.", classname, field_name)
     return XFAIL_RC(bug_no)
 
+def profile_init_list():
+    sys_prof_info = {
+                       "InstanceID"              : "CIM:DSP1042-SystemVirtualization-1.0.0", 
+                       "RegisteredOrganization"  : 2, 
+                       "RegisteredName"          : "System Virtualization", 
+                       "RegisteredVersion"       : "1.0.0"
+                    }
+    vs_prof   =       {
+                          "InstanceID"              : "CIM:DSP1057-VirtualSystem-1.0.0a",
+                          "RegisteredOrganization"  : 2, 
+                          "RegisteredName"          : "Virtual System Profile",
+                          "RegisteredVersion"       : "1.0.0a"
+                      }
+    gen_dev_prof   =  {
+                          "InstanceID"              : 
+                              "CIM:DSP1059-GenericDeviceResourceVirtualization-1.0.0",
+                          "RegisteredOrganization"  : 2, 
+                          "RegisteredName"          : "Generic Device Resource Virtualization",
+                          "RegisteredVersion"       : "1.0.0"
+                      }
+    mem_res_prof   =  {
+                          "InstanceID"              : "CIM:DSP1045-MemoryResourceVirtualization-1.0.0",
+                          "RegisteredOrganization"  : 2, 
+                          "RegisteredName"          : "Memory Resource Virtualization",
+                          "RegisteredVersion"       : "1.0.0"
+                      }
+    vs_mig_prof   =  {
+                          "InstanceID"              : "CIM:DSP1081-VirtualSystemMigration-1.0",
+                          "RegisteredOrganization"  : 2, 
+                          "RegisteredName"          : "Virtual System Migration",
+                          "RegisteredVersion"       : "1.0"
+                     }
+     
+    profiles = {
+
+                 'DSP1042'       : sys_prof_info,
+                 'DSP1045'       : mem_res_prof,
+                 'DSP1057'       : vs_prof,
+                 'DSP1059'       : gen_dev_prof,
+                 'DSP1081'       : vs_mig_prof
+               } 
+    
+    return profiles 
