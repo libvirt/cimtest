@@ -253,6 +253,9 @@ class VirtXML(Virsh, XMLClass):
     def set_mac(self, mac):
         self.set_attributes('/domain/devices/interface/mac', address=mac)
 
+    def set_bridge_name(self, bridgename):
+        self.set_attributes('/domain/devices/interface/source', bridge=bridgename)
+
     def set_diskimg(self, diskimg):
         self.set_attributes('/domain/devices/disk/source', file=diskimg)
 
