@@ -38,11 +38,10 @@
 #      ComputerSystem instance of the guest.
 
 import sys
-import pywbem
 from XenKvmLib import enumclass 
 from XenKvmLib.assoc import Associators 
-from XenKvmLib.common_util import create_using_definesystem
-from XenKvmLib.test_doms import undefine_test_domain, destroy_and_undefine_all
+from XenKvmLib.vxml import get_class
+from XenKvmLib.test_doms import destroy_and_undefine_all
 from CimTest import Globals 
 from CimTest.Globals import log_param, logger, CIM_ERROR_ENUMERATE, CIM_ERROR_ASSOCIATORNAMES 
 from CimTest.Globals import do_main
@@ -55,14 +54,15 @@ test_dom = "domguest"
 def setup_env(server):
     rc = -1
     status = PASS
-
+    csxml_info = None
     try:
         destroy_and_undefine_all(server)
-        rc = create_using_definesystem(test_dom, server)
+        virt_xml = get_class(virt)
+        csxml_info = virt_xml(test_dom)
+        rc = csxml_info.cim_define(server)
 
-        if rc != 0:
-            logger.error("Unable define domain %s using DefineSystem() %s" \
-                         % test_dom)
+        if not rc:
+            logger.error("Unable define domain %s using DefineSystem() "  % test_dom)
             status = FAIL
 
     except Exception, detail:
@@ -70,31 +70,31 @@ def setup_env(server):
         logger.error("Exception: %s", detail)
         status = FAIL
 
-    return status
+    return status, csxml_info
 
 def print_err(err, detail, cn):
-     logger.error(err % cn)
-     logger.error("Exception: %s", detail)
+    logger.error(err % cn)
+    logger.error("Exception: %s", detail)
 
 def get_inst_from_list(server, cn, qcn, list, filter, exp_val):
-     status = PASS
-     ret = -1
-     inst = None
+    status = PASS
+    ret = -1
+    inst = None
  
-     if len(list) < 1:
-         logger.error("%s returned %i %s objects" % (qcn, len(list), cn))
-         return FAIL, None
+    if len(list) < 1:
+        logger.error("%s returned %i %s objects" % (qcn, len(list), cn))
+        return FAIL, None
  
-     for inst in list:
-         if inst[filter['key']] == exp_val:
-             ret = PASS
-             break;
+    for inst in list:
+        if inst[filter['key']] == exp_val:
+            ret = PASS
+            break
 
-     if ret != PASS:
-         status = FAIL
-         logger.error("%s with %s was not returned" % (cn, exp_val))
- 
-     return PASS, inst 
+    if ret != PASS:
+        status = FAIL
+        logger.error("%s with %s was not returned" % (cn, exp_val))
+
+    return PASS, inst 
 
 def get_profile(server):
     registeredname = 'Virtual System Profile'
@@ -178,32 +178,39 @@ def get_elec(server, cs):
 
 @do_main(sup_types)
 def main():
+    global virt
+    global csxml
     options = main.options
+    virt    = options.virt
+    server  = options.ip
     log_param()
 
     status = PASS 
 
-    status = setup_env(options.ip)
+    status, csxml = setup_env(server)
     if status != PASS:
         return status
 
     prev_namespace = Globals.CIM_NS
     Globals.CIM_NS = 'root/interop'
 
-    status, prof = get_profile(options.ip)
+    status, prof = get_profile(server)
     if status != PASS or prof == None:
+        csxml.undefine(server)
         return status 
 
-    status, cs = get_cs(options.ip, prof)
+    status, cs = get_cs(server, prof)
     if status != PASS or cs == None:
+        csxml.undefine(server)
         return status 
 
     Globals.CIM_NS = prev_namespace
 
-    status, elec = get_elec(options.ip, cs)
+    status, elec = get_elec(server, cs)
     if status != PASS or elec == None:
         return status 
 
+    csxml.undefine(server)
     return status 
 
 
