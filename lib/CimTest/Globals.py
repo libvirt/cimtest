@@ -50,6 +50,7 @@ CIM_IP    = os.getenv("CIM_IP")
 CIM_PORT = "5988"
 NM = "TEST LOG"
 platform_sup = ["Xen", "KVM", "XenFV"]
+logging.basicConfig()
 logger = logging.getLogger(NM)
 logging.PRINT = logging.DEBUG + 50
 logging.addLevelName(logging.PRINT, "PRINT")
