@@ -196,7 +196,7 @@ def main():
     qcn  = 'Service'
     name = host_name
     # Get the service available on the host
-    status, service_assoc_info = get_assoc_info(server, cn, an, qcn, name)
+    status, service_assoc_info = get_assoc_info(server, cn, an, qcn, name, options.virt)
     if status != PASS or len(service_assoc_info) == 0:
         return status
 
@@ -223,7 +223,7 @@ def main():
     # Query ElementCapabilities and verify the MigrationCapabilities information.
     service_fieldname = 'MigrationService'
     cap_key = 'MigrationCapabilities'
-    status = verify_cap_fields(server, service_fieldname, cap_key)
+    status = verify_cap_fields(server, service_fieldname, cap_key, options.virt)
     if status != PASS:
         logger.error("MigrationCapabilities Verification failed")
         return status
