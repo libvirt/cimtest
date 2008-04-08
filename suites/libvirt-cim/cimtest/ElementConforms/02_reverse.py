@@ -50,20 +50,21 @@ from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib import enumclass
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
+from XenKvmLib.classes import get_typed_class
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'XenFV', 'KVM']
 
 test_dom = "domgst"
 
-def build_exp_prof_list(proflist):
+def build_exp_prof_list(proflist, virt="Xen"):
     list = {} 
-
+    
     for item in proflist:
         if item.InstanceID.find('-VirtualSystem-') >= 0:
-            list['Xen_ComputerSystem'] = item 
+            list[get_typed_class(virt, 'ComputerSystem')] = item 
         elif item.InstanceID.find('-SystemVirtualization-') >= 0:
-            list['Xen_HostSystem'] = item 
+            list[get_typed_class(virt, 'HostSystem')] = item 
 
     return list
 
@@ -89,9 +90,9 @@ def main():
     virt_xml = get_class(options.virt)
     cxml = virt_xml(test_dom)
 
-    ret = cxml.create(options.ip)
+    ret = cxml.define(options.ip)
     if not ret:
-        logger.error("ERROR: Failed to Create the dom: %s" % test_dom)
+        logger.error("ERROR: Failed to Define the dom: %s" % test_dom)
         return status
 
     inst_list = []
@@ -145,7 +146,7 @@ def main():
 
     Globals.CIM_NS = prev_namespace
 
-    exp_list = build_exp_prof_list(proflist)
+    exp_list = build_exp_prof_list(proflist, options.virt)
 
     # Loop through the assoc results returned on test_dom and hostsystem 
     try:
@@ -171,7 +172,6 @@ def main():
         logger.error("Exception: %s", detail)
         status = FAIL
 
-    cxml.destroy(options.ip)
     cxml.undefine(options.ip)
     return status
 
