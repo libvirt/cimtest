@@ -80,7 +80,7 @@ def main():
                                          "ComputerSystem",
                                          options.virt,
                                          Name = system,
-                                         CreationClassName = "Xen_ComputerSystem")
+                                         CreationClassName = get_typed_class(options.virt, "ComputerSystem"))
   	except Exception:
             Globals.logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % system)
             return FAIL     
