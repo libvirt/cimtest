@@ -37,11 +37,13 @@ from VirtLib import utils, live
 from XenKvmLib import assoc
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.classes import get_typed_class
+from XenKvmLib import vxml
 from CimTest.Globals import log_param, logger, CIM_ERROR_ASSOCIATORS, do_main
 from CimTest import Globals 
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'XenFV', 'KVM']
+test_dom = "domU"
 
 def verify_cs(item, id):
     if item['EnabledState'] != 2 and  \
@@ -83,6 +85,13 @@ def main():
     status = PASS
     destroy_and_undefine_all(options.ip, options.virt)
 
+    virt_xml = vxml.get_class(options.virt)
+    cxml = virt_xml(test_dom)
+    ret = cxml.define(options.ip)
+    if not ret:
+        logger.error('Unable to define domain %s' % test_dom)
+        return FAIL
+
     prev_namespace = Globals.CIM_NS
     Globals.CIM_NS = 'root/interop'
     host = live.hostname(options.ip)
@@ -115,8 +124,7 @@ def main():
             count = 0
             for info in assoc_info:
                 if info['CreationClassName'] == cs :
-                    if options.virt == "Xen" or options.virt == "XenFV":
-                        if info['Name'] == 'Domain-0' :
+                    if info['Name'] == 'domU' :
                             count = count + 1
                             verify_cs(info, devid)
 
@@ -143,6 +151,7 @@ def main():
             logger.error("Exception: %s" % detail)
             status = FAIL
 
+    cxml.undefine(options.ip)
     Globals.CIM_NS = prev_namespace
     return status
 
