@@ -501,9 +501,10 @@ class KVMXML(VirtXML):
         self.add_sub_node(disk, 'source', file=disk_img)
         self.add_sub_node(disk, 'target', dev=disk_dev)
 
-        interface = self.add_sub_node(devices, 'interface', type='user')
+        interface = self.add_sub_node(devices, 'interface', type='bridge')
         self.add_sub_node(interface, 'mac', address=net_mac)
-
+        self.set_bridge(CIM_IP)    
+    
     def set_emulator(self, emu):
         return self._set_emulator(emu)
     
