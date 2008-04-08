@@ -45,9 +45,8 @@ def main():
 
     try:
         vsmsd = enumclass.enumerate_inst(options.ip,
-                                         eval('enumclass.' + \
-                                               get_typed_class(options.virt, \
-                                        "VirtualSystemMigrationSettingData")))
+                                         "VirtualSystemMigrationSettingData",
+                                         options.virt)
     except Exception, detail:
         logger.error(CIM_ERROR_ENUMERATE, cn)
         logger.error("Exception: %s", detail)
