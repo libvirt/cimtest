@@ -92,7 +92,7 @@ def verify_memrasd_values(assoc_info, memrasd_list):
         status = FAIL
     if assoc_info['AllocationUnits'] != memrasd_list['AllocationUnits']:
         Globals.logger.error("%s Mismatch", 'AllocationUnits')
-        Globals.logger.error("Returned %s instead of %s or %s", \
+        Globals.logger.error("Returned %s instead of %s ", \
               assoc_info['AllocationUnits'],  memrasd_list['AllocationUnits'])
         status = FAIL 
     if assoc_info['VirtualQuantity'] != memrasd_list['VirtualQuantity']:
