@@ -45,9 +45,8 @@ def main():
         return status
     try:
         vs_sservice = enumclass.enumerate_inst(options.ip,
-                                         eval('enumclass.' + \
-                                               get_typed_class(options.virt, \
-                                             "VirtualSystemSnapshotService")))
+                                               "VirtualSystemSnapshotService",
+                                               options.virt)
     except Exception, detail:
         logger.error(CIM_ERROR_ENUMERATE, cn)
         logger.error("Exception: %s", detail)
