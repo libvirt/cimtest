@@ -5,6 +5,7 @@
 # Authors:
 #    Anoop V Chakkalakkal<anoop.vijayan@in.ibm.com>
 #    Guolian Yun <yunguol@cn.ibm.com>
+#    Deepti B. kalakeri <deeptik@linux.vnet.ibm.com>
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public
@@ -123,11 +124,10 @@
 
 import sys
 import pywbem
-from VirtLib import utils
 from XenKvmLib import assoc
 from XenKvmLib.common_util import try_getinstance
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.vxml import XenXML, KVMXML, get_class
+from XenKvmLib.vxml import get_class
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import log_param, logger, CIM_USER
@@ -137,15 +137,15 @@ from CimTest.Globals import do_main
 sup_types = ['Xen', 'KVM', 'XenFV']
 
 expr_values = {
-    "invalid_ccname"         : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                'desc' : "No such instance (CreationClassName)" }, \
-    "invalid_devid_keyname"  : {'rc'   : pywbem.CIM_ERR_FAILED, \
-                                'desc' : "No DeviceID specified" }, \
-    "invalid_devid_keyvalue" : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                'desc' : "No such instance (INVALID_DevID_Keyvalue)" }, \
-    "invalid_sccname"        : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                'desc' : "No such instance (SystemCreationClassName)" }, \
-    "invalid_sysname"        : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
+    "invalid_ccname"         : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
+                                'desc' : "No such instance (CreationClassName)" }, 
+    "invalid_devid_keyname"  : {'rc'   : pywbem.CIM_ERR_FAILED, 
+                                'desc' : "No DeviceID specified" }, 
+    "invalid_devid_keyvalue" : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
+                                'desc' : "No such instance (INVALID_DevID_Keyvalue)" }, 
+    "invalid_sccname"        : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
+                                'desc' : "No such instance (SystemCreationClassName)" }, 
+    "invalid_sysname"        : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
                                 'desc' : "No such instance (SystemName)" }
               }
 
@@ -185,27 +185,26 @@ def main():
     if not ret:
         logger.error("Failed to Create the dom: %s", test_dom)
         return FAIL
-
     global conn
     conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, CIM_PASS), CIM_NS)
 
     global name_val
     global classname 
-    classname = '%s_Processor' % options.virt
+    classname = get_typed_class(options.virt, 'Processor')
     name_val = [
-                'CreationClassName',       classname, \
-                'DeviceID',                devid, \
-                'SystemCreationClassName', get_typed_class(options.virt, 'ComputerSystem'), \
+                'CreationClassName',       classname, 
+                'DeviceID',                devid, 
+                'SystemCreationClassName', get_typed_class(options.virt, 'ComputerSystem'), 
                 'SystemName',              test_dom
               ]
 
-    tc_scen = { 'INVALID_CCName_Keyname'   : 'invalid_ccname', \
-                'INVALID_CCName_Keyvalue'  : 'invalid_ccname', \
-                'INVALID_DevID_Keyname'    : 'invalid_devid_keyname', \
-                'INVALID_DevID_Keyvalue'   : 'invalid_devid_keyvalue', \
-                'INVALID_SCCName_Keyname'  : 'invalid_sccname', \
-                'INVALID_SCCName_Keyvalue' : 'invalid_sccname', \
-                'INVALID_SysName_Keyname'  : 'invalid_sysname', \
+    tc_scen = { 'INVALID_CCName_Keyname'   : 'invalid_ccname', 
+                'INVALID_CCName_Keyvalue'  : 'invalid_ccname', 
+                'INVALID_DevID_Keyname'    : 'invalid_devid_keyname', 
+                'INVALID_DevID_Keyvalue'   : 'invalid_devid_keyvalue', 
+                'INVALID_SCCName_Keyname'  : 'invalid_sccname', 
+                'INVALID_SCCName_Keyvalue' : 'invalid_sccname', 
+                'INVALID_SysName_Keyname'  : 'invalid_sysname', 
                 'INVALID_SysName_Keyvalue' : 'invalid_sysname'
               }
 
