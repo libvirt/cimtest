@@ -42,9 +42,8 @@ def main():
 
     try:
         vs_sservicecap = enumclass.enumerate_inst(options.ip,
-                                         eval('enumclass.' + \
-                                               get_typed_class(options.virt, \
-                                            "VirtualSystemSnapshotServiceCapabilities")))
+                                                  "VirtualSystemSnapshotServiceCapabilities",
+                                                  options.virt)
     except Exception, detail:
         logger.error(CIM_ERROR_ENUMERATE, cn)
         logger.error("Exception: %s", detail)
