@@ -43,7 +43,7 @@ Xen_default_mac = '11:22:33:aa:bb:cc'
 Xen_default_net_type = 'ethernet'
 
 # vxml.KVMXML
-KVM_default_emulator = '/usr/bin/qemu'
+KVM_default_emulator = '/usr/bin/qemu-kvm'
 KVM_disk_path = os.path.join(_image_dir, 'default-kvm-dimage')
 KVM_secondary_disk_path = os.path.join(_image_dir, 'default-kvm-dimage.2ND')
 KVM_default_disk_dev = 'hda'
