@@ -54,11 +54,13 @@ from CimTest.Globals import do_main
 from XenKvmLib.test_doms import destroy_and_undefine_all
 import XenKvmLib
 from XenKvmLib import assoc
+from XenKvmLib import vxml 
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.rasd import verify_procrasd_values, verify_netrasd_values, \
 verify_diskrasd_values, verify_memrasd_values 
 from CimTest.Globals import log_param, logger
+from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 
@@ -66,9 +68,8 @@ test_dom    = "VSSDC_dom"
 test_vcpus  = 1
 test_mem    = 128
 test_mac    = "00:11:22:33:44:aa"
-test_disk   = 'xvda'
 
-def init_list(virt="Xen"):
+def init_list(xml, disk, virt="Xen"):
     """
         Creating the lists that will be used for comparisons.
     """
@@ -86,9 +87,9 @@ def init_list(virt="Xen"):
                 "CreationClassName": get_typed_class(virt, 'NetResourceAllocationSettingData')
                }
 
-    address = vsxml.xml_get_disk_source()
+    address = xml.xml_get_disk_source()
     diskrasd = {
-                "InstanceID"  : '%s/%s' %(test_dom, test_disk), \
+                "InstanceID"  : '%s/%s' %(test_dom, disk), \
                 "ResourceType" : 17, \
                 "Address"      : address, \
                 "CreationClassName": get_typed_class(virt, 'DiskResourceAllocationSettingData')
@@ -102,8 +103,8 @@ def init_list(virt="Xen"):
               }
     return procrasd, netrasd, diskrasd, memrasd
 
-def assoc_values(ip, assoc_info, virt="Xen"):
-    procrasd, netrasd, diskrasd, memrasd = init_list(virt)
+def assoc_values(ip, assoc_info, xml, disk, virt="Xen"):
+    procrasd, netrasd, diskrasd, memrasd = init_list(xml, disk, virt)
     proc_status = 1
     net_status  = 0
     disk_status = 1
@@ -133,28 +134,22 @@ def assoc_values(ip, assoc_info, virt="Xen"):
    
 @do_main(sup_types)
 def main():
-    global vsxml
     options = main.options
     status = 0 
     rc = 1
     log_param()
     destroy_and_undefine_all(options.ip)
-    vsxml = get_class(options.virt)(test_dom, \
-                                    mem=test_mem, \
-                                    vcpus = test_vcpus, \
-                                    mac = test_mac, \
-                                    disk = test_disk)
-    try:
-        rc = vsxml.define(options.ip)
-        sc = vsxml.start(options.ip)
-        if rc == 0 or sc == 0:
-            logger.error("Define or start domain failed")
-            status = 1
-    except Exception, details:
-        logger.error("Unknonw exception happened")
-        logger.error("Exception : %s" % details)
-        status = 1
-   
+    if options.virt == 'Xen':
+        test_disk = 'xvda'
+    else:
+        test_disk = 'hda'
+
+    virt_xml = vxml.get_class(options.virt)
+    cxml = virt_xml(test_dom, mem=test_mem, vcpus = test_vcpus, mac = test_mac, disk = test_disk)
+    ret = cxml.create(options.ip)
+    if not ret:
+        logger.error('Unable to create domain %s' % test_dom)
+        return FAIL 
     if status == 1: 
         destroy_and_undefine_all(options.ip)
         return 1
@@ -169,7 +164,7 @@ def main():
                                        'VirtualSystemSettingData', \
                                        options.virt, \
                                        InstanceID = instIdval)
-        status = assoc_values(options.ip, assoc_info, options.virt)
+        status = assoc_values(options.ip, assoc_info, cxml, test_disk, options.virt)
     except  Exception, details:
         logger.error(Globals.CIM_ERROR_ASSOCIATORS, \
                      get_typed_class(options.virt, 'VirtualSystemSettingDataComponent'))
@@ -177,8 +172,8 @@ def main():
         status = 1 
     
     try:
-        vsxml.destroy(options.ip)
-        vsxml.undefine(options.ip)
+        cxml.destroy(options.ip)
+        cxml.undefine(options.ip)
     except Exception:
         logger.error("Destroy or undefine domain failed")
     return status
