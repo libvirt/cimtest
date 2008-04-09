@@ -488,12 +488,12 @@ class KVMXML(VirtXML):
             sys.exit(1)
         VirtXML.__init__(self, 'kvm', test_dom, set_uuid(), mem, vcpus)
         self._os()
-        self._devices(const.KVM_default_emulator, disk_file_path, disk, mac)
+        self._devices(const.KVM_default_emulator, const.KVM_default_net_type, disk_file_path, disk, mac)
 
     def _os(self):
         self.add_sub_node('/domain/os', 'type', 'hvm')
 
-    def _devices(self, emu, disk_img, disk_dev, net_mac):
+    def _devices(self, emu, net_type, disk_img, disk_dev, net_mac):
         devices = self.get_node('/domain/devices')
 
         self.add_sub_node(devices, 'emulator', emu)
@@ -501,9 +501,10 @@ class KVMXML(VirtXML):
         self.add_sub_node(disk, 'source', file=disk_img)
         self.add_sub_node(disk, 'target', dev=disk_dev)
 
-        interface = self.add_sub_node(devices, 'interface', type='bridge')
+        interface = self.add_sub_node(devices, 'interface', type=net_type)
         self.add_sub_node(interface, 'mac', address=net_mac)
-        self.set_bridge(CIM_IP)    
+        if net_type == 'bridge':
+            self.set_vbridge(CIM_IP)    
     
     def set_emulator(self, emu):
         return self._set_emulator(emu)
