@@ -47,12 +47,10 @@
 #                                                                      Date : 29.01.2008
 
 import sys
-from VirtLib import utils
-from CimTest import Globals
 from CimTest.Globals import do_main
-from XenKvmLib.vxml import XenXML, KVMXML, get_class
+from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.test_doms import test_domain_function, destroy_and_undefine_all
+from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.assoc import Associators, AssociatorNames
 from XenKvmLib.common_util import get_host_info
 from CimTest.Globals import log_param, logger, CIM_ERROR_ASSOCIATORNAMES, \
@@ -69,38 +67,44 @@ test_vcpus  = 1
 test_mem    = 128
 test_mac    = "00:11:22:33:44:aa"
 
-def init_list(virt="Xen"):
+def init_list(vsxml, virt="Xen"):
     """
         Creating the lists that will be used for comparisons.
     """
-    disk_path = "/tmp/default-%s-dimage" % virt.lower()
+    disk_path = vsxml.xml_get_disk_source()
+    proc_cn = get_typed_class(virt, "Processor")
+    mem_cn = get_typed_class(virt, "Memory")
+    net_cn = get_typed_class(virt, "NetworkPort")
+    disk_cn = get_typed_class(virt, "LogicalDisk")
 
-    rasd_values = {"%s_Processor" % virt  : {
-                                             "InstanceID" : '%s/%s' %(test_dom,0),\
-                                             "ResourceType" : 3,\
-                                            }, \
-                   "%s_LogicalDisk" % virt: {
-                                             "InstanceID"  : '%s/%s' %(test_dom, test_disk), \
-                                             "ResourceType" : 17, \
-                                             "Address"      : disk_path, \
-                                            }, \
-                   "%s_NetworkPort" % virt: {
-                                              "InstanceID"  : '%s/%s' %(test_dom,test_mac), \
-                                              "ResourceType" : 10 , \
-                                              "ntype1": "bridge", \
-                                              "ntype2": "ethernet", \
-                                            }, \
-                   "%s_Memory"% virt:       {
-                                              "InstanceID"  : '%s/%s' %(test_dom, "mem"), \
-                                              "ResourceType" : 4, \
-                                              "AllocationUnits" : "MegaBytes",\
-                                              "VirtualQuantity" : (test_mem * 1024), \
-                                            }
+    rasd_values = { 
+                    proc_cn              : {
+                                             "InstanceID" : '%s/%s' %(test_dom,0),
+                                             "ResourceType" : 3,
+                                            }, 
+                    disk_cn              : {
+                                             "InstanceID"  : '%s/%s' %(test_dom, test_disk), 
+                                             "ResourceType" : 17, 
+                                             "Address"      : disk_path, 
+                                            }, 
+                    net_cn               : {
+                                              "InstanceID"  : '%s/%s' %(test_dom,test_mac), 
+                                              "ResourceType" : 10 , 
+                                              "ntype1": "bridge", 
+                                              "ntype2": "ethernet", 
+                                           }, 
+                    mem_cn               : {
+                                              "InstanceID"  : '%s/%s' %(test_dom, "mem"), 
+                                              "ResourceType" : 4, 
+                                              "AllocationUnits" : "KiloBytes",
+                                              "VirtualQuantity" : (test_mem * 1024), 
+                                           }
                   } 
 
     return rasd_values
 
 def setup_env(server, virt="Xen"):
+    vsxml_info = None
     status = PASS
     destroy_and_undefine_all(server)
     global test_disk
@@ -108,23 +112,24 @@ def setup_env(server, virt="Xen"):
         test_disk = "xvda"
     else: 
         test_disk = "hda"
-    
-    vsxml = get_class(virt)(test_dom, mem = test_mem,
+    virt_xml =  get_class(virt)
+    vsxml_info = virt_xml(test_dom, mem = test_mem,
                             vcpus=test_vcpus,
                             mac = test_mac,
                             disk = test_disk)
     
-    ret = vsxml.define(server)
+    ret = vsxml_info.define(server)
     if not ret:
         logger.error("Failed to define the dom: %s", test_dom)
         status = FAIL
-    return status
+
+    return status, vsxml_info
 
 def print_err(err, detail, cn):
     logger.error(err % cn)
     logger.error("Exception: %s", detail)
 
-def get_inst_from_list(server, cn, cs_list, filter_name, exp_val):
+def get_inst_from_list(server, cn, cs_list, filter_name, exp_val, vsxml):
     status = PASS
     ret = -1
     inst = []
@@ -135,12 +140,12 @@ def get_inst_from_list(server, cn, cs_list, filter_name, exp_val):
 
     if ret != PASS:
         logger.error("%s with %s was not returned" % (cn, exp_val))
-        test_domain_function(test_dom, server, "undefine")
+        vsxml.undefine(server)
         status = FAIL
 
     return status, inst
 
-def get_assoc_info(server, cn, an, qcn, name, virt="Xen"):
+def get_assoc_info(server, cn, an, qcn, name, vsxml, virt="Xen"):
     status = PASS
     assoc_info = []
     try:
@@ -159,11 +164,11 @@ def get_assoc_info(server, cn, an, qcn, name, virt="Xen"):
         status = FAIL
 
     if status != PASS:
-        test_domain_function(test_dom, server, "undefine")
+        vsxml.undefine(server)
 
     return status, assoc_info
 
-def verify_RASD_values(server, sd_assoc_info, virt="Xen"):
+def verify_RASD_values(server, sd_assoc_info, vsxml, virt="Xen"):
     in_setting_define_state = {} 
     status = PASS
     try:
@@ -172,7 +177,7 @@ def verify_RASD_values(server, sd_assoc_info, virt="Xen"):
                 classname_keyvalue = sd_assoc_info[i]['CreationClassName']
                 deviceid =  sd_assoc_info[i]['DeviceID']
                 in_setting_define_state[classname_keyvalue] = deviceid
-        rasd_values = init_list(virt)
+        rasd_values = init_list(vsxml, virt)
         an = get_typed_class(virt, 'SettingsDefineState')
         sccn = get_typed_class(virt, 'ComputerSystem')
         for cn, devid in sorted(in_setting_define_state.items()):
@@ -192,13 +197,13 @@ def verify_RASD_values(server, sd_assoc_info, virt="Xen"):
             index = (len(assoc_info) - 1)
             rasd  = rasd_values[cn]
             CCName = assoc_info[index].classname
-            if  CCName == get_typed_class(virt, 'ProcResourceAllocationSettingData'):
+            if 'ProcResourceAllocationSettingData' in CCName:
                 status = verify_procrasd_values(assoc_info[index], rasd)
-            elif CCName == get_typed_class(virt, 'NetResourceAllocationSettingData'):
+            elif 'NetResourceAllocationSettingData' in CCName:
                 status  = verify_netrasd_values(assoc_info[index], rasd)
-            elif CCName == get_typed_class(virt, 'DiskResourceAllocationSettingData'):
+            elif 'DiskResourceAllocationSettingData' in CCName:
                 status = verify_diskrasd_values(assoc_info[index], rasd)
-            elif CCName == get_typed_class(virt, 'MemResourceAllocationSettingData'):
+            elif 'MemResourceAllocationSettingData' in CCName:
                 status  = verify_memrasd_values(assoc_info[index], rasd)
             else:
                 status = FAIL
@@ -219,16 +224,14 @@ def main():
     status, host_name, classname = get_host_info(server, options.virt)
     if status != PASS:
         return status
-    if options.virt == "XenFV":
-       options.virt = "Xen"
-    status = setup_env(server, options.virt)
-    if status != PASS:
+    status, vsxml = setup_env(server, options.virt)
+    if status != PASS or vsxml == None:
         return status
     cn   = classname
     an   = get_typed_class(options.virt, 'HostedDependency')
     qcn  = get_typed_class(options.virt, 'ComputerSystem')
     name = host_name
-    status, cs_assoc_info = get_assoc_info(server, cn, an, qcn, name, options.virt)
+    status, cs_assoc_info = get_assoc_info(server, cn, an, qcn, name, vsxml, options.virt)
     if status != PASS or len(cs_assoc_info) == 0:
         return status
     filter_name =  {"key" : "Name"}
@@ -236,18 +239,19 @@ def main():
                                            cn,
                                  cs_assoc_info,
                                    filter_name,
-                                      test_dom)
+                                      test_dom,
+                                         vsxml)
     if status != PASS or len(cs_dom) == 0:
         return status
     cn   = cs_dom['CreationClassName']
-    an   = '%s_SystemDevice' % options.virt
+    an   = get_typed_class(options.virt, 'SystemDevice') 
     qcn  = 'Devices'
     name = test_dom
-    status, sd_assoc_info = get_assoc_info(server, cn, an, qcn, name, options.virt)
+    status, sd_assoc_info = get_assoc_info(server, cn, an, qcn, name, vsxml, options.virt)
     if status != PASS or len(sd_assoc_info) == 0:
         return status
-    status = verify_RASD_values(server, sd_assoc_info, options.virt)
-    test_domain_function(test_dom, server, "undefine")
+    status = verify_RASD_values(server, sd_assoc_info, vsxml, options.virt)
+    vsxml.undefine(server)
     return status
 if __name__ == "__main__":
     sys.exit(main())
