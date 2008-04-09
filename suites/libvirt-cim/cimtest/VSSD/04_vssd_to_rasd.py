@@ -105,7 +105,7 @@ def init_list(virt):
     memrasd = {
                "InstanceID"  : '%s/%s' %(test_dom, "mem"), 
                "ResourceType" : 4, 
-               "AllocationUnits" : "MegaBytes",
+               "AllocationUnits" : "KiloBytes",
                "VirtualQuantity" : (test_mem * 1024), 
                "CreationClassName": get_typed_class(virt, 'MemResourceAllocationSettingData')
               }
