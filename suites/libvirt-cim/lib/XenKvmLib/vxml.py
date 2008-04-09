@@ -115,7 +115,12 @@ class XMLClass:
         return self.xdoc.toprettyxml()
 
     def get_value_xpath(self, xpathStr):
-        node = self.get_node(xpathStr)
+        try:
+            node = self.get_node(xpathStr)
+        except Exception:
+            logger.info('Zero or multiple node found')
+            return None
+
         if node.nodeType == Node.ATTRIBUTE_NODE:
             return node.value
         if node.nodeType == Node.TEXT_NODE:
