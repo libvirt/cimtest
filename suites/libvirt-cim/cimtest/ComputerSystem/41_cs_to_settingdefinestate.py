@@ -102,7 +102,7 @@ def rasd_init_list():
     mem_rasd =  {
                        "InstanceID"  : '%s/%s' %(test_dom, "mem"), \
                       "ResourceType" : 4, \
-                   "AllocationUnits" : "MegaBytes",\
+                   "AllocationUnits" : "KiloBytes",\
                    "VirtualQuantity" : (test_mem * 1024), \
                 }
     rasd_values = {  "Xen_Processor"   : proc_rasd, \
