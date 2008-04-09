@@ -342,7 +342,11 @@ class VirtXML(Virsh, XMLClass):
     @_x2str('/domain/devices/interface/mac/@address')
     def xml_get_net_mac(self):
         pass
-    
+   
+    def xml_get_net_bridge(self):
+        bridgeStr = self.get_value_xpath('/domain/devices/interface/source/@bridge')
+        return bridgeStr
+ 
     def dumpxml(self, ip):
         cmd = 'virsh -c %s dumpxml %s' % (self.vuri, self.dname)
         s, o = utils.run_remote(ip, cmd)
