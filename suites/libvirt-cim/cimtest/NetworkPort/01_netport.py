@@ -72,7 +72,7 @@ def main():
         vsxml.undefine(options.ip)
         return XFAIL_RC(bug)
 
-    if dev == None:
+    if dev.DeviceID == None:
         logger.error("Error retrieving instance for devid %s" % devid)
         vsxml.undefine(options.ip)
         return FAIL
