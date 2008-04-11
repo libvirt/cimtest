@@ -237,13 +237,7 @@ def bootloader(server, gtype = 0):
                  or domUloader.py for SLES.
        3) returns the bootloader.
     """
-    cmd = "cat /proc/cpuinfo | egrep flags | uniq | egrep 'vmx|svm' "
-    ret, out = utils.run_remote(server,cmd)
-    if ret != 0:
-        mtype = "PVT"
-    else:
-        mtype = "FVT"
-    if mtype == "FVT" and gtype == 1:
+    if fv_cap(server) and gtype == 1:
         bootloader = "/usr/lib/xen/boot/hvmloader"
     else:
         cmd = "cat /etc/issue | grep -v ^$ | egrep 'Red Hat|Fedora'"
@@ -255,6 +249,11 @@ def bootloader(server, gtype = 0):
         # For Red Hat or Fedora
             bootloader = "/usr/bin/pygrub"
     return bootloader
+
+def fv_cap(server):
+    cmd = "egrep flags /proc/cpuinfo | uniq | egrep 'vmx|svm'"
+    ret, out = utils.run_remote(server, cmd)
+    return ret == 0
 
 def hostname(server):
     """To return the hostname of the cimserver"""
