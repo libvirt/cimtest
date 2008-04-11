@@ -6,6 +6,7 @@
 #    Kaitlin Rupert <karupert@us.ibm.com>
 #    Veerendra Chandrappa <vechandr@in.ibm.com>
 #    Zhengang Li <lizg@cn.ibm.com>
+#    Deepti B. kalakeri <deeptik@linux.vnet.ibm.com>
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public
@@ -28,10 +29,11 @@
 # 10-Oct-2007
 
 import sys
+from time import sleep
 from XenKvmLib import vxml
 from XenKvmLib import computersystem
-from VirtLib import utils
 from CimTest import Globals
+from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
@@ -53,18 +55,22 @@ def main():
         Globals.logger.error("Failed to Start the dom: %s", test_dom)
         cxml.undefine(options.ip)
         return status
-
+    
+    timeout = 10
     try:
-        cs = computersystem.get_cs_class(options.virt)(options.ip, test_dom)
+    # Need to poll for XenFV, since enabState is not getting set otherwise. 
+        for i in range(1, (timeout + 1)):
+            sleep(1)
+            cs = computersystem.get_cs_class(options.virt)(options.ip, test_dom)
+            if cs.Name != test_dom:
+                Globals.logger.error("VS %s is not defined" % test_dom)
+                break  
 
-        if cs.Name == test_dom:
+    # Success: VS is in Enabled State after Define and Start 
             enabState = cs.EnabledState
-        else:
-            Globals.logger.error("VS %s is not defined" % test_dom)
-
-        # Success: VS is in Enabled State after Define and Start 
-        if enabState == 2:
-            status = PASS
+            if enabState == 2:
+                status = PASS
+                break
 
     except Exception, detail:
         Globals.logger.error(Globals.CIM_ERROR_GETINSTANCE, 
