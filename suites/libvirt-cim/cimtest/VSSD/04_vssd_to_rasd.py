@@ -82,7 +82,7 @@ def init_list(virt):
         Creating the lists that will be used for comparisons.
     """
     procrasd = {
-                 "InstanceID" : '%s/%s' %(test_dom,0),
+                 "InstanceID" : '%s/%s' %(test_dom, "proc"),
                  "ResourceType" : 3,
                  "CreationClassName": get_typed_class(virt, 'ProcResourceAllocationSettingData')
                 }
