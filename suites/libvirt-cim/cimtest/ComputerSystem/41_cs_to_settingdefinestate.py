@@ -84,7 +84,7 @@ def rasd_init_list():
         Creating the lists that will be used for comparisons.
     """
     proc_rasd = {
-                         "InstanceID" : '%s/%s' %(test_dom,0),\
+                         "InstanceID" : '%s/%s' %(test_dom, "proc"),\
                        "ResourceType" : 3,\
                 }
 
