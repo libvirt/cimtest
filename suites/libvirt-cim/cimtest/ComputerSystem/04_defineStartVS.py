@@ -26,7 +26,8 @@
 # This test case checks state of the VS is in enabled state after 
 # defining and starting the  VS.
 # By verifying the properties of EnabledState = 2 of the VS.
-# 10-Oct-2007
+#                               
+#                                                             10-Oct-2007
 
 import sys
 from time import sleep
@@ -58,15 +59,17 @@ def main():
     
     timeout = 10
     try:
-    # Need to poll for XenFV, since enabState is not getting set otherwise. 
+        # Need to poll for XenFV, since enabState is not getting set
+        # otherwise. 
         for i in range(1, (timeout + 1)):
             sleep(1)
-            cs = computersystem.get_cs_class(options.virt)(options.ip, test_dom)
+            cs = computersystem.get_cs_class(options.virt)(options.ip,
+                                                             test_dom)
             if cs.Name != test_dom:
                 Globals.logger.error("VS %s is not defined" % test_dom)
                 break  
 
-    # Success: VS is in Enabled State after Define and Start 
+            # Success: VS is in Enabled State after Define and Start 
             enabState = cs.EnabledState
             if enabState == 2:
                 status = PASS
@@ -76,10 +79,13 @@ def main():
         Globals.logger.error(Globals.CIM_ERROR_GETINSTANCE, 
                              get_typed_class(options.virt, 'ComputerSystem'))
         Globals.logger.error("Exception: %s", detail)
-        return status
+        cxml.destroy(options.ip)
+        cxml.undefine(options.ip)
+        return status 
 
     if status != PASS :
-        Globals.logger.error("Error: property values are not set for VS %s" , test_dom)
+        Globals.logger.error("Error: property values are not set for VS %s", 
+                                                                   test_dom)
 
     cxml.destroy(options.ip)
     cxml.undefine(options.ip)
