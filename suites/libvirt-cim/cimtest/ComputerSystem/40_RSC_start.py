@@ -95,8 +95,7 @@ def main():
         logger.error("Exception: %s", detail)
         status = rc
 
-    finally:
-        undefine_test_domain(default_dom, options.ip, options.virt)
+    undefine_test_domain(default_dom, options.ip, options.virt)
 
     return status
 

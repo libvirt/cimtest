@@ -55,11 +55,11 @@ def try_assoc(ref, ref_class, exp_rc, exp_desc, options):
     except Exception, details:
         logger.error("Unknown exception happened")
         logger.error(details)
-    finally:
-        if rc == 0:
-            logger.error("ElementCapabilities associator should NOT return excepted \
-                         result with a wrong key name and value of %s input" % ref_class)
-            status = FAIL
+
+    if rc == 0:
+        logger.error("ElementCapabilities associator should NOT return excepted \
+                      result with a wrong key name and value of %s input" % ref_class)
+        status = FAIL
      
     return status
 

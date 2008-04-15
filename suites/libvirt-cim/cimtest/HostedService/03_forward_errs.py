@@ -68,10 +68,10 @@ def main():
     except Exception, details:
         logger.error("Unknown exception happened")
         logger.error(details)
-    finally:
-        if rc == 0:
-            logger.error("HostedService associator should NOT return excepted result with a wrong key name and value of HostSystem input")
-            status = FAIL
+
+    if rc == 0:
+        logger.error("HostedService associator should NOT return excepted result with a wrong key name and value of HostSystem input")
+        status = FAIL
     
     return status        
 

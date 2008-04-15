@@ -155,12 +155,11 @@ def main():
                         logger.info(details)
                         status = FAIL
 
-                    finally:
-                        if rc == 0:
-                            logger.info("Success returned for wrong key and ID")
-                            logger.info("Class = %s , key = %s , keyval = %s " %
-                                        (item, i , keyval))
-                            return XFAIL_RC(bug)
+                    if rc == 0:
+                        logger.info("Success returned for wrong key and ID")
+                        logger.info("Class = %s , key = %s , keyval = %s " %
+                                     (item, i , keyval))
+                        return XFAIL_RC(bug)
 
             except Exception, details:
                 logger.info("exception" , details)

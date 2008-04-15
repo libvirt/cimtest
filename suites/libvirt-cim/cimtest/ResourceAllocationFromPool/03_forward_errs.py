@@ -66,10 +66,10 @@ def main():
         except Exception, details:
             logger.error("Unknown exception happened")
             logger.error(details)
-        finally:
-            if rc == 0:
-                logger.error("ResourceAllocationFromPool associator should NOT return excepted result with a wrong InstanceID value of %s input" %k)
-                status = FAIL
+
+        if rc == 0:
+            logger.error("ResourceAllocationFromPool associator should NOT return excepted result with a wrong InstanceID value of %s input" %k)
+            status = FAIL
         
         return status        
 

@@ -80,11 +80,11 @@ def main():
     except Exception, details:
             logger.error("Unknown exception happened")
             logger.error(details)
-    finally:    
-        sub.unsubscribe(dict['default_auth'])
-        logger.info("Cancelling subscription for %s" % indication_name)
-        os.kill(pid, signal.SIGKILL)
-        undefine_test_domain(test_dom, options.ip, options.virt)
+
+    sub.unsubscribe(dict['default_auth'])
+    logger.info("Cancelling subscription for %s" % indication_name)
+    os.kill(pid, signal.SIGKILL)
+    undefine_test_domain(test_dom, options.ip, options.virt)
 
     return status
 

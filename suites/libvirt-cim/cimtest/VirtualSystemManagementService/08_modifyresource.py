@@ -96,10 +96,10 @@ def main():
         logger.error('Error invoking ModifyRS')
         logger.error(details)
         return XFAIL_RC(bug_net)
-    finally:
-        cxml.undefine(options.ip)
-        if rc == -1:
-            return XFAIL_RC(bug_cpu)
+
+    cxml.undefine(options.ip)
+    if rc == -1:
+        return XFAIL_RC(bug_cpu)
 
     return status
 

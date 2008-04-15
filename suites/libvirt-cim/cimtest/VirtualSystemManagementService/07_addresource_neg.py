@@ -74,10 +74,10 @@ def main():
         logger.error('Error invoking AddRS')
         logger.error(details)
         status = FAIL
-    finally:
-        cxml.undefine(options.ip)
-        if rc == 0:
-            return XFAIL_RC(bug)
+
+    cxml.undefine(options.ip)
+    if rc == 0:
+        return XFAIL_RC(bug)
 
     return status
 

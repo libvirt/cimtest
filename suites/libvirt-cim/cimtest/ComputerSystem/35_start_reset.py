@@ -115,9 +115,8 @@ RequestedStateChange()", action, default_dom)
         logger.error("Exception: %s", detail)
         status = FAIL
 
-    finally:
-        # undefine the vs
-        undefine_test_domain(default_dom, options.ip, options.virt)
+    # undefine the vs
+    undefine_test_domain(default_dom, options.ip, options.virt)
 
     return status
 

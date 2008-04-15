@@ -83,8 +83,7 @@ def main():
         logger.error("Exception: %s" % detail)
         status = 1
 
-    finally:
-        undefine_test_domain(default_dom, options.ip)
+    undefine_test_domain(default_dom, options.ip)
 
     return status
 

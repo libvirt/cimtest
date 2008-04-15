@@ -93,8 +93,8 @@ def main():
     except Exception, details:
         logger.error('Error invoking AddRS')
         logger.error(details)
-    finally:
-        cxml.undefine(options.ip)
+
+    cxml.undefine(options.ip)
 
     return status
 

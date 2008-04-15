@@ -84,9 +84,9 @@ def main():
     except Exception, details:
         logger.error('Unknown exception happened')
         logger.error(details)
-    finally:
-        if rc == 0:
-            logger.error('Migrate to host method should NOT return OK with a wrong key input')
+
+    if rc == 0:
+        logger.error('Migrate to host method should NOT return OK with a wrong key input')
 
     destroy_and_undefine_domain(test_dom, options.ip)
     return status
