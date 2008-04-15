@@ -91,11 +91,18 @@ sup_types = ['Xen']
 ac_classname = 'Xen_ElementConformsToProfile'
 bug          = '92642'
 
-expr_values = {
-                "INVALID_CCName_Keyname"  : { 'rc' : '' , 'desc' : '' }, \
-                "INVALID_CCName_Keyvalue" : { 'rc' : '' , 'desc' : '' }, \
-                "INVALID_Name_Keyname"    : { 'rc' : '' , 'desc' : '' }, \
-                "INVALID_Name_Keyvalue"   : { 'rc' : '' , 'desc' : '' }
+cs_values = {
+                "INVALID_CCName_Keyname"  : { 'rc' : 6 , 'desc' : 'No such instance' }, \
+                "INVALID_CCName_Keyvalue" : { 'rc' : 6 , 'desc' : 'No such instance' }, \
+                "INVALID_Name_Keyname"    : { 'rc' : 1 , 'desc' : 'No domain name specified'}, \
+                "INVALID_Name_Keyvalue"   : { 'rc' : 6 , 'desc' : 'No such instance' }
+              }
+
+hs_values = {
+                "INVALID_CCName_Keyname"  : { 'rc' : 6 , 'desc' : 'No such instance' }, \
+                "INVALID_CCName_Keyvalue" : { 'rc' : 6 , 'desc' : 'No such instance' }, \
+                "INVALID_Name_Keyname"    : { 'rc' : 6 , 'desc' : 'No such instance'}, \
+                "INVALID_Name_Keyvalue"   : { 'rc' : 6 , 'desc' : 'No such instance' }
               }
 
 def try_invalid_assoc(classname, name_val, i, field):
@@ -106,6 +113,10 @@ def try_invalid_assoc(classname, name_val, i, field):
     for j in range(len(name_val)/2):
         k = j * 2
         keys[name_val[k]] = name_val[k+1]
+    if classname == "Xen_HostSystem":
+        expr_values = hs_values
+    else:
+        expr_values = cs_values
     ret_val = try_assoc(conn, classname, ac_classname, keys, field_name=field, \
                               expr_values=expr_values[field], bug_no=bug)
     if ret_val != PASS:
