@@ -50,20 +50,24 @@
 
 import sys
 import pywbem
-from XenKvmLib.test_xml import testxml
 from VirtLib import utils
+from XenKvmLib import vxml
 from XenKvmLib import assoc
-from XenKvmLib.test_doms import test_domain_function, destroy_and_undefine_all
 from CimTest.Globals import log_param, logger, CIM_USER, CIM_PASS, CIM_NS, \
 CIM_ERROR_ASSOCIATORS
 from CimTest.Globals import do_main
 from XenKvmLib.common_util import try_assoc
+from XenKvmLib.classes import get_typed_class
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'KVM']
 
 test_dom = "hd_domain1"
 test_mac = "00:11:22:33:44:55"
+
+vssdc_cn = "VirtualSystemSettingDataComponent"
+vssd_cn = "VirtualSystemSettingData"
+esd_cn = "ElementSettingData"
 
 expr_values = {
                 "invalid_instid_keyvalue" : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
@@ -78,30 +82,30 @@ def main():
 
     log_param()
     status = PASS
-    destroy_and_undefine_all(options.ip)
-    test_xml = testxml(test_dom, mac = test_mac)
-    ret = test_domain_function(test_xml, options.ip, cmd = "create")
+    virtxml = vxml.get_class(options.virt)
+    cxml = virtxml(test_dom, mac = test_mac)
+    ret = cxml.create(options.ip)
     if not ret:
         logger.error("Failed to Create the dom: %s" % test_dom)
         status = FAIL
         return status
     try:
-        instid = 'Xen:%s' %test_dom
-        rasd_list = assoc.Associators(options.ip,
-                                    "Xen_VirtualSystemSettingDataComponent",
-                                    "Xen_VirtualSystemSettingData",
-                                    InstanceID = instid)
+        instid = '%s:%s' % (options.virt, test_dom)
+        rasd_list = assoc.Associators(options.ip, vssdc_cn, vssd_cn,
+                                      options.virt, InstanceID=instid)
     except Exception:
-        logger.error(CIM_ERROR_ASSOCIATORS, 'Xen_VirtualSystemSettingDataComponent')
-        test_domain_function(test_dom, options.ip, cmd = "destroy")
+        logger.error(CIM_ERROR_ASSOCIATORS, vssdc_cn)
+        cxml.destroy(options.ip)
+        cxml.undefine(options.ip)
         return FAIL
     if len(rasd_list) < 1:
-        logger.error("eturned %i objects, expected at least 1", len(rasd_list))
-        test_domain_function(test_dom, options.ip, cmd = "destroy")
+        logger.error("returned %i objects, expected at least 1", len(rasd_list))
+        cxml.destroy(options.ip)
+        cxml.undefine(options.ip)
         return FAIL
     conn = assoc.myWBEMConnection('http://%s' % options.ip, 
                                   (CIM_USER, CIM_PASS), CIM_NS)
-    assoc_classname = 'Xen_ElementSettingData'
+    assoc_classname = get_typed_class(options.virt, esd_cn)
     for rasd in rasd_list:
         classname = rasd.classname
         field = 'INVALID_InstID_KeyName'
@@ -124,7 +128,8 @@ def main():
             status = ret_value
         if status != PASS:
             break
-    test_domain_function(test_dom, options.ip, cmd = "destroy")
+    cxml.destroy(options.ip)
+    cxml.undefine(options.ip)
     return status
 if __name__ == "__main__":
     sys.exit(main())
