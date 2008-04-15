@@ -186,7 +186,7 @@ def main():
 
     global rasd_devid
     rasd_devid = {
-            'ProcResourceAllocationSettingData' : '%s/%s' % (test_dom, test_vcpus-1),
+            'ProcResourceAllocationSettingData' : '%s/%s' % (test_dom, 'proc'),
             'NetResourceAllocationSettingData'  : '%s/%s' % (test_dom, test_mac),
             'DiskResourceAllocationSettingData' : '%s/%s' % (test_dom, test_disk),
             'MemResourceAllocationSettingData'  : '%s/%s' % (test_dom, 'mem')}
