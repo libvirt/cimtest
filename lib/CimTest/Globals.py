@@ -68,6 +68,8 @@ parser.add_option("-i", "--ip", dest="ip", default="localhost",
 parser.add_option("-v", "--virt", dest="virt", type="choice",
                   choices=platform_sup, default="Xen",
                   help="Virt type, select from: 'Xen' & 'KVM' & 'XenFV', default: Xen")
+parser.add_option("-d", "--debug-output", action="store_true", dest="debug",
+                  help="Duplicate the output to stderr")
 
 if not CIM_NS:
     CIM_NS = "root/cimv2"
@@ -85,29 +87,42 @@ if not CIM_TC:
 if not CIM_IP:
     CIM_IP = "localhost"
 
-def log_param():
+def log_param(debug=None):
+    #FIXME debug=None is a temporary work around to avoid duplicate
+    # logging in vsmtest.log because we have log_param in both the
+    # do_main decorator and the test case's main function.
+    # We can safely delete the if branch here after all test cases
+    # have removed the log_param invoke.
+    if debug == None:
+        return
+    else:
         logger.setLevel(logging.DEBUG)
-#create console handler and set level to debug
+        #create console handler and set level to debug
         ch = logging.StreamHandler()
-        ch.setLevel(int(CIM_LEVEL))
-#create file handler and set level to debug
+        if debug:
+            ch.setLevel(logging.ERROR)
+        else:
+            ch.setLevel(int(CIM_LEVEL))
+        #create file handler and set level to debug
         fh = logging.FileHandler("vsmtest.log")
         fh.setLevel(logging.DEBUG)
-#create formatter
-        formatter = logging.Formatter("%(asctime)s:%(name)s:%(levelname)s   \
-\t-  %(message)s", datefmt="%a, %d %b %Y %H:%M:%S")
-#add formatter to handlers
+        #create formatter
+        formatter = logging.Formatter(\
+                "%(asctime)s:%(name)s:%(levelname)s   \t-  %(message)s",
+                datefmt="%a, %d %b %Y %H:%M:%S")
+        #add formatter to handlers
         fh.setFormatter(formatter)
+        formatter = logging.Formatter("%(levelname)s \t- %(message)s")
         ch.setFormatter(formatter)
-#add handlers to logger
+        #add handlers to logger
         logger.addHandler(fh)
         logger.addHandler(ch)
-#Print header
+        #Print header
         logger.info("====%s Log====", CIM_TC)
 
 def log_bug(bug_num):
-        logger.info("Known Bug:%s" % bug_num)
-        print "Bug:<%s>" % bug_num
+    logger.info("Known Bug:%s" % bug_num)
+    print "Bug:<%s>" % bug_num
 
 def do_main(types=['Xen'], p=parser):
     def do_type(f):
@@ -119,6 +134,7 @@ def do_main(types=['Xen'], p=parser):
         else:
             def do_try():
                 try:
+                    log_param(options.debug==True)
                     from VirtLib.utils import setup_ssh_key
                     from XenKvmLib.test_doms import destroy_and_undefine_all
                     setup_ssh_key()

@@ -49,6 +49,8 @@ parser.add_option("-c", "--clean-log",
 parser.add_option("-v", "--virt", dest="virt", type="choice",
                   choices=platform_sup, default="Xen",
                   help="Virt type, select from 'Xen' & 'KVM' & 'XenFV'(default: Xen). ")
+parser.add_option("-d", "--debug-output", action="store_true", dest="debug",
+                  help="Duplicate the output to stderr")
 
 TEST_SUITE = 'cimtest'
 
@@ -110,14 +112,19 @@ def main():
     if options.clean:
         remove_old_logs(options.group)
 
+    if options.debug:
+        dbg = "-d"
+    else:
+        dbg = ""
+
     print "Testing " + options.virt + " hypervisor"
 
     for test in test_list:
         t_path = os.path.join(TEST_SUITE, test['group'])
         os.environ['CIM_TC'] = test['test'] 
         
-        cmd = "cd %s && python %s -i %s -v %s" % \
-                 (t_path, test['test'], options.ip, options.virt)
+        cmd = "cd %s && python %s -i %s -v %s %s" % \
+                 (t_path, test['test'], options.ip, options.virt, dbg)
         status, output = commands.getstatusoutput(cmd)
 
         os_status = os.WEXITSTATUS(status)
