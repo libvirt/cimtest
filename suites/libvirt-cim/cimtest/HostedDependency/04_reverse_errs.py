@@ -29,16 +29,16 @@
 #                                                Date : 17-01-2008 
 
 import sys
-from XenKvmLib.test_xml import testxml
 from VirtLib import utils
 from XenKvmLib import assoc
-from XenKvmLib.test_doms import test_domain_function, destroy_and_undefine_all
+from XenKvmLib import vxml
 from CimTest.Globals import log_param, logger, CIM_USER, CIM_PASS, CIM_NS
 from CimTest.Globals import do_main
+from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import get_host_info, try_assoc
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'KVM']
 
 test_dom = "hd_domain1"
 test_mac = "00:11:22:33:44:55"
@@ -55,11 +55,10 @@ expr_values = {
                 "invalid_ccname_keyvalue" : { 'rc' : exp_rc, 'desc' : exp_d2 }
               }
 
-def err_invalid_name_keyname(server, conn, field):
-    status, host_name, classname = get_host_info(server)
+def err_invalid_name_keyname(server, conn, virt, assoc_classname, field):
+    status, host_name, classname = get_host_info(server, virt)
     if status:
         return status
-    assoc_classname = 'Xen_HostedDependency'
     keys = { 
               'CreationClassName' : classname, \
                             field : host_name 
@@ -68,11 +67,10 @@ def err_invalid_name_keyname(server, conn, field):
                               expr_values=expr_values['invalid_name_keyname'], \
                                                                      bug_no=bug)
 
-def err_invalid_name_keyvalue(server, conn, field):
-    status, host_name, classname = get_host_info(server)
+def err_invalid_name_keyvalue(server, conn, virt, assoc_classname, field):
+    status, host_name, classname = get_host_info(server, virt)
     if status:
         return status
-    assoc_classname = 'Xen_HostedDependency'
     keys = { 
               'CreationClassName' : classname, \
                          'Name'   : field
@@ -81,11 +79,10 @@ def err_invalid_name_keyvalue(server, conn, field):
                              expr_values=expr_values['invalid_name_keyvalue'], \
                                                                      bug_no=bug)
 
-def err_invalid_ccname_keyname(server, conn, field):
-    status, host_name, classname = get_host_info(server)
+def err_invalid_ccname_keyname(server, conn, virt, assoc_classname, field):
+    status, host_name, classname = get_host_info(server, virt)
     if status:
         return status
-    assoc_classname = 'Xen_HostedDependency'
     keys = {  
                 field : classname, \
                'Name' : host_name
@@ -93,11 +90,10 @@ def err_invalid_ccname_keyname(server, conn, field):
     return try_assoc(conn, classname, assoc_classname, keys, field_name=field, \
                              expr_values=expr_values['invalid_ccname_keyname'], \
                                                                      bug_no=bug)
-def err_invalid_ccname_keyvalue(server, conn, field):
-    status, host_name, classname = get_host_info(server)
+def err_invalid_ccname_keyvalue(server, conn, virt, assoc_classname, field):
+    status, host_name, classname = get_host_info(server, virt)
     if status:
         return status
-    assoc_classname = 'Xen_HostedDependency'
     keys = {  
                'CreationClassName'  : field, \
                'Name'               : host_name
@@ -113,33 +109,41 @@ def main():
     log_param()
     status = PASS
     server = options.ip
-    destroy_and_undefine_all(options.ip)
-    test_xml = testxml(test_dom, mac = test_mac)
+    virtxml = vxml.get_class(options.virt)
+    cxml = virtxml(test_dom, mac = test_mac)
 
-    ret = test_domain_function(test_xml, options.ip, cmd = "create")
+    ret = cxml.create(options.ip)
     if not ret:
         logger.error("Failed to Create the dom: %s" % test_dom)
         status = FAIL
         return status
-    conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, CIM_PASS), CIM_NS)
-    ret_value = err_invalid_name_keyname(server, conn, field='INVALID_KeyName') 
+    conn = assoc.myWBEMConnection('http://%s' % options.ip,
+                                  (CIM_USER, CIM_PASS), CIM_NS)
+    acn = get_typed_class(options.virt, 'HostedDependency')
+    ret_value = err_invalid_name_keyname(server, conn, options.virt, acn,
+                                         field='INVALID_KeyName') 
     if ret_value != PASS: 
-         logger.error("------ FAILED: Invalid Name Key Name.------")
+         logger.error("--- FAILED: Invalid Name Key Name.---")
          status = ret_value 
-    ret_value = err_invalid_name_keyvalue(server, conn, field='INVALID_NameValue') 
+    ret_value = err_invalid_name_keyvalue(server, conn, options.virt, acn,
+                                          field='INVALID_NameValue') 
     if ret_value != PASS: 
-         logger.error("------ FAILED: Invalid Name Key Value.------")
+         logger.error("--- FAILED: Invalid Name Key Value.---")
          status = ret_value
-    ret_value = err_invalid_ccname_keyname(server, conn, field='INVALID_CCNKeyName')
+    ret_value = err_invalid_ccname_keyname(server, conn, options.virt, acn,
+                                           field='INVALID_CCNKeyName')
     if ret_value != PASS: 
-         logger.error("------ FAILED: Invalid CreationClassName Key Name------")
+         logger.error("--- FAILED: Invalid CreationClassName Key Name---")
          status = ret_value 
-    ret_value = err_invalid_ccname_keyvalue(server, conn, field='INVALID_CCNameValue')
+    ret_value = err_invalid_ccname_keyvalue(server, conn, options.virt, acn,
+                                            field='INVALID_CCNameValue')
     if ret_value != PASS:
-         logger.error("------ FAILED: Invalid CreationClassName Key Value------")
+         logger.error("--- FAILED: Invalid CreationClassName Key Value---")
          status = ret_value
-    ret = test_domain_function(test_dom, options.ip, cmd = "destroy")
+    cxml.destroy(options.ip)
+    cxml.undefine(options.ip)
     return status
+
 if __name__ == "__main__":
     sys.exit(main())
 
