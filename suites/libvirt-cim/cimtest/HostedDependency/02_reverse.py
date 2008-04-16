@@ -41,15 +41,16 @@
 #                                                Date : 15-11-2007
 
 import sys
-from XenKvmLib.test_xml import testxml
 from VirtLib import utils
+from XenKvmLib import vxml
 from XenKvmLib import hostsystem
 from XenKvmLib import computersystem 
 from XenKvmLib import assoc
-from XenKvmLib.test_doms import test_domain_function
+from XenKvmLib.classes import get_class_basename
 from CimTest.Globals import log_param, logger, do_main
+from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'KVM']
 
 test_dom = "hd_domain"
 test_mac = "00:11:22:33:44:55"
@@ -58,72 +59,65 @@ test_mac = "00:11:22:33:44:55"
 def main():
     options = main.options
     log_param()
-    status = 0
+    status = PASS
 
-    test_xml = testxml(test_dom, mac = test_mac)
-    ret = test_domain_function(test_xml, options.ip, cmd = "create")
+    virtxml = vxml.get_class(options.virt)
+    cxml = virtxml(test_dom, mac = test_mac)
+    ret = cxml.create(options.ip)
 
     if not ret:
         logger.error("ERROR: Failed to Create the dom: %s" % test_dom)
-        status = 1
+        status = FAIL
         return status
 
     try:
-        host_sys = hostsystem.enumerate(options.ip)
+        host_sys = hostsystem.enumerate(options.ip, options.virt)
         if host_sys[0].Name == "":
-            ret = test_domain_function(test_dom, options.ip, \
-                                                            cmd = "destroy")
-            logger.error("ERROR: HostName seems to be empty")
-            status = 1
-            return status
+            raise Exception("HostName seems to be empty")
         else:
         # Instance of the HostSystem
             host_sys = host_sys[0]
 
-        cs = computersystem.enumerate(options.ip)
-        # The len should be atleast two , bcs the CS returns info
-        # one regd VS and the other one for Dom-0 
-        if len(cs) < 2:
-            logger.error("ERROR: Wrong number of systems returned")
-            status = 1 
-            return status
+        cs = computersystem.enumerate(options.ip, options.virt)
+        if options.virt == 'Xen' or options.virt == 'XenFV':
+            # Xen honors additional domain-0
+            cs_list_len = 2
+        else:
+            cs_list_len = 1
+        if len(cs) < cs_list_len:
+            raise Exception("Wrong number of systems returned")
        
         # Build a list of ComputerSystem names from the list returned from
         # ComputerSystem.EnumerateInstances()
-        cs_names = []
-        for inst in cs:
-            cs_names.append(inst.name)
-        # Store the Creation classname 
-        ccn = cs[0].CreationClassName
+        cs_names = [x.name for x in cs]
 
         # Get a list of ComputerSystem instances from the HostSystem instace
         host_ccn = host_sys.CreationClassName
-        systems = assoc.AssociatorNames(options.ip,
-                                        "Xen_HostedDependency",
-                                        host_ccn, 
-                                        CreationClassName = host_ccn,
+        systems = assoc.AssociatorNames(options.ip, "HostedDependency",
+                                        get_class_basename(host_ccn), 
+                                        options.virt,
+                                        CreationClassName=host_ccn,
                                         Name=host_sys.Name)
 
         # Compare each returned instance to make sure it's in the list
         # that ComputerSystem.EnumerateInstances() returned
         if len(systems) < 1:
-            logger.error("HostedDependency returned %d, expected at least 1" %
-                         len(systems))
-            test_domain_function(test_dom, options.ip, cmd = "destroy")
-            return 1
+            raise Exception("HostedDependency returned %d, expected at least 1" %
+                            len(systems))
 
+        ccn = cs[0].CreationClassName
         for guest in systems:
             if guest["Name"] in cs_names:
                 cs_names.remove(guest["Name"])
             else:
                 logger.error("HostedDependency returned unexpected guest %s" %
                              guest["Name"])
-                status = 1
+                status = FAIL
 
         # checking the CreationClassName returned is Xen_ComputerSystem
             if ccn != guest["CreationClassName"]:
                 logger.error("ERROR: CreationClassName does not match")
-                status = 1
+                status = FAIL
 
         # Go through anything remaining in the
         # ComputerSystem.EnumerateInstances() list and complain about them
@@ -132,12 +126,18 @@ def main():
         for guest in cs_names:
             logger.error("HostedDependency did not return expected guest %s" %
                          guest["Name"])
-            status = 1
+            status = FAIL
             
     except (UnboundLocalError, NameError), detail:
         logger.error("Exception: %s" % detail)
+    
+    except Exception, detail:
+        logger.error(detail)
+        status = FAIL
 
-    ret = test_domain_function(test_dom, options.ip, cmd = "destroy") 
+    cxml.destroy(options.ip)
+    cxml.undefine(options.ip)
     return status
+
 if __name__ == "__main__":
     sys.exit(main())
