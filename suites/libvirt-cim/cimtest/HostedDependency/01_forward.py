@@ -45,16 +45,17 @@
 
 import sys
 import pywbem
-from XenKvmLib.test_xml import testxml
 from VirtLib import utils
+from XenKvmLib import vxml
 from XenKvmLib import computersystem 
 from XenKvmLib import assoc
-from XenKvmLib.test_doms import test_domain_function 
 from XenKvmLib import hostsystem
+from XenKvmLib.classes import get_class_basename
 from CimTest import Globals
 from CimTest.Globals import do_main
+from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'KVM']
 
 test_dom = "hd_domain"
 test_mac = "00:11:22:33:44:55"
@@ -62,78 +63,79 @@ test_mac = "00:11:22:33:44:55"
 @do_main(sup_types)
 def main():
     options = main.options
-    status = 0
+    status = PASS
 
     Globals.log_param()
-    test_xml = testxml(test_dom, mac = test_mac)
-    ret = test_domain_function(test_xml, options.ip, cmd = "define")
+    virtxml = vxml.get_class(options.virt)
+    cxml = virtxml(test_dom, mac = test_mac)
+    ret = cxml.define(options.ip)
     if not ret:
         Globals.logger.error("Failed to Create the dom: %s", test_dom)
-        status = 1
+        status = FAIL
         return status
 
     try:
-        host = hostsystem.enumerate(options.ip)[0]
+        host = hostsystem.enumerate(options.ip, options.virt)[0]
     except Exception,detail:
-        Globals.logger.error(Globals.CIM_ERROR_ENUMERATE, 'Xen_Hostsystem')
+        Globals.logger.error(Globals.CIM_ERROR_ENUMERATE, 'Hostsystem')
         Globals.logger.error("Exception: %s", detail)
-        status = 1
+        status = FAIL
+        cxml.undefine(options.ip)
         return status
 
     try: 
-        cs = computersystem.enumerate(options.ip)
+        cs = computersystem.enumerate(options.ip, options.virt)
     except Exception,detail:
-        Globals.logger.error(Globals.CIM_ERROR_ENUMERATE, 'Xen_ComputerSystem')
+        Globals.logger.error(Globals.CIM_ERROR_ENUMERATE, 'ComputerSystem')
         Globals.logger.error("Exception: %s", detail)
-        status = 1
+        status = FAIL
+        cxml.undefine(options.ip)
         return status
     
+    hs_cn = "HostedDependency"
     try:
         for system in cs:
-            hs = assoc.Associators(options.ip,
-                                   "Xen_HostedDependency",
-                                   system.CreationClassName, 
-                                   CreationClassName = system.CreationClassName,
+            ccn = get_class_basename(system.CreationClassName)
+            hs = assoc.Associators(options.ip, hs_cn, ccn, options.virt,
+                                   CreationClassName=system.CreationClassName,
                                    Name=system.name)
 
             if not hs:
-                ret = test_domain_function(test_dom, options.ip, \
-                                                            cmd = "undefine")
+                cxml.undefine(options.ip)
                 Globals.logger.error("HostName seems to be empty")
-                status = 1
+                status = FAIL
                 break
 
             if len(hs) != 1:
                 test =  "(len(hs), system.name)"
                 Globals.logger.error("HostedDependency returned %i HostSystem \
 objects for domain '%s'", len(hs), system.name)
-                status = 1
+                status = FAIL
                 break
 
-            cn      = hs[0]["CreationClassName"]
-            sn      = hs[0]["Name"]
+            cn = hs[0]["CreationClassName"]
+            sn = hs[0]["Name"]
 
             if cn != host.CreationClassName:
                 Globals.logger.error("CreationClassName does not match")
-                status = 1
+                status = FAIL
                 
             if sn != host.Name:
                 Globals.logger.error("Name does not match")
-                status = 1
+                status = FAIL
 
             if status != 0:
                 break
             
     except Exception,detail:
-        Globals.logger.error(Globals.CIM_ERROR_ASSOCIATORS, 'Xen_HostedDependency')
+        Globals.logger.error(Globals.CIM_ERROR_ASSOCIATORS, hs_cn)
         Globals.logger.error("Exception: %s", detail)
-        status = 1
+        status = FAIL
+        cxml.undefine(options.ip)
         return status
 
-    ret = test_domain_function(test_dom, options.ip, \
-                                                   cmd = "destroy")
+    cxml.undefine(options.ip)
     return status
-
     
 if __name__ == "__main__":
     sys.exit(main())
