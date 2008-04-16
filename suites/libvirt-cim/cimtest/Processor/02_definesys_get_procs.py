@@ -39,6 +39,7 @@ from XenKvmLib.test_doms import undefine_test_domain
 from XenKvmLib.common_util import create_using_definesystem 
 from XenKvmLib.devices import get_dom_proc_insts
 from CimTest.Globals import log_param, logger, do_main
+from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 
@@ -49,28 +50,28 @@ def check_processors(procs):
     if len(procs) != test_vcpus:
         logger.error("%d vcpu instances were returned. %d expected", 
                      len(procs), test_vcpus)
-        return 1
+        return FAIL
 
     for proc in procs:
         if proc['SystemName'] != default_dom: 
             logger.error("Inst returned is for guesst %s, expected guest %s.", 
                          procs['SystemName'], default_dom)
-            return 1
+            return FAIL
 
         devid = "%s/%s" % (default_dom, test_vcpus - 1)
 
         if proc['DeviceID'] != devid: 
             logger.error("DeviceID %s does not match expected %s.", 
                          procs['DeviceID'], devid)
-            return 1
+            return FAIL
 
-    return 0
+    return PASS
         
 @do_main(sup_types)
 def main():
     options = main.options
     log_param()
-    status = 0
+    status = PASS
 
     undefine_test_domain(default_dom, options.ip)
 
@@ -94,7 +95,7 @@ def main():
 
     except Exception, detail:
         logger.error("Exception: %s" % detail)
-        status = 1
+        status = FAIL
 
     undefine_test_domain(default_dom, options.ip)
 

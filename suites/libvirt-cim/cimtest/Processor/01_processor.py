@@ -32,6 +32,7 @@ from XenKvmLib.classes import get_typed_class
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from CimTest.Globals import log_param, logger
 from CimTest.Globals import do_main
+from CimTest.ReturnCodes import PASS, FAIL
 
 SUPPORTED_TYPES = ['Xen', 'KVM', 'XenFV']
 
@@ -42,7 +43,7 @@ test_vcpus = 1
 def main():
     options = main.options
     log_param()
-    status = 0
+    status = PASS
     vsxml = get_class(options.virt)(test_dom, vcpus=test_vcpus)
     vsxml.define(options.ip)
     vsxml.start(options.ip)
@@ -50,7 +51,7 @@ def main():
     # Processor instance enumerate need the domain to be active
     domlist = live.active_domain_list(options.ip, options.virt)
     if test_dom not in domlist:
-        status = 1
+        status = FAIL
         logger.error("Domain not started, we're not able to check vcpu")
     else:
         for i in range(0, test_vcpus):
@@ -62,7 +63,10 @@ def main():
                        }
             try:
                 dev = eval(('devices.' + get_typed_class(options.virt, 'Processor')))(options.ip, key_list)
-                logger.info("Checked device %s" % devid)
+                if dev.DeviceID == devid:
+                    logger.info("Checked device %s" % devid)
+                else:
+                    logger.error("Mismatching device, returned %s instead %s" % (dev.DeviceID, devid))
             except Exception, details:
                 logger.error("Error check device %s: %s" % (devid, details))
                 status = 1
