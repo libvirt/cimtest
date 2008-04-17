@@ -136,7 +136,7 @@ def get_host_info(server, virt="Xen"):
             host_ccn = host_sys.CreationClassName
             host_name = host_sys.Name
     except Exception, detail:
-        logger.error(CIM_ERROR_ENUMERATE, 'Xen_HostSystem')
+        logger.error(CIM_ERROR_ENUMERATE, 'HostSystem')
         logger.error("Exception: %s", detail)
         status = FAIL
     return status, host_name, host_ccn

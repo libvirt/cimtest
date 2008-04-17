@@ -32,19 +32,19 @@
 
 import sys
 from time import sleep
-from XenKvmLib.test_xml import testxml
 from VirtLib import utils
+from XenKvmLib import vxml
 from XenKvmLib import computersystem 
 from XenKvmLib import assoc
 from XenKvmLib.common_util import get_host_info
-from XenKvmLib.test_doms import test_domain_function, destroy_and_undefine_all
+from XenKvmLib.classes import get_class_basename
 from CimTest.Globals import log_param, logger, CIM_ERROR_ASSOCIATORS, \
 CIM_ERROR_GETINSTANCE
 from CimTest.Globals import do_main
 from XenKvmLib.devices import CIM_Instance
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'KVM']
 
 test_dom = "hd_domain1"
 test_mac = "00:11:22:33:44:55"
@@ -62,7 +62,7 @@ def print_error(field, ret_val, req_val):
     logger.error("%s Mismatch", field)
     logger.error("Returned %s instead of %s", ret_val, req_val)
 
-def poll_for_enabledstate_value(server): 
+def poll_for_enabledstate_value(server, virt): 
     status = PASS
     dom_field_list = {}
     check_reqstate_value = None
@@ -70,7 +70,8 @@ def poll_for_enabledstate_value(server):
     try:
         for i in range(1, (timeout + 1)):
             sleep(1)
-            dom_cs = computersystem.Xen_ComputerSystem(server, name=test_dom)
+            cs = computersystem.get_cs_class(virt)
+            dom_cs = cs(server, name=test_dom)
             if dom_cs.EnabledState == "" or dom_cs.CreationClassName == "" or \
                dom_cs.Name == "" or  dom_cs.RequestedState == "":
                 logger.error("Empty EnabledState field.")
@@ -83,7 +84,7 @@ def poll_for_enabledstate_value(server):
                 break
 
     except Exception, detail:
-        logger.error(CIM_ERROR_GETINSTANCE, 'Xen_ComputerSystem')
+        logger.error(CIM_ERROR_GETINSTANCE, 'ComputerSystem')
         logger.error("Exception: %s" % detail)
         status = FAIL
 
@@ -94,31 +95,39 @@ def poll_for_enabledstate_value(server):
        
     return status, dom_field_list 
 
+class HsError(Exception):
+    pass
+
 @do_main(sup_types)
 def main():
     options = main.options
 
     log_param()
     status = PASS
-    destroy_and_undefine_all(options.ip)
-    test_xml = testxml(test_dom, mac = test_mac)
 
-    ret = test_domain_function(test_xml, options.ip, cmd = "create")
+    virtxml = vxml.get_class(options.virt)
+    cxml = virtxml(test_dom, mac = test_mac)
+
+    ret = cxml.create(options.ip)
     if not ret:
         logger.error("Failed to Create the dom: %s" % test_dom)
         status = FAIL
         return status
 
-    ret = test_domain_function(test_dom, options.ip, cmd = "suspend")
+    ret = cxml.run_virsh_cmd(options.ip, "suspend")
 
     if not ret:
         logger.error("Failed to suspend the dom: %s" % test_dom)
+        cxml.destroy(options.ip)
+        cxml.undefine(options.ip)
         status = FAIL
         return status
 
-    status, host_name, host_ccn = get_host_info(options.ip)
+    status, host_name, host_ccn = get_host_info(options.ip, options.virt)
     if status != PASS:
-        ret = test_domain_function(test_dom, options.ip, cmd = "destroy")
+        logger.error("Failed to get host info")
+        cxml.destroy(options.ip)
+        cxml.undefine(options.ip)
         return status 
 
     try: 
@@ -128,25 +137,24 @@ def main():
 #it does not get set immediatley to value of 9 when suspended.
 
         dom_field_list = {}
-        status, dom_field_list = poll_for_enabledstate_value(options.ip) 
+        status, dom_field_list = poll_for_enabledstate_value(options.ip,
+                                                             options.virt) 
         if status != PASS or len(dom_field_list) == 0:
-            test_domain_function(test_dom, options.ip, cmd = "destroy")
-            return status
+            raise HsError("Failed to poll for enabled state value")
 
-        hs = assoc.Associators(options.ip, "Xen_HostedDependency", host_ccn, \
+        hs = assoc.Associators(options.ip, "HostedDependency", 
+                               get_class_basename(host_ccn), options.virt,
                                CreationClassName=host_ccn, Name=host_name)
         if len(hs) == 0:
-            logger.error("HostedDependency didn't return any instances.")
-            return FAIL
+            raise HsError("HostedDependency didn't return any instances.")
 
         hs_field_list = []
-        for i in range(len(hs)):
-            if hs[i]['Name'] == test_dom:
-                hs_field_list = create_list(CIM_Instance(hs[i]))
+        for hsi in hs:
+            if hsi['Name'] == test_dom:
+                hs_field_list = create_list(CIM_Instance(hsi))
 
         if len(hs_field_list) == 0:
-            logger.error("Association did not return expected guest instance.")
-            return FAIL
+            raise HsError("Association did not return expected guest instance.")
 
         if dom_field_list['CreationClassName'] != hs_field_list['CreationClassName']:
             print_error('CreationClassName', hs_field_list['CreationClassName'], \
@@ -165,12 +173,16 @@ def main():
             print_error('EnabledState', hs_field_list['EnabledState'], \
                                          dom_field_list['EnabledState']) 
             status = FAIL
+    except HsError, detail:
+        status = FAIL
+        logger.error(detail)
     except Exception, detail:
-        logger.error(CIM_ERROR_ASSOCIATORS,'Xen_HostedDependency')
+        logger.error(CIM_ERROR_ASSOCIATORS,'HostedDependency')
         logger.error("Exception: %s" % detail)
         status = FAIL
 
-    ret = test_domain_function(test_dom, options.ip, cmd = "destroy")
+    cxml.destroy(options.ip)
+    cxml.undefine(options.ip)
     return status
 
 if __name__ == "__main__":
