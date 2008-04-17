@@ -82,14 +82,17 @@ import sys
 import pywbem
 from VirtLib import utils, live
 from XenKvmLib import assoc
+from XenKvmLib import vxml
+from XenKvmLib.classes import get_typed_class 
 from XenKvmLib.common_util import try_assoc
+from XenKvmLib.test_doms import destroy_and_undefine_all
 from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import log_param, logger, CIM_USER, CIM_PASS, CIM_NS, do_main
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'XenFV', 'KVM']
 
-ac_classname = 'Xen_ElementConformsToProfile'
 bug          = '92642'
+test_dom = "domU"
 
 cs_values = {
                 "INVALID_CCName_Keyname"  : { 'rc' : 6 , 'desc' : 'No such instance' }, \
@@ -105,7 +108,8 @@ hs_values = {
                 "INVALID_Name_Keyvalue"   : { 'rc' : 6 , 'desc' : 'No such instance' }
               }
 
-def try_invalid_assoc(classname, name_val, i, field):
+def try_invalid_assoc(classname, name_val, i, field, virt="Xen"):
+    ac_classname = get_typed_class(virt, "ElementConformsToProfile")
     j = 0
     keys = {}
     temp = name_val[i]
@@ -113,7 +117,7 @@ def try_invalid_assoc(classname, name_val, i, field):
     for j in range(len(name_val)/2):
         k = j * 2
         keys[name_val[k]] = name_val[k+1]
-    if classname == "Xen_HostSystem":
+    if classname == get_typed_class(virt, "HostSystem"):
         expr_values = hs_values
     else:
         expr_values = cs_values
@@ -134,16 +138,24 @@ def main():
 
     global conn
     conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, CIM_PASS), CIM_NS)
+    virt_xml = vxml.get_class(options.virt)
+    cxml = virt_xml(test_dom)
+    ret = cxml.define(options.ip)
+    if not ret:
+        logger.error('Unable to define domain %s' % test_dom)
+        return FAIL
 
+    hs = get_typed_class(options.virt, "HostSystem")
+    cs = get_typed_class(options.virt, "ComputerSystem")
     host_name = live.hostname(options.ip)
     host_name_val = [
-                        'CreationClassName', 'Xen_HostSystem', \
+                        'CreationClassName', hs, \
                         'Name',              host_name
                     ]
 
     comp_name_val = [
-                        'CreationClassName', 'Xen_ComputerSystem', \
-                        'Name',              'Domain-0'
+                        'CreationClassName', cs, \
+                        'Name',              test_dom
                     ]
 
     tc_scen =       [
@@ -154,12 +166,12 @@ def main():
                     ]
 
     for i in range(len(tc_scen)):
-        retval = try_invalid_assoc('Xen_HostSystem', host_name_val, i, tc_scen[i])
+        retval = try_invalid_assoc(hs, host_name_val, i, tc_scen[i], options.virt)
         if retval != PASS:
             status = retval
 
     for i in range(len(tc_scen)):
-        retval = try_invalid_assoc('Xen_ComputerSystem', comp_name_val, i, tc_scen[i])
+        retval = try_invalid_assoc(cs, comp_name_val, i, tc_scen[i], options.virt)
         if retval != PASS:
             status = retval
 
