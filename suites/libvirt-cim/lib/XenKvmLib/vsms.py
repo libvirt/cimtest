@@ -138,6 +138,7 @@ def get_dasd_class(virt):
 
 class CIM_NetResourceAllocationSettingData(CIMClassMOF):
     def __init__(self, type, mac, name):
+        self.Address = mac
         self.NetworkType = type
         if type == 'ethernet' or type == 'bridge' :
             self.ResourceType = RASD_TYPE_NET_ETHER
