@@ -28,77 +28,55 @@
 import sys
 import pywbem
 from XenKvmLib import enumclass
+from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
-from CimTest.Globals import do_main
+from CimTest.Globals import do_main, logger
+from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'KVM']
 
 @do_main(sup_types)
 def main():
     options = main.options
 
-    registeredOrganization = 2
-    registeredname = ['System Virtualization', \
-                      'Virtual System Profile' ]
-    inst_id = ['CIM:DSP1042-SystemVirtualization-1.0.0', \
-                      'CIM:DSP1057-VirtualSystem-1.0.0a']
-    registeredversion = [ '1.0.0', '1.0.0a'] 
-    cn = 'Xen_RegisteredProfile'
-    index = 0 
+    explist = [['CIM:DSP1042-SystemVirtualization-1.0.0', 2,
+                'System Virtualization', '1.0.0'],
+               ['CIM:DSP1057-VirtualSystem-1.0.0a', 2,
+                'Virtual System Profile', '1.0.0a']]
+    cn = 'RegisteredProfile'
 
-    status = 0
+    status = PASS
     prev_namespace = Globals.CIM_NS
     Globals.CIM_NS = 'root/interop'
 
     Globals.log_param()
     try: 
         key_list = ["InstanceID"]
-        proflist = enumclass.enumerate(options.ip, \
-                                    enumclass.Xen_RegisteredProfile, \
-                                    key_list) 
-
-    # For each of the instances verify : 
-    # -RegisteredOrganization = 2
-    # -InstanceID="CIM:DSP1042-SystemVirtualization-1.0.0"
-    # -RegisteredName="System Virtualization"
-    # -RegisteredVersion="1.0.0"
-
-        for profile in proflist:
-            Globals.logger.log(int(Globals.logging.PRINT),"Verifying the \
-fields for :%s", profile.RegisteredName)
-            if profile.InstanceID == "" :
-                Globals.logger.error("InstanceID is %s instead of %s", \
-                   'NULL', inst_id[index])
-                status = 1  
-            if inst_id[index] != profile.InstanceID :
-                Globals.logger.error("InstanceID is %s instead of %s", \
-                   profile.InstanceID, inst_id[index])
-                status = 1  
-            if registeredOrganization != profile.RegisteredOrganization:
-                Globals.logger.error("RegisteredOrganization is %s instead of %s"\
-                   , profile.RegisteredOrganization, registeredOrganization)
-                status = 1
-            if registeredname[index] != profile.RegisteredName:
-                 Globals.logger.error("RegisteredName is %s instead of %s", \
-                   profile.RegisteredName, registeredname[index])
-                 status = 1  
-            if registeredversion[index] != profile.RegisteredVersion:
-                 Globals.logger.error("RegisteredVersion is %s instead of \
-%s", profile.RegisteredVersion, registeredversion[index])
-                 status = 1
-            if status != 0:
-                Globals.CIM_NS = prev_namespace
-                return status 
-            index = index + 1 
+        proflist = enumclass.enumerate(options.ip, cn, key_list, options.virt)
     except Exception, detail:
-        Globals.logger.error(Globals.CIM_ERROR_ENUMERATE, 'Xen_RegisteredProfile')
-        Globals.logger.error("Exception: %s", detail)
-        status = 1
-        return status 
+        logger.error(Globals.CIM_ERROR_ENUMERATE, get_typed_class(options.virt,
+                     cn))
+        logger.error("Exception: %s", detail)
+        status = FAIL
+        Globals.CIM_NS = prev_namespace
+        return status
+    
+    Globals.CIM_NS = prev_namespace
 
-# The execution will reach here only if all the checks are successful       
-    Globals.logger.log(int(Globals.logging.PRINT), "Verification of the properties \
-for the class '%s' was successful", cn)
+    checklist = [[x.InstanceID, x.RegisteredOrganization, 
+                  x.RegisteredName, x.RegisteredVersion] for x in proflist]
+    for exp_prof in explist:
+        if exp_prof in checklist:
+            logger.info("Profile %s found" % exp_prof[0])
+        else:
+            logger.error("Profile %s is not found" % exp_prof[0])
+            status = FAIL
+            break
+
+    if status == PASS:
+        logger.info("Properties check for %s passed" % cn)
+    else:
+        logger.error("Properties check for %s failed" % cn)
     return status
 
 if __name__ == "__main__":
