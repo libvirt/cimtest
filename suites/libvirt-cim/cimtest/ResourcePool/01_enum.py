@@ -26,25 +26,28 @@
 
 import sys
 import os
-from VirtLib import utils
 from distutils.file_util import move_file
-from XenKvmLib import enumclass
+from XenKvmLib.enumclass import enumerate
+from XenKvmLib.classes import get_typed_class
+from XenKvmLib import vxml
 from CimTest import Globals
 from CimTest.Globals import log_param, logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from VirtLib.live import net_list
-from XenKvmLib.test_xml import netxml
-from XenKvmLib.test_doms import create_vnet
 from XenKvmLib.vsms import RASD_TYPE_PROC, RASD_TYPE_MEM, RASD_TYPE_NET_ETHER, \
 RASD_TYPE_DISK 
 
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'KVM']
 
 test_dpath = "foo"
 disk_file = '/tmp/diskpool.conf'
 back_disk_file = disk_file + "." + "resourcepool_enum"
 diskid = "%s/%s" % ("DiskPool", test_dpath)
+dp_cn = 'DiskPool'
+mp_cn = 'MemoryPool'
+pp_cn = 'ProcessorPool'
+np_cn = 'NetworkPool'
 
 def conf_file():
     """
@@ -80,8 +83,7 @@ def clean_up_restore():
         logger.error("Failed to Disk Conf file")
     return status
 
-def init_list(server):
-    global pool_list
+def init_list(server, virt):
     status = PASS
     os.system("rm -f %s" % back_disk_file )
     if not (os.path.exists(disk_file)):
@@ -90,35 +92,36 @@ def init_list(server):
         move_file(disk_file, back_disk_file)
         status = conf_file()
     if status != PASS:
-        return status
-    vir_network = net_list(server)
+        return status, None
+    vir_network = net_list(server, virt)
     if len(vir_network) > 0:
         test_network = vir_network[0]
     else:
         bridgename   = 'testbridge'
         test_network = 'default-net'
-        net_xml, bridge = netxml(server, bridgename, test_network)
-        ret = create_vnet(server, net_xml)
+        netxml = vxml.NetXML(server, bridgename, test_network, virt)
+        ret = netxml.create_vnet()
         if not ret:
             logger.error("Failed to create the Virtual Network '%s'", \
                                                            test_network)
-            return SKIP
-    disk_instid = 'DiskPool/%s' %test_dpath
-    net_instid = 'NetworkPool/%s' %test_network
-    pool_list = { 
-                 'Xen_MemoryPool'    : ['MemoryPool/0', RASD_TYPE_MEM], \
-                 'Xen_ProcessorPool' : ['ProcessorPool/0', RASD_TYPE_PROC], \
-                 'Xen_DiskPool'      : [disk_instid, RASD_TYPE_DISK], \
-                 'Xen_NetworkPool'   : [net_instid, RASD_TYPE_NET_ETHER]
-               } 
-    return status 
+            return SKIP, None
+    disk_instid = '%s/%s' % (dp_cn, test_dpath)
+    net_instid = '%s/%s' % (np_cn, test_network)
+    mem_instid = '%s/0' % mp_cn
+    proc_instid = '%s/0' % pp_cn
+    pool_list = {
+            get_typed_class(virt, mp_cn) : [mem_instid, RASD_TYPE_MEM],
+            get_typed_class(virt, pp_cn) : [proc_instid, RASD_TYPE_PROC],
+            get_typed_class(virt, dp_cn) : [disk_instid, RASD_TYPE_DISK],
+            get_typed_class(virt, np_cn) : [net_instid, RASD_TYPE_NET_ETHER]
+            } 
+    return status, pool_list
 
 def print_error(fieldname="", ret_value="", exp_value=""):
     logger.error("%s Mismatch", fieldname)
     logger.error("Returned %s instead of %s", ret_value, exp_value)
 
-def verify_fields(poolname, cn):
-    global pool_list
+def verify_fields(pool_list, poolname, cn):
     status = PASS
     if len(poolname) < 1:
         logger.error("%s return %i instances, expected atleast 1 instance" \
@@ -139,50 +142,45 @@ def verify_fields(poolname, cn):
 
 @do_main(sup_types)
 def main():
-    options = main.options
+    ip = main.options.ip
+    virt = main.options.virt
 
     log_param()
-    global pool_list
-    server = options.ip
-    status = init_list(server)
+    status, pool_list = init_list(ip, virt)
     if status != PASS: 
         logger.error("Failed to initialise the list")
         return status
 
     key_list = ["InstanceID"]
+    
     try:
-        mempool = enumclass.enumerate(options.ip,
-                                      enumclass.Xen_MemoryPool,
-                                                      key_list)
+        mempool = enumerate(ip, mp_cn, key_list, virt)
     except Exception:
-        logger.error(Globals.CIM_ERROR_ENUMERATE % enumclass.Xen_MemoryPool)
+        logger.error(Globals.CIM_ERROR_ENUMERATE % mp_cn)
         return FAIL
-    status = verify_fields(poolname=mempool, cn='Xen_MemoryPool')
+    status = verify_fields(pool_list, mempool, get_typed_class(virt, mp_cn))
+    
     try:
-        propool = enumclass.enumerate(options.ip,
-                                      enumclass.Xen_ProcessorPool,
-                                      key_list)
+        propool = enumerate(ip, pp_cn, key_list, virt)
     except Exception:
-        logger.error(Globals.CIM_ERROR_ENUMERATE % enumclass.Xen_ProcessorPool)
+        logger.error(Globals.CIM_ERROR_ENUMERATE % pp_cn)
         return FAIL
-
-    status = verify_fields(poolname=propool, cn='Xen_ProcessorPool')
+    status = verify_fields(pool_list, propool, get_typed_class(virt, pp_cn))
+    
     try:
-        diskpool = enumclass.enumerate(options.ip,
-                                      enumclass.Xen_DiskPool,
-                                      key_list)
+        diskpool = enumerate(ip, dp_cn, key_list, virt)
     except Exception:
-        logger.error(Globals.CIM_ERROR_ENUMERATE % enumclass.Xen_DiskPool)
+        logger.error(Globals.CIM_ERROR_ENUMERATE % dp_cn)
         return FAIL
-    status = verify_fields(poolname=diskpool, cn='Xen_DiskPool') 
+    status = verify_fields(pool_list, diskpool, get_typed_class(virt, dp_cn))
+    
     try:
-        netpool = enumclass.enumerate(options.ip,
-                                      enumclass.Xen_NetworkPool,
-                                      key_list)
+        netpool = enumerate(ip, np_cn, key_list, virt)
     except Exception:
-        logger.error(Globals.CIM_ERROR_ENUMERATE % enumclass.Xen_NetworkPool)
+        logger.error(Globals.CIM_ERROR_ENUMERATE % np_cn)
         return FAIL
-    status = verify_fields(poolname=netpool, cn='Xen_NetworkPool')
+    status = verify_fields(pool_list, netpool, get_typed_class(virt, np_cn))
+    
     status = clean_up_restore()
     return status
 
