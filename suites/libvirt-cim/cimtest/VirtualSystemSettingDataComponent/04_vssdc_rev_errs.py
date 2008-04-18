@@ -58,18 +58,16 @@ import sys
 import pywbem
 from VirtLib import utils
 from XenKvmLib import assoc
-from XenKvmLib.test_xml import testxml
+from XenKvmLib import vxml
+from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import try_assoc
-from XenKvmLib.test_doms import test_domain_function, destroy_and_undefine_all
+from XenKvmLib.test_doms import destroy_and_undefine_all
 from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import do_main, log_param, logger
 from CimTest.Globals import CIM_USER, CIM_PASS, CIM_NS
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'XenFV', 'KVM']
 
-VSType       = "Xen"
-classname    = 'Xen_VirtualSystemSettingData'
-ac_classname = 'Xen_VirtualSystemSettingDataComponent'
 test_dom     = "domu1"
 
 expr_values = {
@@ -79,7 +77,9 @@ expr_values = {
                      'desc' : 'No such instance (InstanceID)'}
 }
 
-def try_invalid_assoc(name_val, i, field):
+def try_invalid_assoc(name_val, i, field, virt="Xen"):
+    classname = get_typed_class(virt, 'VirtualSystemSettingData')
+    ac_classname = get_typed_class(virt, 'VirtualSystemSettingDataComponent')
     keys = {}
     temp = name_val[i]
     name_val[i] = field
@@ -105,11 +105,12 @@ def main():
     status = PASS
 
     destroy_and_undefine_all(options.ip)
-    test_xml = testxml(test_dom)
 
-    ret = test_domain_function(test_xml, options.ip, cmd = "create")
+    virt_xml = vxml.get_class(options.virt)
+    cxml = virt_xml(test_dom)
+    ret = cxml.create(options.ip)
     if not ret:
-        logger.error("Failed to Create the dom: %s", test_dom)
+        logger.error('Unable to create domain %s' % test_dom)
         return FAIL
 
     global conn
@@ -117,15 +118,22 @@ def main():
                                                         CIM_PASS), CIM_NS)
 
     tc_scen = ['INVALID_InstID_Keyname', 'INVALID_InstID_Keyval']
-    inst_id = "%s:%s" % (VSType, test_dom)
+  
+    if options.virt == "Xen" or options.virt == "XenFV":
+        inst_id = "Xen:%s" % test_dom
+    else:
+        inst_id = "KVM:%s" % test_dom
+  
     name_val = ['InstanceID', inst_id]
 
     for i in range(len(tc_scen)):
-        retval = try_invalid_assoc(name_val, i, tc_scen[i])
+        retval = try_invalid_assoc(name_val, i, tc_scen[i], options.virt)
         if retval != PASS:
             status = retval
 
-    test_domain_function(test_dom, options.ip, cmd = "destroy")
+    cxml.destroy(options.ip)
+    cxml.undefine(options.ip)
+
     return status
 
 if __name__ == "__main__":
