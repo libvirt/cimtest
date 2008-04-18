@@ -112,7 +112,7 @@ def assoc_values(ip, assoc_info):
                 logger.error("Unexpected RASD instance type" )
                 status = FAIL
 
-            if status != FAIL:
+            if status == FAIL:
                 logger.error("Mistmatching association value" )
                 break  
 
