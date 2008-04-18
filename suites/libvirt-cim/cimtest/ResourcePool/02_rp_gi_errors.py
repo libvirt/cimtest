@@ -28,25 +28,24 @@
 import os
 import sys
 import pywbem
-from VirtLib import utils
 from VirtLib.live import net_list
 from XenKvmLib import assoc
-from XenKvmLib.test_xml import netxml
-from XenKvmLib.test_doms import create_vnet
+from XenKvmLib import vxml
 from XenKvmLib.common_util import try_getinstance
+from XenKvmLib.classes import get_typed_class
 from distutils.file_util import move_file
 from CimTest.ReturnCodes import PASS, SKIP
 from CimTest.Globals import log_param, logger, CIM_USER, CIM_PASS, CIM_NS
 from CimTest.Globals import do_main
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'KVM']
 
 expr_values = {
-                "invalid_keyname"    : { 'rc'   : pywbem.CIM_ERR_FAILED, \
-                                         'desc' : 'Missing InstanceID' }, \
-                "invalid_keyvalue"   : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                         'desc' : 'No such instance (Invalid_Keyvalue)'}
-              }
+        "invalid_keyname"  : { 'rc'   : pywbem.CIM_ERR_FAILED,
+                               'desc' : 'Missing InstanceID' },
+        "invalid_keyvalue" : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND,
+                               'desc' : 'No such instance (Invalid_Keyvalue)'}
+        }
 
 test_dpath = "foo"
 disk_file = '/tmp/diskpool.conf'
@@ -80,51 +79,52 @@ def clean_up_restore():
         sys.exit(status)
 
 
-def err_invalid_instid_keyname(classname, InstanceID):
-# Input:
-# ------
-# wbemcli gi '<scheme>://[user:pwd@]<host>:<port>/<namespace:<ClassName>.
-# Invalid_Keyname="<InstanceID>"'
-#
-# Output:
-# -------
-# error code  : CIM_ERR_FAILED
-# error desc  : "Missing InstanceID"
-#
-    key = {
-             'Invalid_Keyname'       : InstanceID
-           }
-    return try_getinstance(conn, classname, key, field_name='INVALID_InstID_KeyName', \
-                                  expr_values=expr_values['invalid_keyname'], bug_no="")
+def err_invalid_instid_keyname(classname, instid):
+    # Input:
+    # ------
+    # wbemcli gi '<scheme>://[user:pwd@]<host>:<port>/<namespace:<ClassName>.
+    # Invalid_Keyname="<InstanceID>"'
+    #
+    # Output:
+    # -------
+    # error code  : CIM_ERR_FAILED
+    # error desc  : "Missing InstanceID"
+    #
+    key = {'Invalid_Keyname' : instid}
+    return try_getinstance(conn, classname, key,
+                           field_name='INVALID_InstID_KeyName',
+                           expr_values=expr_values['invalid_keyname'],
+                           bug_no="")
 
 
 def err_invalid_instid_keyvalue(classname):
-# Input:
-# ------
-# wbemcli gi '<scheme>://[user:pwd@]<host>:<port>/<namespace:<ClassName>.
-# InstanceID="Invalid_Keyvalue"
-#
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No such instance (Invalid_Keyvalue)"
-#
-    key = {
-             'InstanceID'              : 'Invalid_Keyvalue'
-           }
-    return try_getinstance(conn, classname, key, field_name='INVALID_InstID_KeyValue', \
-                                  expr_values=expr_values['invalid_keyvalue'], bug_no="")
+    # Input:
+    # ------
+    # wbemcli gi '<scheme>://[user:pwd@]<host>:<port>/<namespace:<ClassName>.
+    # InstanceID="Invalid_Keyvalue"
+    #
+    # Output:
+    # -------
+    # error code  : CIM_ERR_NOT_FOUND
+    # error desc  : "No such instance (Invalid_Keyvalue)"
+    #
+    key = {'InstanceID' : 'Invalid_Keyvalue'}
+    return try_getinstance(conn, classname, key,
+                           field_name='INVALID_InstID_KeyValue',
+                           expr_values=expr_values['invalid_keyvalue'],
+                           bug_no="")
 
 
 @do_main(sup_types)
 def main():
-    options = main.options
+    ip = main.options.ip
+    virt = main.options.virt
     status = PASS
     log_param()
 
-    server = options.ip
     global conn
-    conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, CIM_PASS), CIM_NS)
+    conn = assoc.myWBEMConnection('http://%s' % ip, (CIM_USER, CIM_PASS),
+                                  CIM_NS)
 
 
     # Taking care of already existing diskconf file
@@ -135,27 +135,27 @@ def main():
         move_file(disk_file, back_disk_file)
     conf_file()
 
-    vir_network = net_list(server)
+    vir_network = net_list(ip, virt)
     if len(vir_network) > 0:
         test_network = vir_network[0]
     else:
         bridgename   = 'testbridge'
         test_network = 'default-net'
-        net_xml, bridge = netxml(server, bridgename, test_network)
-        ret = create_vnet(server, net_xml)
+        netxml = vxml.NetXML(ip, bridgename, test_network, virt)
+        ret = netxml.create_vnet()
         if not ret:
-            logger.error("Failed to create the Virtual Network '%s'", \
-                                                             test_network)
+            logger.error("Failed to create the Virtual Network '%s'",
+                         test_network)
             clean_up_restore()
             return SKIP
     netid = "%s/%s" % ("NetworkPool", test_network)
 
     cn_instid_list = {
-                        "Xen_DiskPool"     : "DiskPool/foo", \
-                        "Xen_MemoryPool"   : "MemoryPool/0", \
-                        "Xen_NetworkPool"  : netid, \
-                        "Xen_ProcessorPool": "ProcessorPool/0"
-                     }
+            get_typed_class(virt, "DiskPool")      : "DiskPool/foo",
+            get_typed_class(virt, "MemoryPool")    : "MemoryPool/0",
+            get_typed_class(virt, "NetworkPool")   : netid,
+            get_typed_class(virt, "ProcessorPool") : "ProcessorPool/0"
+            }
 
     for cn, instid in cn_instid_list.items():
         ret_value = err_invalid_instid_keyname(cn, instid)
