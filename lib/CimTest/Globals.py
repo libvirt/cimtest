@@ -34,6 +34,8 @@ global CIM_FUUID
 global platform_sup
 global CIM_IP
 global CIM_PORT
+global CIM_REV
+global CIM_SET
 
 global CIM_ERROR_ASSOCIATORNAMES
 global CIM_ERROR_ENUMERATE
@@ -47,6 +49,8 @@ CIM_LEVEL = os.getenv("CIM_LEVEL")
 CIM_FUUID = os.getenv("CIM_FUUID")
 CIM_TC    = os.getenv("CIM_TC")
 CIM_IP    = os.getenv("CIM_IP")
+CIM_REV   = os.getenv("CIM_REV")
+CIM_SET   = os.getenv("CIM_SET")
 CIM_PORT = "5988"
 NM = "TEST LOG"
 platform_sup = ["Xen", "KVM", "XenFV"]
@@ -86,6 +90,9 @@ if not CIM_TC:
     CIM_TC = " " 
 if not CIM_IP:
     CIM_IP = "localhost"
+
+if not CIM_REV or not CIM_SET:
+    CIM_REV = CIM_SET = "Unknown"
 
 def log_param(debug=None):
     #FIXME debug=None is a temporary work around to avoid duplicate

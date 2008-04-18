@@ -25,6 +25,7 @@
 from optparse import OptionParser
 import os
 import sys
+from pywbem import WBEMConnection
 sys.path.append('../../lib')
 import TestSuite
 import commands
@@ -32,6 +33,8 @@ from VirtLib import utils
 from VirtLib import groups
 from CimTest.ReturnCodes import PASS, SKIP, XFAIL
 from CimTest.Globals import platform_sup
+sys.path.append('./lib')
+from XenKvmLib.classes import get_typed_class
 
 parser = OptionParser()
 parser.add_option("-i", "--ip", dest="ip", default="localhost",
@@ -79,6 +82,19 @@ def remove_old_logs(ogroup):
 
     print "Cleaned log files."
 
+def get_version(virt, ip):
+    conn = WBEMConnection('http://%s' % ip, 
+                          (os.getenv('CIM_USER'), os.getenv('CIM_PASS')),
+                          os.getenv('CIM_NS'))
+    vsms_cn = get_typed_class(virt, 'VirtualSystemManagementService')
+    try:
+        inst = conn.EnumerateInstances(vsms_cn)
+        revision = inst[0]['Revision']
+        changeset = inst[0]['Changeset']
+    except Exception:
+        return 'Unknown', 'Unknown'
+    return revision, changeset
+
 def main():
     (options, args) = parser.parse_args()
 
@@ -117,14 +133,18 @@ def main():
     else:
         dbg = ""
 
+    revision, changeset = get_version(options.virt, options.ip)
+
     print "Testing " + options.virt + " hypervisor"
 
     for test in test_list:
         t_path = os.path.join(TEST_SUITE, test['group'])
         os.environ['CIM_TC'] = test['test'] 
-        
-        cmd = "cd %s && python %s -i %s -v %s %s" % \
-                 (t_path, test['test'], options.ip, options.virt, dbg)
+        cdto = 'cd %s' % t_path
+        env = 'CIM_REV=%s CIM_SET=%s' % (revision, changeset)
+        run = 'python %s -i %s -v %s %s' % (test['test'], options.ip, 
+                                            options.virt, dbg)
+        cmd = cdto + ' && ' + env + ' ' + run
         status, output = commands.getstatusoutput(cmd)
 
         os_status = os.WEXITSTATUS(status)
