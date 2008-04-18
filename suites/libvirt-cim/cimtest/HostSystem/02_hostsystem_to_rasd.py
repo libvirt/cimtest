@@ -79,7 +79,7 @@ def init_list(vsxml, virt="Xen"):
 
     rasd_values = { 
                     proc_cn              : {
-                                             "InstanceID" : '%s/%s' %(test_dom, "proc"),
+                                             "InstanceID" : '%s/%s' %(test_dom, "0"),
                                              "ResourceType" : 3,
                                             }, 
                     disk_cn              : {
