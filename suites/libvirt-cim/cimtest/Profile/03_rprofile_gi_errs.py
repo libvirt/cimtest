@@ -70,7 +70,6 @@ expr_values = {
 @do_main(sup_types)
 def main():
     options = main.options
-    Globals.log_param()
 
     prev_namespace = Globals.CIM_NS
     Globals.CIM_NS = 'root/interop'

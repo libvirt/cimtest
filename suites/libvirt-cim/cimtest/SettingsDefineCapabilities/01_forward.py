@@ -167,7 +167,6 @@ def main():
     cn = 'Xen_AllocationCapabilities'  
     loop = 0 
     server = options.ip
-    Globals.log_param()
 
     # Taking care of already existing diskconf file
     # Creating diskpool.conf if it does not exist

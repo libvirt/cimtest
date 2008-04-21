@@ -27,7 +27,7 @@ import pywbem
 from XenKvmLib import computersystem
 from VirtLib import live
 from VirtLib import utils
-from CimTest.Globals import log_param, logger
+from CimTest.Globals import logger
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 
@@ -43,7 +43,6 @@ def clean_system(host, virt):
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
     if not clean_system(options.ip, options.virt):
         logger.error("System has defined domains; unable to run")
         return SKIP 

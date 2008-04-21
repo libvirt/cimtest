@@ -27,7 +27,7 @@ from XenKvmLib import assoc
 from XenKvmLib import hostsystem
 from XenKvmLib.common_util import try_assoc
 from CimTest import Globals
-from CimTest.Globals import log_param, logger
+from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import do_main, platform_sup
 from XenKvmLib.classes import get_typed_class
@@ -39,7 +39,6 @@ expr_values = { "rc"   : pywbem.CIM_ERR_NOT_FOUND, \
 @do_main(platform_sup)
 def main():
     options = main.options
-    log_param()
     status = PASS
 
     try: 

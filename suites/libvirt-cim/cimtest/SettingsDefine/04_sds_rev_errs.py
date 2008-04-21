@@ -60,7 +60,7 @@ from XenKvmLib import vxml
 from XenKvmLib.common_util import try_assoc
 from XenKvmLib.classes import get_typed_class
 from CimTest.ReturnCodes import PASS, FAIL
-from CimTest.Globals import do_main, log_param, logger
+from CimTest.Globals import do_main, logger
 from CimTest.Globals import CIM_USER, CIM_PASS, CIM_NS
 
 sup_types = ['Xen', 'KVM', 'XenFV']
@@ -96,7 +96,6 @@ def try_invalid_assoc(classname, name_val, i, field, virt):
 def main():
     options = main.options
 
-    log_param()
     status = PASS
 
     if options.virt == 'Xen':

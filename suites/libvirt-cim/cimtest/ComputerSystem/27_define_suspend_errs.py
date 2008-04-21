@@ -39,7 +39,7 @@
 import sys
 import pywbem
 from VirtLib import utils
-from CimTest.Globals import do_main, log_param, logger
+from CimTest.Globals import do_main, logger
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.test_doms import undefine_test_domain
 from XenKvmLib.common_util import get_cs_instance
@@ -56,7 +56,6 @@ exp_desc      = 'Domain not running'
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
 
     try:
         # define the vs

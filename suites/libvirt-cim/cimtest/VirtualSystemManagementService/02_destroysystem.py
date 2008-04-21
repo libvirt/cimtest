@@ -29,7 +29,7 @@ from VirtLib.live import domain_list
 from XenKvmLib import vsms, vxml
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import do_main
-from CimTest.Globals import log_param, logger
+from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'KVM', 'XenFV']
@@ -38,7 +38,6 @@ default_dom = 'test_domain'
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
     
     service = vsms.get_vsms_class(options.virt)(options.ip)
     cxml = vxml.get_class(options.virt)(default_dom)

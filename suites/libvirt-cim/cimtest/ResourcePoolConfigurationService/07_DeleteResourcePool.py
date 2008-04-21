@@ -44,7 +44,7 @@
 import sys
 import pywbem 
 from XenKvmLib import rpcs_service
-from CimTest.Globals import log_param, logger
+from CimTest.Globals import logger
 from CimTest.ReturnCodes import FAIL, PASS
 from CimTest.Globals import do_main, platform_sup
 from XenKvmLib.classes import get_typed_class
@@ -56,7 +56,6 @@ cim_mname  = "DeleteResourcePool"
 @do_main(platform_sup)
 def main():
     options = main.options
-    log_param()
     rpcs_conn = eval("rpcs_service." + get_typed_class(options.virt, \
                       "ResourcePoolConfigurationService"))(options.ip)
     try:

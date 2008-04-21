@@ -35,7 +35,7 @@ from XenKvmLib.common_util import try_getinstance
 from XenKvmLib.classes import get_typed_class
 from distutils.file_util import move_file
 from CimTest.ReturnCodes import PASS, SKIP
-from CimTest.Globals import log_param, logger, CIM_USER, CIM_PASS, CIM_NS
+from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from CimTest.Globals import do_main
 
 sup_types = ['Xen', 'KVM']
@@ -120,7 +120,6 @@ def main():
     ip = main.options.ip
     virt = main.options.virt
     status = PASS
-    log_param()
 
     global conn
     conn = assoc.myWBEMConnection('http://%s' % ip, (CIM_USER, CIM_PASS),

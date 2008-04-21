@@ -24,7 +24,7 @@ import sys
 import os
 import signal
 import time
-from CimTest.Globals import log_param, logger
+from CimTest.Globals import logger
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.common_util import create_using_definesystem 
@@ -40,7 +40,6 @@ test_dom = "domU"
 @do_main(SUPPORTED_TYPES)
 def main():
     options = main.options
-    log_param()
     status = FAIL
 
     dict = set_default(options.ip)

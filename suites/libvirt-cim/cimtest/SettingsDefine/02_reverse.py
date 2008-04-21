@@ -52,7 +52,7 @@
 
 import sys
 from CimTest import Globals 
-from CimTest.Globals import log_param, logger, do_main
+from CimTest.Globals import logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from VirtLib import utils
 from XenKvmLib import assoc
@@ -162,7 +162,6 @@ def main():
         test_disk = 'hdb'
     
     status = PASS 
-    log_param()
     virt_xml = vxml.get_class(options.virt)
     cxml = virt_xml(test_dom, mem = test_mem, vcpus = test_vcpus,
                     mac = test_mac, disk = test_disk)

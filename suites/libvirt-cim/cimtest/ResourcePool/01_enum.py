@@ -31,7 +31,7 @@ from XenKvmLib.enumclass import enumerate
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib import vxml
 from CimTest import Globals
-from CimTest.Globals import log_param, logger, do_main
+from CimTest.Globals import logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from VirtLib.live import net_list
 from XenKvmLib.vsms import RASD_TYPE_PROC, RASD_TYPE_MEM, RASD_TYPE_NET_ETHER, \
@@ -145,7 +145,6 @@ def main():
     ip = main.options.ip
     virt = main.options.virt
 
-    log_param()
     status, pool_list = init_list(ip, virt)
     if status != PASS: 
         logger.error("Failed to initialise the list")

@@ -53,7 +53,7 @@ from XenKvmLib.test_xml import testxml
 from CimTest import Globals 
 from XenKvmLib import assoc
 from XenKvmLib.rasd import InstId_err
-from CimTest.Globals import log_param, logger, do_main
+from CimTest.Globals import logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen']
@@ -126,7 +126,6 @@ def assoc_values(ip, assoc_info):
 def main():
     options = main.options
     status = PASS
-    log_param()
 
     destroy_and_undefine_all(options.ip)
     test_xml1 = testxml(test_dom, mem = test_mem, \

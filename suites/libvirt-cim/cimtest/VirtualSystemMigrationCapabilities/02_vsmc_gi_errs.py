@@ -48,7 +48,7 @@
 import sys
 import pywbem
 from XenKvmLib import assoc
-from CimTest.Globals import log_param, logger, CIM_USER, CIM_PASS, CIM_NS
+from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.common_util import try_getinstance
@@ -65,7 +65,6 @@ expr_values = {
 def main():
     options = main.options
 
-    log_param()
     status = PASS
     conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, CIM_PASS), CIM_NS)
     classname = get_typed_class(options.virt, 'VirtualSystemMigrationCapabilities')

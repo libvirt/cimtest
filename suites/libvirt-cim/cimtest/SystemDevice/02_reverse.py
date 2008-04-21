@@ -30,7 +30,7 @@ from XenKvmLib import vxml
 from XenKvmLib import computersystem
 from XenKvmLib import assoc
 from XenKvmLib import devices
-from CimTest.Globals import log_param, logger, do_main
+from CimTest.Globals import logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL 
 
 sup_types = ['Xen', 'KVM', 'XenFV']
@@ -42,7 +42,6 @@ test_mac = "00:11:22:33:44:55"
 def main():
     options = main.options
 
-    log_param()
     status = FAIL
     virt_xml = vxml.get_class(options.virt)
     cxml = virt_xml(test_dom, mac=test_mac)

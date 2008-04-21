@@ -28,7 +28,7 @@ from VirtLib import utils
 from XenKvmLib import vsms
 from XenKvmLib.test_doms import undefine_test_domain
 from XenKvmLib.common_util import create_using_definesystem
-from CimTest.Globals import log_param, logger
+from CimTest.Globals import logger
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 
@@ -39,7 +39,6 @@ exp_desc = 'Unable to parse embedded object'
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
 
     dname = 'test_domain'
     vssd, rasd = vsms.default_vssd_rasd_str(dom_name=dname, virt=options.virt)

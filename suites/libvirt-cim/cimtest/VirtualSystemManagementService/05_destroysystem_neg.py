@@ -28,14 +28,13 @@ from VirtLib import utils
 from XenKvmLib import vsms
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.test_doms import undefine_test_domain
-from CimTest.Globals import log_param, logger
+from CimTest.Globals import logger
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import FAIL, PASS, SKIP
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 
 def destroysystem_fail(tc, options):
-    log_param()
     service = vsms.get_vsms_class(options.virt)(options.ip)
     
     classname = get_typed_class(options.virt, 'ComputerSystem')

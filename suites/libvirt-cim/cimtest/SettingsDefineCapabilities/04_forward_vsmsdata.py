@@ -37,7 +37,7 @@
 import sys
 from VirtLib import utils
 from XenKvmLib import assoc
-from CimTest.Globals import log_param, CIM_ERROR_ASSOCIATORS, logger, do_main
+from CimTest.Globals import CIM_ERROR_ASSOCIATORS, logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen']
@@ -53,7 +53,6 @@ def main():
     if not options.ip:
         parser.print_help()
         return 1
-    log_param()
     status = PASS
     server = options.ip
     an     = 'Xen_SettingsDefineCapabilities'

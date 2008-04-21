@@ -26,7 +26,7 @@ import pywbem
 from XenKvmLib import assoc
 from XenKvmLib.common_util import try_assoc
 from CimTest import Globals
-from CimTest.Globals import log_param, logger
+from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS
 from CimTest.Globals import do_main, platform_sup
 from XenKvmLib.classes import get_typed_class
@@ -45,7 +45,6 @@ expr_values = {
 @do_main(platform_sup)
 def main():
     options = main.options
-    log_param()
     status = PASS
 
     assoc_classname = get_typed_class(options.virt, "HostedResourcePool")

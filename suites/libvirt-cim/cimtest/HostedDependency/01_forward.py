@@ -65,7 +65,6 @@ def main():
     options = main.options
     status = PASS
 
-    Globals.log_param()
     virtxml = vxml.get_class(options.virt)
     cxml = virtxml(test_dom, mac = test_mac)
     ret = cxml.define(options.ip)

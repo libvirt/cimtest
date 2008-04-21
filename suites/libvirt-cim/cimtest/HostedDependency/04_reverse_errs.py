@@ -32,7 +32,7 @@ import sys
 from VirtLib import utils
 from XenKvmLib import assoc
 from XenKvmLib import vxml
-from CimTest.Globals import log_param, logger, CIM_USER, CIM_PASS, CIM_NS
+from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from CimTest.Globals import do_main
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import get_host_info, try_assoc
@@ -106,7 +106,6 @@ def err_invalid_ccname_keyvalue(server, conn, virt, assoc_classname, field):
 def main():
     options = main.options
 
-    log_param()
     status = PASS
     server = options.ip
     virtxml = vxml.get_class(options.virt)

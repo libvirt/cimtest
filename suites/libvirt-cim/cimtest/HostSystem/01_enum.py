@@ -32,7 +32,7 @@ from XenKvmLib.classes import get_typed_class
 from VirtLib import live
 from VirtLib import utils
 from CimTest import Globals
-from CimTest.Globals import log_param, logger
+from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL
 
 SUPPORTED_TYPES = ['Xen', 'KVM', 'XenFV']
@@ -40,7 +40,6 @@ SUPPORTED_TYPES = ['Xen', 'KVM', 'XenFV']
 @do_main(SUPPORTED_TYPES)
 def main():
     options = main.options
-    log_param()
     status = PASS
     host = live.hostname(options.ip) 
    

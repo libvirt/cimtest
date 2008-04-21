@@ -38,7 +38,7 @@ from XenKvmLib import assoc
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib import vxml
-from CimTest.Globals import log_param, logger, CIM_ERROR_ASSOCIATORS, do_main
+from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS, do_main
 from CimTest import Globals 
 from CimTest.ReturnCodes import PASS, FAIL
 
@@ -81,7 +81,6 @@ def verify_host(item, id):
 def main():
     options = main.options
 
-    log_param()
     status = PASS
     destroy_and_undefine_all(options.ip, options.virt)
 

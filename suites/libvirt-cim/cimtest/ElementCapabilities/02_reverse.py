@@ -28,7 +28,7 @@ from XenKvmLib import assoc
 from XenKvmLib import hostsystem
 from XenKvmLib import vsms
 from XenKvmLib.classes import get_typed_class 
-from CimTest.Globals import log_param, logger, CIM_ERROR_ENUMERATE, CIM_ERROR_ASSOCIATORNAMES
+from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, CIM_ERROR_ASSOCIATORNAMES
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 
@@ -111,7 +111,6 @@ def verify_service(inst_list, ip, virt):
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
     
     cap_list = {"VirtualSystemManagementCapabilities" : "ManagementCapabilities",
                 "VirtualSystemMigrationCapabilities" : "MigrationCapabilities"}

@@ -29,7 +29,7 @@ import sys
 import pywbem
 from CimTest.ReturnCodes import PASS
 from XenKvmLib import assoc
-from CimTest.Globals import log_param, logger, CIM_USER, CIM_PASS, CIM_NS
+from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from XenKvmLib.common_util import get_host_info, try_getinstance
 from CimTest.Globals import do_main, platform_sup
 from XenKvmLib.classes import get_typed_class
@@ -233,7 +233,6 @@ def err_invalid_sysname_keyvalue(conn, classname, sccname, field):
 def main():
     options = main.options
     status = PASS 
-    log_param()
     server = options.ip
     conn = assoc.myWBEMConnection('http://%s' % options.ip, 
                                   (CIM_USER, CIM_PASS), CIM_NS)

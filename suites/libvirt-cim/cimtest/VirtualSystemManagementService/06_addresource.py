@@ -28,7 +28,7 @@ from VirtLib import utils
 from XenKvmLib import vsms
 from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class
-from CimTest.Globals import log_param, logger
+from CimTest.Globals import logger
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import FAIL, PASS
 
@@ -40,7 +40,6 @@ npvcpu = 2
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
 
     if options.virt == 'KVM':
         nddev = 'hdb'

@@ -27,7 +27,7 @@ from XenKvmLib import hostsystem
 from XenKvmLib import rpcs
 from CimTest import Globals
 from CimTest.ReturnCodes import PASS, FAIL
-from CimTest.Globals import log_param, logger
+from CimTest.Globals import logger
 from CimTest.Globals import do_main, platform_sup
 from XenKvmLib.classes import get_typed_class
 
@@ -35,7 +35,6 @@ from XenKvmLib.classes import get_typed_class
 def main():
     options = main.options
     server = options.ip
-    log_param()
     classname =  get_typed_class(options.virt, "ResourcePoolConfigurationService")
     try:
         host_sys = hostsystem.enumerate(server, options.virt)[0]

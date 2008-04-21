@@ -30,7 +30,7 @@ from XenKvmLib import devices
 from XenKvmLib.test_xml import testxml
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
-from CimTest.Globals import log_param, logger
+from CimTest.Globals import logger
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
@@ -42,7 +42,6 @@ test_vcpus = 1
 @do_main(SUPPORTED_TYPES)
 def main():
     options = main.options
-    log_param()
     status = PASS
     vsxml = get_class(options.virt)(test_dom, vcpus=test_vcpus)
     vsxml.define(options.ip)

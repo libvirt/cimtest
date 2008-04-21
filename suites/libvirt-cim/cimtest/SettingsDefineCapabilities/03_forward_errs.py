@@ -32,7 +32,7 @@ from VirtLib import utils
 from CimTest.ReturnCodes import PASS
 from XenKvmLib.common_util import try_assoc
 from XenKvmLib import assoc
-from CimTest.Globals import log_param, logger, CIM_USER, CIM_PASS, CIM_NS
+from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from CimTest.Globals import do_main
 
 sup_types = ['Xen']
@@ -106,7 +106,6 @@ def err_invalid_ccname_keyname(conn, field):
 def main():
     options = main.options
     status = PASS 
-    log_param()
     conn = assoc.myWBEMConnection('http://%s' % options.ip, 
                                   (CIM_USER, CIM_PASS), CIM_NS)
     ret_value = err_invalid_instid_keyname(conn, field='INVALID_InstID_KeyName')

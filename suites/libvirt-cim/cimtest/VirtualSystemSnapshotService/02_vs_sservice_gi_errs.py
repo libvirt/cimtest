@@ -28,7 +28,7 @@
 import sys
 import pywbem
 from XenKvmLib import assoc
-from CimTest.Globals import log_param, logger, CIM_USER, CIM_PASS, CIM_NS
+from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from CimTest.ReturnCodes import PASS
 from XenKvmLib.common_util import try_getinstance
 from CimTest.Globals import do_main, platform_sup
@@ -223,7 +223,6 @@ def err_invalid_sname():
 def main():
     global options
     options = main.options
-    log_param()
     global conn
     global field
     global ccn 

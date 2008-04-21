@@ -28,7 +28,7 @@ from XenKvmLib.test_doms import define_test_domain, start_test_domain, destroy_a
 from XenKvmLib.test_xml import *
 from XenKvmLib import computersystem
 from XenKvmLib import vsmigrations
-from CimTest.Globals import log_param, logger, do_main
+from CimTest.Globals import logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
 
 sup_types = ['Xen']
@@ -40,7 +40,6 @@ exp_desc = 'Missing key (Name) in ComputerSystem'
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
     xmlfile = testxml(test_dom)
 
     status = FAIL 

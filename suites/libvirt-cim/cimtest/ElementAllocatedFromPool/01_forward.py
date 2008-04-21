@@ -83,7 +83,6 @@ def main():
 
 # Getting the VS list and deleting the test_dom if it already exists.
     destroy_and_undefine_all(options.ip)
-    Globals.log_param()
 
     test_xml, bridge = testxml_bridge(test_dom, vcpus = test_vcpus, \
                                       mac = test_mac, disk = test_disk, \

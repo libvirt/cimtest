@@ -176,7 +176,6 @@ def verify_rapf_err(vsxml):
 @do_main(platform_sup)
 def main():
     global virt, server 
-    Globals.log_param()
     options = main.options
     server = options.ip
     virt = options.virt

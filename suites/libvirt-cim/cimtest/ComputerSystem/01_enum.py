@@ -36,7 +36,6 @@ SUPPORTED_TYPES = ['Xen', 'KVM', 'XenFV']
 def main():
     options = main.options 
     status = PASS
-    Globals.log_param()
 
     try:
         cs = computersystem.enumerate(options.ip, options.virt)

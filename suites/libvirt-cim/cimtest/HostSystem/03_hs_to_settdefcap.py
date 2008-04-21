@@ -45,7 +45,7 @@ from XenKvmLib.common_util import get_host_info
 from XenKvmLib.assoc import Associators
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from XenKvmLib.classes import get_typed_class
-from CimTest.Globals import log_param, logger, CIM_ERROR_ASSOCIATORNAMES, do_main
+from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES, do_main
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.test_xml import testxml
 from XenKvmLib.test_doms import test_domain_function, destroy_and_undefine_all
@@ -273,7 +273,6 @@ def clean_up(server, status):
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
     status = PASS 
 
     if options.virt == 'XenFV':

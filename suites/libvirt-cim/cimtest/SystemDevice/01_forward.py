@@ -30,7 +30,7 @@ from XenKvmLib import assoc
 from XenKvmLib import vxml
 from XenKvmLib import devices
 from XenKvmLib.classes import get_typed_class
-from CimTest.Globals import log_param, logger, do_main
+from CimTest.Globals import logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'KVM', 'XenFV']
@@ -43,7 +43,6 @@ test_cpu = 1
 def main():
     options= main.options
 
-    log_param()
     if options.virt == 'Xen':
         test_disk = 'xvdb'
     else:

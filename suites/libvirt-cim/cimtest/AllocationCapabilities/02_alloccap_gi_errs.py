@@ -54,7 +54,7 @@ import pywbem
 from distutils.file_util import move_file
 from XenKvmLib import assoc
 from VirtLib import utils
-from CimTest.Globals import log_param, logger, CIM_USER, CIM_PASS, CIM_NS
+from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from CimTest.ReturnCodes import PASS, SKIP
 from XenKvmLib.common_util import try_getinstance
 from VirtLib.live import net_list
@@ -106,7 +106,6 @@ def clean_up_restore():
 def main():
 
     options = main.options
-    log_param()
     status = PASS
     server = options.ip
     os.system("rm -f %s" % back_disk_file )

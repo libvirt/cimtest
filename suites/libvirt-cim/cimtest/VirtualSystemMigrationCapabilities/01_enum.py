@@ -25,7 +25,7 @@
 import sys
 from XenKvmLib import enumclass
 from XenKvmLib.classes import get_typed_class
-from CimTest.Globals import log_param, CIM_ERROR_ENUMERATE, logger, do_main
+from CimTest.Globals import CIM_ERROR_ENUMERATE, logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'XenFV', 'KVM']
@@ -38,7 +38,6 @@ def print_error(fieldname, ret_value, exp_value):
 def main():
     options = main.options
 
-    log_param()
     # Expected values from the enumetation
     cn     = get_typed_class(options.virt, 'VirtualSystemMigrationCapabilities')
     instid = 'MigrationCapabilities'

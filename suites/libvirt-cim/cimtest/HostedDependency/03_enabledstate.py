@@ -38,7 +38,7 @@ from XenKvmLib import computersystem
 from XenKvmLib import assoc
 from XenKvmLib.common_util import get_host_info
 from XenKvmLib.classes import get_class_basename
-from CimTest.Globals import log_param, logger, CIM_ERROR_ASSOCIATORS, \
+from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS, \
 CIM_ERROR_GETINSTANCE
 from CimTest.Globals import do_main
 from XenKvmLib.devices import CIM_Instance
@@ -102,7 +102,6 @@ class HsError(Exception):
 def main():
     options = main.options
 
-    log_param()
     status = PASS
 
     virtxml = vxml.get_class(options.virt)

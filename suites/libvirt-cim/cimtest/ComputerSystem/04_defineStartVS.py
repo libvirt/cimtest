@@ -46,7 +46,6 @@ def main():
     options = main.options
     status = FAIL
     enabState = 0
-    Globals.log_param()
 
     cxml = vxml.get_class(options.virt)(test_dom)
     cxml.define(options.ip)

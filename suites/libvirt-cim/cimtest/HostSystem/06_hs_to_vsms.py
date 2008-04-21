@@ -49,7 +49,7 @@ from CimTest.Globals import do_main
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.assoc import Associators, AssociatorNames
 from XenKvmLib.common_util import get_host_info
-from CimTest.Globals import log_param, logger, CIM_ERROR_ASSOCIATORNAMES, \
+from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES, \
 CIM_ERROR_ASSOCIATORS
 from CimTest.ReturnCodes import PASS, FAIL
 
@@ -180,7 +180,6 @@ def main():
     global virt, server
     global assoc_name, class_name, req_cn
     options = main.options
-    log_param()
     server = options.ip
     status = PASS
     virt = options.virt

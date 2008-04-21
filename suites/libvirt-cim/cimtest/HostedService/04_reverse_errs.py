@@ -27,7 +27,7 @@ from XenKvmLib import assoc
 from XenKvmLib import hostsystem
 from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
-from CimTest.Globals import log_param, logger, do_main
+from CimTest.Globals import logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
 
 sup_types = ['Xen', 'XenFV', 'KVM']
@@ -37,7 +37,6 @@ exp_desc = "No such instance"
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
     rc = -1
     status = FAIL
 

@@ -34,7 +34,6 @@ sup_types = ['Xen', 'KVM', 'XenFV']
 @do_main(sup_types)
 def main():
     options = main.options
-    Globals.log_param()
     
     try:
         key_list = ["InstanceID"]

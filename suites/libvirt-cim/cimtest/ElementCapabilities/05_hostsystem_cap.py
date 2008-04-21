@@ -52,7 +52,7 @@ from VirtLib import utils
 from XenKvmLib.assoc import AssociatorNames
 from XenKvmLib.common_util import get_host_info
 from XenKvmLib.classes import get_typed_class
-from CimTest.Globals import log_param, logger, CIM_ERROR_ASSOCIATORNAMES
+from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
@@ -164,7 +164,6 @@ def verify_cap_fields(server, service_fieldname, cap_key, virt="Xen"):
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
     server = options.ip
     global service_list
     global cap_list

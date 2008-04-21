@@ -33,7 +33,7 @@ from XenKvmLib import computersystem
 from XenKvmLib import vsmigrations
 from XenKvmLib.vsmigrations import check_possible_host_migration, migrate_guest_to_host, check_migration_job
 from XenKvmLib import enumclass
-from CimTest.Globals import log_param, logger, CIM_ERROR_ENUMERATE, do_main
+from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
 
 sup_types = ['Xen']
@@ -61,7 +61,6 @@ def start_guest_get_ref(ip, guest_name):
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
     status = PASS
     rc = -1
     

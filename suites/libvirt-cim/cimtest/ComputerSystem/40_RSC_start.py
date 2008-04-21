@@ -38,7 +38,7 @@ import pywbem
 from VirtLib import utils
 from XenKvmLib.test_doms import undefine_test_domain 
 from XenKvmLib.common_util import *
-from CimTest.Globals import log_param, logger
+from CimTest.Globals import logger
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 
@@ -69,7 +69,6 @@ def check_attributes(domain_name, ip, virt):
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
     status = PASS 
 
     try:

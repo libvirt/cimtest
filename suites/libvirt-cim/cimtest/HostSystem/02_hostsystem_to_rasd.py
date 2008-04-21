@@ -53,7 +53,7 @@ from XenKvmLib.classes import get_typed_class
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.assoc import Associators, AssociatorNames
 from XenKvmLib.common_util import get_host_info
-from CimTest.Globals import log_param, logger, CIM_ERROR_ASSOCIATORNAMES, \
+from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES, \
 CIM_ERROR_ASSOCIATORS
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.rasd import verify_procrasd_values, verify_netrasd_values, \
@@ -218,7 +218,6 @@ def verify_RASD_values(server, sd_assoc_info, vsxml, virt="Xen"):
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
     server = options.ip
     status = PASS
     status, host_name, classname = get_host_info(server, options.virt)

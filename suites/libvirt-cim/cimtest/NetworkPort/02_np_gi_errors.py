@@ -33,7 +33,7 @@ from XenKvmLib.common_util import try_getinstance
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from CimTest.ReturnCodes import PASS, SKIP
-from CimTest.Globals import log_param, logger, CIM_USER, CIM_PASS, CIM_NS, do_main
+from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS, do_main
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 
@@ -239,7 +239,6 @@ def err_invalid_sysname_keyvalue():
 def main():
     options = main.options
     status = PASS
-    log_param()
 
     test_dom = "nettest_domain"
     test_mac = "00:11:22:33:44:55"

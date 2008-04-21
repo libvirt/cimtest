@@ -79,7 +79,7 @@ from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import try_getinstance
 from CimTest.ReturnCodes import PASS, FAIL
-from CimTest.Globals import log_param, logger, CIM_USER, CIM_PASS, CIM_NS, VIRSH_ERROR_DEFINE
+from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS, VIRSH_ERROR_DEFINE
 from CimTest.Globals import do_main
 
 
@@ -98,7 +98,6 @@ expr_values = {
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
 
     inst_ccname = classname = get_typed_class(options.virt, 'ComputerSystem')
     inst_name = 'ETdomain'

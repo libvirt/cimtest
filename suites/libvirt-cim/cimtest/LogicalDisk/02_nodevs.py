@@ -32,7 +32,7 @@ from XenKvmLib.classes import get_typed_class
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from XenKvmLib.test_doms import define_test_domain, undefine_test_domain
 from XenKvmLib.test_xml import testxml
-from CimTest.Globals import log_param, logger, do_main
+from CimTest.Globals import logger, do_main
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 
@@ -47,7 +47,6 @@ def clean_system(host, virt='Xen'):
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
     if not clean_system(options.ip, options.virt):
         logger.error("System has defined domains; unable to run")
         return 2

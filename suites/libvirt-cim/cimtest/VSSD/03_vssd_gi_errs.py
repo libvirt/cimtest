@@ -52,7 +52,7 @@ import sys
 import pywbem
 from VirtLib import utils
 from CimTest.ReturnCodes import PASS, FAIL
-from CimTest.Globals import log_param, logger, do_main
+from CimTest.Globals import logger, do_main
 from CimTest.Globals import CIM_PASS, CIM_NS, CIM_USER
 from XenKvmLib import assoc
 from XenKvmLib.test_xml import testxml
@@ -93,7 +93,6 @@ def main():
         parser.print_help()
         return FAIL
 
-    log_param()
     status = PASS
 
     destroy_and_undefine_all(options.ip)

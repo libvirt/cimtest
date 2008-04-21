@@ -57,7 +57,7 @@ from XenKvmLib.test_xml import testxml_bl
 from XenKvmLib.test_xml import xml_get_dom_bootloader 
 from CimTest import Globals 
 from XenKvmLib import assoc
-from CimTest.Globals import log_param, logger, do_main
+from CimTest.Globals import logger, do_main
 
 sup_types = ['Xen']
 
@@ -163,7 +163,6 @@ def main():
     options = main.options
     global  status 
 
-    log_param()
     destroy_and_undefine_all(options.ip)
     test_xml = testxml_bl(test_dom, vcpus = test_vcpus, \
                           mac = test_mac, disk = test_disk, \

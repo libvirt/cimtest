@@ -36,7 +36,7 @@ from XenKvmLib import vxml
 from XenKvmLib import assoc
 from XenKvmLib import devices
 from XenKvmLib.classes import get_typed_class
-from CimTest.Globals import log_param, logger, do_main
+from CimTest.Globals import logger, do_main
 from CimTest import Globals
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 
@@ -62,7 +62,6 @@ def main():
     else:
         test_disk = 'hda'
 
-    log_param()
     status = PASS
     virt_xml = vxml.get_class(options.virt)
     cxml = virt_xml(test_dom, vcpus = test_cpu, mac = test_mac,

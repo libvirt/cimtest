@@ -30,7 +30,7 @@ import pywbem
 from XenKvmLib import const
 from XenKvmLib import devices
 from XenKvmLib.vxml import KVMXML
-from CimTest.Globals import log_param, logger
+from CimTest.Globals import logger
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
@@ -42,7 +42,6 @@ test_mac = "00:11:22:33:44:55"
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
     const.KVM_default_net_type = 'user'
     cxml = KVMXML(test_dom, mac = test_mac)
     ret = cxml.define(options.ip)

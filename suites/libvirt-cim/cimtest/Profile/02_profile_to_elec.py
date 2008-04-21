@@ -43,7 +43,7 @@ from XenKvmLib.assoc import Associators
 from XenKvmLib.vxml import get_class
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from CimTest import Globals 
-from CimTest.Globals import log_param, logger, CIM_ERROR_ENUMERATE, CIM_ERROR_ASSOCIATORNAMES 
+from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, CIM_ERROR_ASSOCIATORNAMES 
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
@@ -183,7 +183,6 @@ def main():
     options = main.options
     virt    = options.virt
     server  = options.ip
-    log_param()
 
     status = PASS 
 

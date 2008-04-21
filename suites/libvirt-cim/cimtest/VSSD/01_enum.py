@@ -33,7 +33,7 @@ from XenKvmLib import enumclass
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from CimTest.Globals import do_main
-from CimTest.Globals import log_param, logger
+from CimTest.Globals import logger
 
 sup_types = ['Xen', 'KVM']
 
@@ -42,7 +42,6 @@ test_dom = "new"
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
     status = 0
 
     destroy_and_undefine_all(options.ip)

@@ -42,7 +42,6 @@ test_dom = "domU1"
 def main():
     options = main.options
     status = FAIL
-    Globals.log_param()
 
     cxml = vxml.get_class(options.virt)(test_dom)
     rc = cxml.define(options.ip)

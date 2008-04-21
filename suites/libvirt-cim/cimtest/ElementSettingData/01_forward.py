@@ -85,7 +85,6 @@ def test_assoc(host, class_name, id, virt):
 @do_main(sup_types)
 def main():
     options = main.options
-    Globals.log_param()
 
     try:
         key_list = ["InstanceID"]

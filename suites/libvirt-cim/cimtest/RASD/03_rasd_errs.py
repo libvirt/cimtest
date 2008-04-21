@@ -60,7 +60,7 @@ from CimTest.Globals import do_main
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
-from CimTest.Globals import log_param, logger, CIM_USER, CIM_PASS, CIM_NS, CIM_ERROR_GETINSTANCE
+from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS, CIM_ERROR_GETINSTANCE
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'KVM', 'XenFV']
@@ -122,7 +122,6 @@ def main():
     options = main.options
     global test_disk, vsxml 
     global virt, server, conn
-    log_param()
     destroy_and_undefine_all(options.ip)
     server = options.ip 
     virt = options.virt

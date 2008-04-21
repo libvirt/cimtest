@@ -53,7 +53,7 @@ import pywbem
 from VirtLib import utils
 from XenKvmLib import vxml
 from XenKvmLib import assoc
-from CimTest.Globals import log_param, logger, CIM_USER, CIM_PASS, CIM_NS, \
+from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS, \
 CIM_ERROR_ASSOCIATORS
 from CimTest.Globals import do_main
 from XenKvmLib.common_util import try_assoc
@@ -80,7 +80,6 @@ expr_values = {
 def main():
     options = main.options
 
-    log_param()
     status = PASS
     virtxml = vxml.get_class(options.virt)
     cxml = virtxml(test_dom, mac = test_mac)

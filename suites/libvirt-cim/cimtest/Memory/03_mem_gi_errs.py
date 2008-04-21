@@ -130,7 +130,7 @@ from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from XenKvmLib.classes import get_typed_class
 from CimTest.ReturnCodes import PASS, FAIL
-from CimTest.Globals import log_param, logger, CIM_USER, do_main
+from CimTest.Globals import logger, CIM_USER, do_main
 from CimTest.Globals import CIM_PASS, CIM_NS
 
 sup_types = ['Xen', 'KVM', 'XenFV']
@@ -170,7 +170,6 @@ def try_invalid_gi(i, field1, field2):
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
 
     devid = "%s/%s" % (test_dom, test_mem)
     status = PASS

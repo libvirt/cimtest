@@ -234,7 +234,6 @@ def main():
     loop = 0 
     server = options.ip
     destroy_and_undefine_all(options.ip)
-    Globals.log_param()
     test_xml, bridge = testxml_bridge(test_dom, mem = test_mem, vcpus = test_vcpus, \
                                mac = test_mac, disk = test_disk, server = options.ip)
     if bridge == None:

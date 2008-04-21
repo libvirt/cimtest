@@ -32,7 +32,7 @@ from VirtLib import utils
 from VirtLib.live import bootloader
 from XenKvmLib.test_doms import test_domain_function, destroy_and_undefine_all
 from XenKvmLib.test_xml import testxml_bl
-from CimTest.Globals import log_param, logger, do_main
+from CimTest.Globals import logger, do_main
 
 sup_types = ['Xen']
 test_dom = "dom"
@@ -41,7 +41,6 @@ test_dom = "dom"
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
     status = 1
     destroy_and_undefine_all(options.ip)
 

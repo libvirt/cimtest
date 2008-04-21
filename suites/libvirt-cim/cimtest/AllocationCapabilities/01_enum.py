@@ -24,13 +24,12 @@
 import sys
 from XenKvmLib import enumclass
 from CimTest.Globals import do_main
-from CimTest.Globals import logger, log_param, CIM_ERROR_ENUMERATE, platform_sup
+from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, platform_sup
 from CimTest.ReturnCodes import PASS, FAIL
 
 @do_main(platform_sup)
 def main():
     options = main.options
-    log_param()
 
     pools = {}
     pt = ['MemoryPool', 'ProcessorPool', 'DiskPool', 'NetworkPool']

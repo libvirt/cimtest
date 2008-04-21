@@ -87,7 +87,7 @@ from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import try_assoc
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from CimTest.ReturnCodes import PASS, FAIL
-from CimTest.Globals import log_param, logger, CIM_USER, CIM_PASS, CIM_NS, do_main
+from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS, do_main
 
 sup_types = ['Xen', 'XenFV', 'KVM']
 
@@ -133,7 +133,6 @@ def try_invalid_assoc(classname, name_val, i, field, virt="Xen"):
 def main():
     options = main.options
 
-    log_param()
     status = PASS
 
     global conn

@@ -202,7 +202,6 @@ def main():
     global assoc_classname
     global vsxml
     status = PASS
-    Globals.log_param()
     options = main.options
     destroy_and_undefine_all(options.ip)
     virt = options.virt

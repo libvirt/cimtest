@@ -23,7 +23,7 @@
 #                                                         Date: 24-03-2008
 import sys
 from XenKvmLib import enumclass
-from CimTest.Globals import log_param, CIM_ERROR_ENUMERATE, logger
+from CimTest.Globals import CIM_ERROR_ENUMERATE, logger
 from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import do_main, platform_sup
 from XenKvmLib.classes import get_typed_class
@@ -35,7 +35,6 @@ def print_error(fieldname, ret_value, exp_value):
 @do_main(platform_sup)
 def main():
     options = main.options
-    log_param()
     # Expected results from enumeration
     cn       =  get_typed_class(options.virt, "VirtualSystemSnapshotServiceCapabilities")
     instid   = 'SnapshotCapabilities'

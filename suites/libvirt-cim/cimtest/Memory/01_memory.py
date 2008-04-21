@@ -29,7 +29,7 @@ from VirtLib import live
 from XenKvmLib import devices
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
-from CimTest.Globals import log_param, logger
+from CimTest.Globals import logger
 from CimTest.Globals import do_main
 
 sup_types = ['Xen', 'KVM', 'XenFV']
@@ -40,7 +40,6 @@ mem = 256 #MB
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
     
     vsxml = get_class(options.virt)(test_dom, mem)
     vsxml.define(options.ip)

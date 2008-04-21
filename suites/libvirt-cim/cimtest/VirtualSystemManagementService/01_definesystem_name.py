@@ -28,7 +28,7 @@ from VirtLib import utils
 from XenKvmLib.test_doms import undefine_test_domain
 from XenKvmLib.common_util import create_using_definesystem
 from CimTest.Globals import do_main
-from CimTest.Globals import log_param, logger
+from CimTest.Globals import logger
 
 SUPPORTED_TYPES = ['Xen', 'KVM', 'XenFV']
 default_dom = 'test_domain'
@@ -36,7 +36,6 @@ default_dom = 'test_domain'
 @do_main(SUPPORTED_TYPES)
 def main():
     options = main.options
-    log_param()
 
     status = create_using_definesystem(default_dom, options.ip, 
                                        virt=options.virt)

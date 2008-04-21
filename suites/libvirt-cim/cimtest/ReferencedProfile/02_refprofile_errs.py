@@ -55,7 +55,7 @@ import pywbem
 from XenKvmLib import enumclass
 from XenKvmLib import assoc 
 from CimTest import Globals
-from CimTest.Globals import log_param, logger, CIM_ERROR_ENUMERATE, CIM_ERROR_ASSOCIATORS
+from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, CIM_ERROR_ASSOCIATORS
 from CimTest.Globals import do_main, CIM_USER, CIM_PASS
 from XenKvmLib.classes import get_typed_class
 from CimTest.ReturnCodes import FAIL, PASS
@@ -116,7 +116,6 @@ def verify_prof_err(field, keys):
 
 @do_main(sup_types)
 def main():
-    log_param()
     options = main.options
     global virt, server, reg_classname, conn
     virt = options.virt

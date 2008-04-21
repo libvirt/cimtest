@@ -46,7 +46,7 @@ from XenKvmLib import computersystem
 from XenKvmLib import vxml
 from VirtLib import utils
 from XenKvmLib.test_doms import destroy_and_undefine_all
-from CimTest.Globals import log_param, logger
+from CimTest.Globals import logger
 from CimTest.Globals import do_main
 from XenKvmLib.common_util import call_request_state_change
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
@@ -66,7 +66,6 @@ TIME = "00000000000000.000000:000"
 def main():
     options = main.options
     status = FAIL
-    log_param()
     
     cxml = vxml.get_class(options.virt)(test_dom, mem)
 

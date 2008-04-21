@@ -49,7 +49,7 @@ import sys
 import os
 from distutils.file_util import move_file
 from VirtLib import utils
-from CimTest.Globals import log_param, logger, CIM_ERROR_ASSOCIATORNAMES, \
+from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES, \
 CIM_ERROR_ASSOCIATORS
 from CimTest.Globals import do_main
 from XenKvmLib.assoc import AssociatorNames, Associators
@@ -258,7 +258,6 @@ def verify_eafp_values(server, in_pllist):
 def main():
     options= main.options
     server = options.ip
-    log_param()
 # Get the host info 
     status, host_name, classname = get_host_info(server)
     if status != PASS:

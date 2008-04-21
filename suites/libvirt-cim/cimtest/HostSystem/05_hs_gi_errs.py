@@ -79,7 +79,7 @@ from XenKvmLib.common_util import get_host_info, try_getinstance
 from XenKvmLib.classes import get_typed_class
 from optparse import OptionParser
 from CimTest.ReturnCodes import PASS, FAIL
-from CimTest.Globals import log_param, logger, CIM_USER, CIM_PASS, CIM_NS, do_main
+from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS, do_main
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 
@@ -94,7 +94,6 @@ expr_values = {
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
     status = PASS
 
     if options.virt == "XenFV":

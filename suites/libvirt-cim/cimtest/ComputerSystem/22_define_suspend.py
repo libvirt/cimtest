@@ -44,7 +44,6 @@ test_dom = "domgst"
 def main():
     options = main.options
     status = FAIL
-    Globals.log_param()
     
     cxml = vxml.get_class(options.virt)(test_dom)
 

@@ -49,7 +49,6 @@ def main():
     prev_namespace = Globals.CIM_NS
     Globals.CIM_NS = 'root/interop'
 
-    Globals.log_param()
     try: 
         key_list = ["InstanceID"]
         proflist = enumclass.enumerate(options.ip, cn, key_list, options.virt)

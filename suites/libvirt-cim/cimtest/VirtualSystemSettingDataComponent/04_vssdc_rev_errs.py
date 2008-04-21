@@ -63,7 +63,7 @@ from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import try_assoc
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from CimTest.ReturnCodes import PASS, FAIL
-from CimTest.Globals import do_main, log_param, logger
+from CimTest.Globals import do_main, logger
 from CimTest.Globals import CIM_USER, CIM_PASS, CIM_NS
 
 sup_types = ['Xen', 'XenFV', 'KVM']
@@ -101,7 +101,6 @@ def main():
         parser.print_help()
         return FAIL
 
-    log_param()
     status = PASS
 
     destroy_and_undefine_all(options.ip)

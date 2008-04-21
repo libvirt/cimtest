@@ -40,7 +40,7 @@
 
 import sys
 from VirtLib import utils
-from CimTest.Globals import do_main, log_param, logger
+from CimTest.Globals import do_main, logger
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 from XenKvmLib.test_doms import undefine_test_domain
 from XenKvmLib.common_util import get_cs_instance
@@ -74,7 +74,6 @@ def check_attributes(domain_name, ip, en_state, rq_state, virt):
 def main():
     options = main.options
     status = FAIL
-    log_param()
 
     tc_scen = [('Start', [ACTIVE_STATE, ACTIVE_STATE]), \
                ('Reset', [ACTIVE_STATE, RESET_STATE])]

@@ -75,7 +75,7 @@ from XenKvmLib import enumclass
 from XenKvmLib.assoc import Associators
 from XenKvmLib.common_util import profile_init_list
 from CimTest import Globals
-from CimTest.Globals import log_param, logger, CIM_ERROR_ENUMERATE, CIM_ERROR_ASSOCIATORS
+from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, CIM_ERROR_ASSOCIATORS
 from CimTest.Globals import do_main
 from XenKvmLib.classes import get_typed_class
 from CimTest.ReturnCodes import FAIL, PASS
@@ -160,7 +160,6 @@ def get_refprof_verify_info(proflist):
 
 @do_main(sup_types)
 def main():
-    log_param()
     options = main.options
     global virt, server, reg_classname
     virt = options.virt

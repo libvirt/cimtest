@@ -62,7 +62,7 @@ from XenKvmLib import computersystem
 from XenKvmLib.test_xml import testxml, disk_path
 from XenKvmLib.test_doms import test_domain_function, destroy_and_undefine_all
 from XenKvmLib.assoc import Associators, AssociatorNames
-from CimTest.Globals import log_param, logger, CIM_ERROR_ASSOCIATORNAMES, \
+from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES, \
 CIM_ERROR_ASSOCIATORS
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL
@@ -349,7 +349,6 @@ def verify_CS_values(assoc_info, cs_values, an, qcn):
 
 @do_main(sup_types)
 def main():
-    log_param()
     server = main.options.ip
     status = setup_env(server)
     if status != PASS:

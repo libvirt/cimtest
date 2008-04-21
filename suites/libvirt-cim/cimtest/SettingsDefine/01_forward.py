@@ -68,7 +68,6 @@ def main():
         test_disk = 'xvda'
     else:
         test_disk = 'hda'
-    Globals.log_param()
     virt_xml = vxml.get_class(options.virt)
     cxml = virt_xml(test_dom, vcpus = test_vcpus, mac = test_mac, 
                     disk = test_disk)

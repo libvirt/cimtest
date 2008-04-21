@@ -45,7 +45,7 @@ import sys
 import XenKvmLib
 from XenKvmLib import enumclass
 from CimTest.Globals import do_main, CIM_ERROR_ASSOCIATORS, CIM_ERROR_ENUMERATE
-from CimTest.Globals import log_param, logger
+from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib import assoc
@@ -206,7 +206,6 @@ def verify_rasd_values(rasd_values_info):
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
     destroy_and_undefine_all(options.ip)
     global test_disk, vsxml
     global virt, server

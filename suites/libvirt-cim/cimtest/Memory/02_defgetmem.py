@@ -32,7 +32,7 @@ import sys
 from XenKvmLib.test_doms import undefine_test_domain 
 from XenKvmLib.common_util import create_using_definesystem 
 from XenKvmLib.devices import get_dom_mem_inst
-from CimTest.Globals import log_param, logger, do_main
+from CimTest.Globals import logger, do_main
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 default_dom = "domu"
@@ -60,7 +60,6 @@ def check_mem(memInst):
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
     status = 0
 
     undefine_test_domain(default_dom, options.ip)

@@ -59,7 +59,7 @@ from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.rasd import verify_procrasd_values, verify_netrasd_values, \
 verify_diskrasd_values, verify_memrasd_values 
-from CimTest.Globals import log_param, logger
+from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'KVM', 'XenFV']
@@ -137,7 +137,6 @@ def main():
     options = main.options
     status = 0 
     rc = 1
-    log_param()
     destroy_and_undefine_all(options.ip)
     if options.virt == 'Xen':
         test_disk = 'xvda'

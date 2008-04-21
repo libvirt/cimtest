@@ -56,7 +56,7 @@ from optparse import OptionParser
 from XenKvmLib.common_util import try_getinstance
 from XenKvmLib.classes import get_typed_class
 from CimTest.ReturnCodes import PASS, FAIL
-from CimTest.Globals import log_param, logger, CIM_USER, CIM_PASS, CIM_NS, do_main
+from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS, do_main
 
 sup_types=['Xen', 'KVM', 'XenFV']
 
@@ -71,7 +71,6 @@ expr_values = {
 @do_main(sup_types)
 def main():
     options = main.options
-    log_param()
     status = PASS
 
     classname = get_typed_class(options.virt, 'VirtualSystemManagementCapabilities')
