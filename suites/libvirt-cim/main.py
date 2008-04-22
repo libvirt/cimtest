@@ -92,7 +92,7 @@ def get_version(virt, ip):
         revision = inst[0]['Revision']
         changeset = inst[0]['Changeset']
     except Exception:
-        return 'Unknown', 'Unknown'
+        return '0', 'Unknown'
     return revision, changeset
 
 def main():

@@ -23,6 +23,16 @@ import platform
 from VirtLib.live import fv_cap
 from CimTest.Globals import CIM_IP
 
+global CIM_REV
+global CIM_SET
+
+CIM_REV = int(os.getenv("CIM_REV"))
+CIM_SET = os.getenv("CIM_SET")
+
+if not CIM_REV or not CIM_SET:
+    CIM_REV = 0
+    CIM_SET = 'Unknown'
+
 # vxml.NetXML
 default_bridge_name = 'testbridge'
 default_network_name = 'default-net'
