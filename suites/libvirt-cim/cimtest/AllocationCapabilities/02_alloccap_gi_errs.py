@@ -62,6 +62,7 @@ from XenKvmLib.test_xml import netxml
 from XenKvmLib.test_doms import create_vnet
 from CimTest.Globals import do_main, platform_sup
 from XenKvmLib.classes import get_typed_class
+from XenKvmLib.const import CIM_REV
 
 test_dpath = "foo"
 disk_file = '/tmp/diskpool.conf'
@@ -69,12 +70,8 @@ back_disk_file = disk_file + "." + "alloccap_err"
 diskid = "%s/%s" % ("DiskPool", test_dpath)
 memid = "%s/%s" % ("MemoryPool", 0)
 procid = "%s/%s" % ("ProcessorPool", 0)
-expr_values = {
-                "invalid_instid_keyname" :  {  'rc'   : pywbem.CIM_ERR_FAILED, \
-                                               'desc' : 'No InstanceID specified' }, \
-                "invalid_instid_keyvalue" :  { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                               'desc' : 'Instance not found' }
-              }
+rev = 463
+
 def conf_file():
     """
        Creating diskpool.conf file.
@@ -124,19 +121,29 @@ def main():
         net_xml, bridge = netxml(server, bridgename, test_network)
         ret = create_vnet(server, net_xml)
         if not ret:
-            logger.error("Failed to create the Virtual Network '%s'", \
-                                                                    test_network)
+            logger.error("Failed to create the Virtual Network '%s'",
+                         test_network)
             return SKIP
     net_instid = 'NetworkPool/%s' %test_network
-    instid_list = ['ProcessorPool/0', 'MemoryPool/0', 'DiskPool/foo', net_instid]
-    conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, CIM_PASS), CIM_NS)
+    instid_list = ['ProcessorPool/0', 'MemoryPool/0',
+                   'DiskPool/foo', net_instid]
+    conn = assoc.myWBEMConnection('http://%s' % options.ip,
+                                  (CIM_USER, CIM_PASS), CIM_NS)
     classname =  get_typed_class(options.virt, "AllocationCapabilities") 
 
 
     field = 'INVALID_Instid_KeyValue'
     keys = { 'InstanceID' : field }
-    ret_value = try_getinstance(conn, classname, keys, field_name=field, \
-                                 expr_values=expr_values['invalid_instid_keyvalue'], bug_no="")
+    exp = {
+            "invalid_keyname" : { 'rc' : pywbem.CIM_ERR_FAILED,
+                                  'desc' : 'No InstanceID specified' },
+            "invalid_keyvalue" : { 'rc' : pywbem.CIM_ERR_NOT_FOUND,
+                                   'desc' : 'Instance not found' }}
+    if CIM_REV < rev:
+        exp['invalid_keyvalue']['desc'] = 'Object could not be found'
+
+    ret_value = try_getinstance(conn, classname, keys, field_name=field,
+                                expr_values=exp['invalid_keyvalue'], bug_no="")
     if ret_value != PASS:
         logger.error("------ FAILED: Invalid InstanceID Key Value.------")
         status = ret_value
@@ -144,8 +151,9 @@ def main():
     field = 'INVALID_Instid_KeyName'
     for i in range(len(instid_list)):
         keys = { field : instid_list[i] }
-        ret_value = try_getinstance(conn, classname, keys, field_name=field, \
-                                 expr_values=expr_values['invalid_instid_keyname'], bug_no="")
+        ret_value = try_getinstance(conn, classname, keys, field_name=field,
+                                    expr_values=exp['invalid_keyname'],
+                                    bug_no="")
         if ret_value != PASS:
             logger.error("------ FAILED: Invalid InstanceID Key Name.------")
             status = ret_value
