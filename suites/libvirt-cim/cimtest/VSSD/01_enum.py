@@ -28,40 +28,38 @@
 
 import sys
 from VirtLib import live
-from VirtLib import utils
 from XenKvmLib import enumclass
 from XenKvmLib.test_doms import destroy_and_undefine_all
-from XenKvmLib.vxml import XenXML, KVMXML, get_class
-from CimTest.Globals import do_main
-from CimTest.Globals import logger
+from XenKvmLib.vxml import get_class
+from CimTest.Globals import do_main, platform_sup, logger
+from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen', 'KVM']
+test_dom = "VSSD_dom"
 
-test_dom = "new"
-
-@do_main(sup_types)
+@do_main(platform_sup)
 def main():
     options = main.options
-    status = 0
+    status = PASS
 
     destroy_and_undefine_all(options.ip)
     vsxml = get_class(options.virt)(test_dom)
     ret = vsxml.define(options.ip)
     if not ret :
         logger.error("error while create of VS")
-        status = 1
+        status = FAIL
 
     try:
         live_cs = live.domain_list(options.ip, options.virt)
         key_list = ["InstanceID"]
-        syslst = enumclass.enumerate(options.ip, \
-                                     "VirtualSystemSettingData", \
-                                     key_list, \
-                                     options.virt) 
+        syslst = enumclass.enumerate(options.ip, "VirtualSystemSettingData", 
+                                     key_list, options.virt) 
 
         found = 0
         for vssd in syslst :
-            instid = "%s:%s" % (options.virt, test_dom)
+            if options.virt == 'XenFV':
+                instid = "%s:%s" % ('Xen', test_dom)
+            else:
+                instid = "%s:%s" % (options.virt, test_dom)
             if vssd.InstanceID == instid:
                 found = 1
                 break
@@ -69,8 +67,8 @@ def main():
             if vssd.ElementName != test_dom:
                 logger.error("Invalid ElementName- expecting %s, go %s" % 
                              test_dom, vssd.ElementName)
-                test_domain_function(test_dom, options.ip, "undefine")
-                return 1
+                vsxml.undefine(options.ip)
+                return FAIL
 
             logger.info("Examining VSSD class for the Guest %s" % test_dom)
             try:
@@ -81,15 +79,15 @@ def main():
                 logger.error("Exception %s" % details)
                 logger.error("Provider reports VSSD `%s', but xm does not" %
                              vssd.ElementName)
-                status = 1
+                status = FAIL
 
         else:
             logger.error("Missing VSSD instance for the system %s " % test_dom)
-            status = 1
+            status = FAIL
 
     except BaseException, details:
         logger.error("Exception %s" % details)
-        status = 1
+        status = FAIL
 
     vsxml.undefine(options.ip)
 
