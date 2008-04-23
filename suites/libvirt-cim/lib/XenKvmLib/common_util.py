@@ -32,6 +32,10 @@ from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, log_param, CIM_ERROR_ENUMERATE
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 
+def print_field_error(fieldname, ret_value, exp_value):
+    logger.error("%s Mismatch", fieldname)
+    logger.error("Returned %s instead of %s", ret_value, exp_value)
+
 def get_cs_instance(domain_name, ip, virt='Xen'):
     try:
         cs = computersystem.get_cs_class(virt)(ip, domain_name)
