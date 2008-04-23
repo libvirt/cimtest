@@ -43,7 +43,7 @@ from XenKvmLib import vsms
 from XenKvmLib import const
 from CimTest.Globals import logger, CIM_IP, CIM_PORT, CIM_NS, CIM_USER, CIM_PASS
 from CimTest.ReturnCodes import SKIP
-from XenKvmLib.classes import virt_types
+from XenKvmLib.classes import virt_types, get_typed_class
 
 class XMLClass:
     xml_string = ""
@@ -434,6 +434,19 @@ class VirtCIM:
         set_uuid(viruuid(self.domain_name, ip, self.virt))
         return True
 
+    def cim_destroy(self, ip):
+        service = vsms.get_vsms_class(self.virt)(ip)
+        cs_cn = get_typed_class(self.virt, 'ComputerSystem')
+        keys = { 'Name' : self.domain_name, 'CreationClassName' : cs_cn}
+        target = pywbem.cim_obj.CIMInstanceName(cs_cn, keybindings = keys)
+        try:
+            ret = service.DestroySystem(AffectedSystem=target)
+        except Exception, details:
+            logger.error('Error invoking DestroySystem')
+            logger.error('Got error %s with exception %s' \
+                    % (details, details.__class__.__name__))
+            return False
+        return ret[0] == 0
 
 class XenXML(VirtXML, VirtCIM):
 
