@@ -50,20 +50,15 @@
 
 import sys
 import pywbem
-from VirtLib import utils
 from CimTest.ReturnCodes import PASS, FAIL
-from CimTest.Globals import logger, do_main
+from CimTest.Globals import logger, do_main, platform_sup
 from CimTest.Globals import CIM_PASS, CIM_NS, CIM_USER
 from XenKvmLib import assoc
-from XenKvmLib.test_xml import testxml
+from XenKvmLib.vxml import get_class
 from XenKvmLib.common_util import try_getinstance
-from XenKvmLib.test_doms import test_domain_function, destroy_and_undefine_all
+from XenKvmLib.test_doms import destroy_and_undefine_all
 
-sup_types = ['Xen']
-
-VSType    = "Xen"
-test_dom  = "new"
-classname = "Xen_VirtualSystemSettingData"
+test_dom  = "VSSD_domain"
 
 expr_values = {
     "INVALID_InstID_Keyname"   : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
@@ -72,7 +67,8 @@ expr_values = {
                      'desc' : 'No such instance (InstanceID)'}
 }
 
-def try_invalid_gi(name_val, i, field):
+def try_invalid_gi(VSType, name_val, i, field):
+    classname = "%s_VirtualSystemSettingData" % VSType
     keys = {}
     temp = name_val[i]
     name_val[i] = field
@@ -86,37 +82,33 @@ def try_invalid_gi(name_val, i, field):
     name_val[i] = temp
     return ret_val
 
-@do_main(sup_types)
+@do_main(platform_sup)
 def main():
     options = main.options
-    if not options.ip:
-        parser.print_help()
-        return FAIL
-
     status = PASS
-
-    destroy_and_undefine_all(options.ip)
-    xmlfile = testxml(test_dom )
-
-    ret = test_domain_function(xmlfile, options.ip, "define")
+    if options.virt == 'XenFV':
+        VSType = 'Xen' 
+    else:
+        VSType = options.virt
+    vsxml = get_class(options.virt)(test_dom)
+    ret = vsxml.define(options.ip)
     if not ret :
         logger.error("error while define of VS")
         return FAIL
 
     global conn
-    conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER,
-CIM_PASS), CIM_NS)
+    conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, CIM_PASS), CIM_NS)
 
     inst_id  = "%s:%s" % (VSType, test_dom)
     name_val = ['InstanceID', inst_id]
     tc_scen  = ['INVALID_InstID_Keyname', 'INVALID_InstID_Keyval']
 
     for i in range(len(tc_scen)):
-        retval = try_invalid_gi(name_val, i, tc_scen[i])
+        retval = try_invalid_gi(VSType, name_val, i, tc_scen[i])
         if retval != PASS:
             status = retval
 
-    test_domain_function(test_dom, options.ip, "undefine")
+    vsxml.undefine(options.ip)
     return status
 
 if __name__ == "__main__":
