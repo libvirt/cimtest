@@ -20,12 +20,14 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 #
 # This tc is used to verify the Classname and InstanceID of 
-# Xen_SettingsDefineCapabilities association with Xen_VirtualSystemMigrationCapabilities 
+# Xen_SettingsDefineCapabilities association with 
+# Xen_VirtualSystemMigrationCapabilities 
 # Command
 # -------
 # wbemcli ai -ac Xen_SettingsDefineCapabilities \
 # 'http://localhost:5988/root/virt:\
-# Xen_VirtualSystemMigrationCapabilities.InstanceID="MigrationCapabilities"'  -nl
+# Xen_VirtualSystemMigrationCapabilities.InstanceID=\
+# "MigrationCapabilities"'  -nl
 #
 # 
 # Output
@@ -36,41 +38,35 @@
 #                                                Date : 05-03-2008 
 
 import sys
-from VirtLib import utils
 from XenKvmLib import assoc
-from CimTest.Globals import CIM_ERROR_ASSOCIATORS, logger, do_main
+from CimTest.Globals import CIM_ERROR_ASSOCIATORS, logger
 from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.Globals import do_main, platform_sup
+from XenKvmLib.classes import get_typed_class
+from XenKvmLib.common_util import print_field_error
 
-sup_types = ['Xen']
-
-def print_error(fieldname, ret_value, exp_value):
-    logger.error("%s Mismatch", fieldname)
-    logger.error("Returned %s instead of %s", ret_value, exp_value)
-
-@do_main(sup_types)
+@do_main(platform_sup)
 def main():
     options = main.options
     status = PASS
     server = options.ip
-    an     = 'Xen_SettingsDefineCapabilities'
-    cn     = 'Xen_VirtualSystemMigrationCapabilities'
-    qcn    = 'Xen_VirtualSystemMigrationSettingData'
+    an     = get_typed_class(options.virt, 'SettingsDefineCapabilities')
+    cn     = get_typed_class(options.virt, 'VirtualSystemMigrationCapabilities')
+    qcn    = get_typed_class(options.virt, 'VirtualSystemMigrationSettingData')
     instid = 'MigrationCapabilities'
-
     try:
-        assoc_info = assoc.Associators(server, \
-                                           an, \
-                                           cn, \
-                           InstanceID = instid)  
+        assoc_info = assoc.Associators(server, an, cn, InstanceID = instid, 
+                                                       virt = options.virt)  
         if len(assoc_info) != 1: 
             logger.error("%s returned %i %s objects", an, len(assoc_info), qcn)
             return FAIL
         verify_assoc = assoc_info[0]
         if verify_assoc.classname != qcn:
-            print_error('Classname', verify_assoc.classname, qcn)
+            print_field_error('Classname', verify_assoc.classname, qcn)
             status = FAIL 
         if verify_assoc['InstanceID'] != 'MigrationSettingData':
-            print_error('InstanceID', verify_assoc['InstanceID'], 'MigrationCapabilities')
+            print_field_error('InstanceID', verify_assoc['InstanceID'], 
+                                               'MigrationCapabilities')
             status = FAIL 
     except Exception, detail:
         logger.error(CIM_ERROR_ASSOCIATORS, an)
