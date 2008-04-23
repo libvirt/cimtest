@@ -60,6 +60,8 @@ from XenKvmLib.test_doms import test_domain_function, destroy_and_undefine_all
 from VirtLib.live import network_by_bridge
 from XenKvmLib.logicaldevices import verify_proc_values, verify_mem_values, \
 verify_net_values, verify_disk_values
+from XenKvmLib.common_util import cleanup_restore, test_dpath, \
+create_diskpool_file
 
 sup_types = ['Xen']
 
@@ -68,9 +70,6 @@ test_mac   = "00:11:22:33:44:aa"
 test_mem   = 128 
 test_vcpus = 1 
 test_disk  = "xvdb"
-test_dpath = "foo"
-disk_file = '/tmp/diskpool.conf'
-back_disk_file = disk_file + "." + "ccex4" 
 diskid = "%s/%s" % ("DiskPool", test_dpath)
 memid = "%s/%s" % ("MemoryPool", 0)
 procid = "%s/%s" % ("ProcessorPool", 0)
@@ -102,32 +101,6 @@ def print_err(err, detail, cn):
     logger.error(err % cn)
     logger.error("Exception: %s", detail)
 
-
-def conf_file():
-    """
-        Creating diskpool.conf file.
-    """
-    try:
-        f = open(disk_file, 'w')
-        f.write('%s %s' % (test_dpath, '/'))
-        f.close()
-    except Exception,detail:
-        logger.error("Exception: %s", detail)
-        return SKIP
-    return PASS 
-
-def clean_up_restore():
-    """
-        Restoring back the original diskpool.conf 
-        file.
-    """
-    try: 
-        if os.path.exists(back_disk_file):
-            os.remove(disk_file)
-            move_file(back_disk_file, disk_file)
-    except Exception, detail:
-        logger.error("Exception: %s", detail)
-
 def field_err(assoc_info, field_list, fieldname):
     logger.error("%s Mismatch", fieldname)
     logger.error("Returned %s instead of %s", assoc_info[fieldname], field_list[fieldname])
@@ -149,33 +122,34 @@ def pool_init_list(pool_assoc):
 
 def eapf_list():
     disk  = {
-              'SystemName'        : test_dom, \
-              'CreationClassName' : "Xen_LogicalDisk", \
-              'DeviceID'          : "%s/%s" % (test_dom,test_disk), \
+              'SystemName'        : test_dom, 
+              'CreationClassName' : "Xen_LogicalDisk", 
+              'DeviceID'          : "%s/%s" % (test_dom,test_disk), 
               'Name'              : test_disk 
             }    
     proc = {
-              'SystemName'        : test_dom, \
-              'CreationClassName' : "Xen_Processor", \
+              'SystemName'        : test_dom, 
+              'CreationClassName' : "Xen_Processor", 
               'DeviceID'          : "%s/%s" % (test_dom,0)
            }    
     net =  {
-              'SystemName'        : test_dom, \
-              'CreationClassName' : "Xen_NetworkPort", \
-              'DeviceID'          : "%s/%s" % (test_dom, test_mac), \
+              'SystemName'        : test_dom, 
+              'CreationClassName' : "Xen_NetworkPort", 
+              'DeviceID'          : "%s/%s" % (test_dom, test_mac), 
               'NetworkAddresses'  : test_mac 
            }
     mem =  {
-              'SystemName'        : test_dom, \
-              'CreationClassName' : "Xen_Memory", \
-              'DeviceID'          : "%s/%s" % (test_dom, "mem"), \
+              'SystemName'        : test_dom, 
+              'CreationClassName' : "Xen_Memory", 
+              'DeviceID'          : "%s/%s" % (test_dom, "mem"), 
               'NumberOfBlocks'    : test_mem 
            }
-    eaf_values = {  "Xen_Processor"   : proc, \
-                    "Xen_LogicalDisk" : disk, \
-                    "Xen_NetworkPort" : net, \
+    eaf_values = {  "Xen_Processor"   : proc, 
+                    "Xen_LogicalDisk" : disk, 
+                    "Xen_NetworkPort" : net, 
                     "Xen_Memory"      : mem
                   }
+    print eaf_values
     return eaf_values 
 
 def get_inst_for_dom(assoc_val):
@@ -205,7 +179,7 @@ def get_assocname_info(server, cn, an, qcn, hostname):
         status = FAIL
 
     if status != PASS:
-        clean_up_restore()
+        cleanup_restore()
         test_domain_function(test_dom, server, "destroy")
 
     return status, assoc_info
@@ -225,10 +199,7 @@ def verify_eafp_values(server, in_pllist):
     eapf_values = eapf_list()
     for cn,  instid in sorted(in_pllist.items()):
         try:
-            assoc_info = Associators(server, \
-                                          an, \
-                                           cn, \
-                             InstanceID = instid)  
+            assoc_info = Associators(server, an, cn, InstanceID = instid)  
             inst_list = get_inst_for_dom(assoc_info)
             status = check_len(an, inst_list, qcn, exp_len)
             if status != PASS:
@@ -250,7 +221,7 @@ def verify_eafp_values(server, in_pllist):
         except Exception, detail:
             logger.error(CIM_ERROR_ASSOCIATORS, an)
             logger.error("Exception: %s", detail)
-            clean_up_restore()
+            cleanup_restore()
             status = FAIL
     return status
 
@@ -258,42 +229,41 @@ def verify_eafp_values(server, in_pllist):
 def main():
     options= main.options
     server = options.ip
-# Get the host info 
+
+    # Get the host info 
     status, host_name, classname = get_host_info(server)
     if status != PASS:
         return status
-    # Taking care of already existing diskconf file
-    # Creating diskpool.conf if it does not exist
-    # Otherwise backing up the prev file and create new one.
-    os.system("rm -f %s" % back_disk_file )
-    if not (os.path.exists(disk_file)):
-        status = conf_file()
-    else:
-        move_file(disk_file, back_disk_file)
-        status = conf_file()
+
+    # Verify DiskPool on machine
+    status = create_diskpool_file() 
     if status != PASS:
         return status
-# Get the hostedResourcePool info first
+
+    # Get the hostedResourcePool info first
     cn  = classname
     an  = "Xen_HostedResourcePool"
     qcn = "Device Pool"
     status, pool = get_assocname_info(server, cn, an, qcn, host_name)
     if status != PASS:
         return status
-# One pool for each Device type, hence len should be 4 
+
+    # One pool for each Device type, hence len should be 4 
     exp_len = 4
     status = status = check_len(an, pool, qcn, exp_len)
     if status != PASS:
         return FAIL
+
     status = setup_env(server)
     if status != PASS:
-        clean_up_restore()
+        cleanup_restore()
         test_domain_function(test_dom, server, cmd = "destroy")
         return status
+
     in_pllist = pool_init_list(pool)
     status = verify_eafp_values(server, in_pllist)
     ret = test_domain_function(test_dom, server, cmd = "destroy")
-    clean_up_restore()
+    cleanup_restore()
     return status
 if __name__ == "__main__":
     sys.exit(main())
