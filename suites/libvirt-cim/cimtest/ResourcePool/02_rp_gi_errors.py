@@ -37,6 +37,8 @@ from distutils.file_util import move_file
 from CimTest.ReturnCodes import PASS, SKIP
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from CimTest.Globals import do_main
+from XenKvmLib.common_util import cleanup_restore, test_dpath, \
+create_diskpool_file
 
 sup_types = ['Xen', 'KVM']
 
@@ -47,39 +49,7 @@ expr_values = {
                                'desc' : 'No such instance (Invalid_Keyvalue)'}
         }
 
-test_dpath = "foo"
-disk_file = '/tmp/diskpool.conf'
-back_disk_file = disk_file + "." + "02_rp_gi_errors"
-
-def conf_file():
-    """
-       Creating diskpool.conf file.
-    """
-    try:
-        f = open(disk_file, 'w')
-        f.write('%s %s' % (test_dpath, '/'))
-        f.close()
-    except Exception,detail:
-        logger.error("Exception: %s", detail)
-        status = SKIP
-        sys.exit(status)
-
-def clean_up_restore():
-    """
-        Restoring back the original diskpool.conf
-        file.
-    """
-    try:
-        if os.path.exists(back_disk_file):
-            os.remove(disk_file)
-            move_file(back_disk_file, disk_file)
-    except Exception, detail:
-        logger.error("Exception: %s", detail)
-        status = SKIP
-        sys.exit(status)
-
-
-def err_invalid_instid_keyname(classname, instid):
+def err_invalid_instid_keyname(conn, classname, instid):
     # Input:
     # ------
     # wbemcli gi '<scheme>://[user:pwd@]<host>:<port>/<namespace:<ClassName>.
@@ -97,7 +67,7 @@ def err_invalid_instid_keyname(classname, instid):
                            bug_no="")
 
 
-def err_invalid_instid_keyvalue(classname):
+def err_invalid_instid_keyvalue(conn, classname):
     # Input:
     # ------
     # wbemcli gi '<scheme>://[user:pwd@]<host>:<port>/<namespace:<ClassName>.
@@ -119,21 +89,15 @@ def err_invalid_instid_keyvalue(classname):
 def main():
     ip = main.options.ip
     virt = main.options.virt
-    status = PASS
-
-    global conn
     conn = assoc.myWBEMConnection('http://%s' % ip, (CIM_USER, CIM_PASS),
                                   CIM_NS)
 
+    # Verify DiskPool on machine
+    status = create_diskpool_file()
+    if status != PASS:
+        return status
 
-    # Taking care of already existing diskconf file
-    # Creating diskpool.conf if it does not exist
-    # Otherwise backing up the prev file and create new one.
-    os.system("rm -f %s" % back_disk_file )
-    if (os.path.exists(disk_file)):
-        move_file(disk_file, back_disk_file)
-    conf_file()
-
+    # Verify the Virtual Network on the machine.
     vir_network = net_list(ip, virt)
     if len(vir_network) > 0:
         test_network = vir_network[0]
@@ -145,7 +109,7 @@ def main():
         if not ret:
             logger.error("Failed to create the Virtual Network '%s'",
                          test_network)
-            clean_up_restore()
+            cleanup_restore()
             return SKIP
     netid = "%s/%s" % ("NetworkPool", test_network)
 
@@ -157,18 +121,20 @@ def main():
             }
 
     for cn, instid in cn_instid_list.items():
-        ret_value = err_invalid_instid_keyname(cn, instid)
+        ret_value = err_invalid_instid_keyname(conn, cn, instid)
         if ret_value != PASS:
             logger.error("------ FAILED: Invalid InstanceID Key Name.------")
-            status = ret_value
+            cleanup_restore()
+            return  ret_value
 
-        ret_value = err_invalid_instid_keyvalue(cn)
+        ret_value = err_invalid_instid_keyvalue(conn, cn)
         if ret_value != PASS:
             logger.error("------ FAILED: Invalid InstanceID Key Value.------")
-            status = ret_value
+            cleanup_restore()
+            return ret_value
 
-    clean_up_restore()
-    return status
+    cleanup_restore()
+    return PASS
 
 if __name__ == "__main__":
     sys.exit(main())

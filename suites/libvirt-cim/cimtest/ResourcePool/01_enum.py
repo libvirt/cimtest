@@ -36,63 +36,24 @@ from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from VirtLib.live import net_list
 from XenKvmLib.vsms import RASD_TYPE_PROC, RASD_TYPE_MEM, RASD_TYPE_NET_ETHER, \
 RASD_TYPE_DISK 
-
+from XenKvmLib.common_util import cleanup_restore, test_dpath, \
+create_diskpool_file
 
 sup_types = ['Xen', 'KVM']
 
-test_dpath = "foo"
-disk_file = '/tmp/diskpool.conf'
-back_disk_file = disk_file + "." + "resourcepool_enum"
 diskid = "%s/%s" % ("DiskPool", test_dpath)
 dp_cn = 'DiskPool'
 mp_cn = 'MemoryPool'
 pp_cn = 'ProcessorPool'
 np_cn = 'NetworkPool'
 
-def conf_file():
-    """
-       Creating diskpool.conf file.
-    """
-    status = PASS
-    try:
-        f = open(disk_file, 'w')
-        f.write('%s %s' % (test_dpath, '/'))
-        f.close()
-    except Exception,detail:
-        logger.error("Exception: %s", detail)
-        status = SKIP
-    if status != PASS:
-        logger.error("Creation of Disk Conf file Failed")
-    return status
-        
-
-def clean_up_restore():
-    """
-        Restoring back the original diskpool.conf 
-        file.
-    """
-    status = PASS
-    try:
-        if os.path.exists(back_disk_file):
-            os.remove(disk_file)
-            move_file(back_disk_file, disk_file)
-    except Exception, detail:
-        logger.error("Exception: %s", detail)
-        return SKIP
-    if status != PASS:
-        logger.error("Failed to Disk Conf file")
-    return status
-
 def init_list(server, virt):
-    status = PASS
-    os.system("rm -f %s" % back_disk_file )
-    if not (os.path.exists(disk_file)):
-        status = conf_file()
-    else:
-        move_file(disk_file, back_disk_file)
-        status = conf_file()
+    # Verify DiskPool on machine
+    status = create_diskpool_file()
     if status != PASS:
         return status, None
+
+   # Verify the Virtual network on machine
     vir_network = net_list(server, virt)
     if len(vir_network) > 0:
         test_network = vir_network[0]
@@ -105,6 +66,7 @@ def init_list(server, virt):
             logger.error("Failed to create the Virtual Network '%s'", \
                                                            test_network)
             return SKIP, None
+
     disk_instid = '%s/%s' % (dp_cn, test_dpath)
     net_instid = '%s/%s' % (np_cn, test_network)
     mem_instid = '%s/0' % mp_cn
@@ -144,7 +106,6 @@ def verify_fields(pool_list, poolname, cn):
 def main():
     ip = main.options.ip
     virt = main.options.virt
-
     status, pool_list = init_list(ip, virt)
     if status != PASS: 
         logger.error("Failed to initialise the list")
@@ -180,7 +141,7 @@ def main():
         return FAIL
     status = verify_fields(pool_list, netpool, get_typed_class(virt, np_cn))
     
-    status = clean_up_restore()
+    cleanup_restore()
     return status
 
 if __name__ == "__main__":
