@@ -47,23 +47,21 @@
 import sys
 from XenKvmLib import enumclass
 from VirtLib import utils
-from XenKvmLib.test_doms import test_domain_function, destroy_and_undefine_all 
-from XenKvmLib import test_xml
-from XenKvmLib.test_xml import testxml
 from CimTest import Globals 
 from XenKvmLib import assoc
+from XenKvmLib.test_doms import destroy_and_undefine_all 
+from XenKvmLib import vxml
+from XenKvmLib.classes import get_typed_class
 from XenKvmLib.rasd import InstId_err
 from CimTest.Globals import logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'XenFV', 'KVM']
 
 test_dom    = "VSSDC_dom"
 test_vcpus  = 1
 test_mem    = 128
 test_mac    = "00:11:22:33:44:aa"
-test_disk   = 'xvdb'
-VSType      = "Xen"
 
 def check_rasd_values(id, exp_id):
     try:
@@ -77,7 +75,7 @@ def check_rasd_values(id, exp_id):
 
     return PASS
 
-def assoc_values(ip, assoc_info):
+def assoc_values(ip, assoc_info, virt="Xen"):
     """
         The association info of 
         Xen_VirtualSystemSettingDataComponent is
@@ -85,7 +83,7 @@ def assoc_values(ip, assoc_info):
     """
     status = PASS
     rasd_list = {
-                 "proc_rasd" : '%s/%s' %(test_dom,0), 
+                 "proc_rasd" : '%s/%s' %(test_dom, "proc"), 
                  "net_rasd"  : '%s/%s' %(test_dom,test_mac),
                  "disk_rasd" : '%s/%s' %(test_dom, test_disk),
                  "mem_rasd"  : '%s/%s' %(test_dom, "mem")
@@ -95,17 +93,22 @@ def assoc_values(ip, assoc_info):
             logger.error("No RASD instances returned")
             return FAIL
 
+        proc_cn = get_typed_class(virt, 'ProcResourceAllocationSettingData')
+        net_cn = get_typed_class(virt, 'NetResourceAllocationSettingData')
+        disk_cn = get_typed_class(virt, 'DiskResourceAllocationSettingData')
+        mem_cn = get_typed_class(virt, 'MemResourceAllocationSettingData')
+    
         for inst in assoc_info: 
-            if inst.classname == 'Xen_ProcResourceAllocationSettingData':
+            if inst.classname == proc_cn:
                 status = check_rasd_values(inst['InstanceID'], 
                                            rasd_list['proc_rasd'])
-            elif inst.classname == 'Xen_NetResourceAllocationSettingData':
+            elif inst.classname == net_cn:
                 status = check_rasd_values(inst['InstanceID'], 
                                            rasd_list['net_rasd'])
-            elif inst.classname == 'Xen_DiskResourceAllocationSettingData': 
+            elif inst.classname == disk_cn: 
                 status = check_rasd_values(inst['InstanceID'], 
                                            rasd_list['disk_rasd'])
-            elif inst.classname == 'Xen_MemResourceAllocationSettingData': 
+            elif inst.classname == mem_cn: 
                 status = check_rasd_values(inst['InstanceID'], 
                                            rasd_list['mem_rasd'])
             else:
@@ -128,32 +131,40 @@ def main():
     status = PASS
 
     destroy_and_undefine_all(options.ip)
-    test_xml1 = testxml(test_dom, mem = test_mem, \
-                               vcpus = test_vcpus, \
-                                   mac = test_mac, \
-                                    disk = test_disk)
 
-    ret = test_domain_function(test_xml1, options.ip, cmd = "create")
+    global test_disk
+    if options.virt == "Xen":
+        test_disk = "xvdb"
+    else:
+        test_disk = "hdb"
+    virt_xml = vxml.get_class(options.virt)
+    cxml = virt_xml(test_dom, vcpus = test_vcpus, mac = test_mac, disk = test_disk)
+    ret = cxml.create(options.ip)
     if not ret:
         logger.error("Failed to create the dom: %s", test_dom)
         status = FAIL
         return status
 
-
-    instIdval = "%s:%s" % (VSType, test_dom)
+    if options.virt == "Xen" or options.virt == "XenFV":
+        instIdval = "Xen:%s" % test_dom
+    else:
+        instIdval = "KVM:%s" % test_dom
+    
     try:
         assoc_info = assoc.AssociatorNames(options.ip,
-                                        'Xen_VirtualSystemSettingDataComponent',
-                                        'Xen_VirtualSystemSettingData',
-                                        InstanceID = instIdval)
-        status = assoc_values(options.ip, assoc_info)
+                                           'VirtualSystemSettingDataComponent',
+                                           'VirtualSystemSettingData',
+                                           options.virt,
+                                           InstanceID = instIdval)
+        status = assoc_values(options.ip, assoc_info, options.virt)
     except  Exception, detail :
         logger.error(Globals.CIM_ERROR_ASSOCIATORS, 
-                     'Xen_VirtualSystemSettingDataComponent')
+                     'VirtualSystemSettingDataComponent')
         logger.error("Exception : %s" % detail)
         status = FAIL
 
-    test_domain_function(test_dom, options.ip, "destroy")
+    cxml.destroy(options.ip)
+    cxml.undefine(options.ip)
     return status
 
 if __name__ == "__main__":
