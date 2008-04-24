@@ -21,6 +21,7 @@
 #
 import os
 import pywbem
+from distutils.file_util import move_file
 from XenKvmLib.test_xml import * 
 from XenKvmLib.test_doms import * 
 from XenKvmLib import vsms 
@@ -31,6 +32,10 @@ from XenKvmLib.devices import CIM_Instance
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, log_param, CIM_ERROR_ENUMERATE
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
+
+test_dpath = "foo"
+disk_file = '/tmp/diskpool.conf'
+back_disk_file = disk_file + "." + "backup"
 
 def print_field_error(fieldname, ret_value, exp_value):
     logger.error("%s Mismatch", fieldname)
@@ -234,3 +239,50 @@ def profile_init_list():
                } 
     
     return profiles 
+
+def conf_file():
+    """
+       Creating diskpool.conf file.
+    """
+    status = PASS
+    try:
+        f = open(disk_file, 'w')
+        f.write('%s %s' % (test_dpath, '/'))
+        f.close()
+    except Exception,detail:
+        logger.error("Exception: %s", detail)
+        status = SKIP
+    if status != PASS:
+        logger.error("Creation of Disk Conf file Failed")
+    return status
+
+
+def cleanup_restore():
+    """
+        Restoring back the original diskpool.conf 
+        file.
+    """
+    status = PASS
+    try:
+        if os.path.exists(back_disk_file):
+            os.remove(disk_file)
+            move_file(back_disk_file, disk_file)
+    except Exception, detail:
+        logger.error("Exception: %s", detail)
+        status = SKIP
+    if status != PASS:
+        logger.error("Failed to restore the original Disk Conf file")
+    return status
+
+def create_diskpool_file():
+    # Taking care of already existing diskconf file
+    # Creating diskpool.conf if it does not exist
+    # Otherwise backing up the prev file and create new one.
+    if (os.path.exists(back_disk_file)):
+        os.unlink(back_disk_file)
+
+    if (os.path.exists(disk_file)):
+        move_file(disk_file, back_disk_file)
+    
+    return conf_file()
+
