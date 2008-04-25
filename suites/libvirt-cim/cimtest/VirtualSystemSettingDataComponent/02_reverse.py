@@ -55,6 +55,7 @@ from XenKvmLib.classes import get_typed_class
 from XenKvmLib.rasd import InstId_err
 from CimTest.Globals import logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL
+from XenKvmLib.const import CIM_REV
 
 sup_types = ['Xen', 'XenFV', 'KVM']
 
@@ -62,6 +63,7 @@ test_dom    = "VSSDC_dom"
 test_vcpus  = 1
 test_mem    = 128
 test_mac    = "00:11:22:33:44:aa"
+rev = 531
 
 def check_rasd_values(id, exp_id):
     try:
@@ -88,6 +90,9 @@ def assoc_values(ip, assoc_info, virt="Xen"):
                  "disk_rasd" : '%s/%s' %(test_dom, test_disk),
                  "mem_rasd"  : '%s/%s' %(test_dom, "mem")
                 }
+    if CIM_REV < rev:
+        rasd_list['proc_rasd'] = '%s/%s' %(test_dom, "0")
+
     try: 
         if len(assoc_info) <= 0: 
             logger.error("No RASD instances returned")
