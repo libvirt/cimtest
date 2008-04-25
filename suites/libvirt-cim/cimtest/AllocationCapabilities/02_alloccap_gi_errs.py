@@ -63,55 +63,25 @@ from XenKvmLib.test_doms import create_vnet
 from CimTest.Globals import do_main, platform_sup
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.const import CIM_REV
+from XenKvmLib.common_util import cleanup_restore, test_dpath, \
+create_diskpool_file
 
-test_dpath = "foo"
-disk_file = '/tmp/diskpool.conf'
-back_disk_file = disk_file + "." + "alloccap_err" 
 diskid = "%s/%s" % ("DiskPool", test_dpath)
 memid = "%s/%s" % ("MemoryPool", 0)
 procid = "%s/%s" % ("ProcessorPool", 0)
 rev = 463
 
-def conf_file():
-    """
-       Creating diskpool.conf file.
-    """
-    try:
-        f = open(disk_file, 'w')
-        f.write('%s %s' % (test_dpath, '/'))
-        f.close()
-    except Exception,detail:
-        logger.error("Exception: %s", detail)
-        status = SKIP 
-        sys.exit(status)
-
-def clean_up_restore():
-    """
-        Restoring back the original diskpool.conf 
-        file.
-    """
-    try: 
-        if os.path.exists(back_disk_file):
-            os.remove(disk_file)
-            move_file(back_disk_file, disk_file)
-    except Exception, detail:
-        logger.error("Exception: %s", detail)
-        status = SKIP 
-        sys.exit(status)
-    
 @do_main(platform_sup)     
 def main():
 
     options = main.options
-    status = PASS
     server = options.ip
-    os.system("rm -f %s" % back_disk_file )
-    if not (os.path.exists(disk_file)):
-        conf_file()
-    else:
-        move_file(disk_file, back_disk_file)
-        conf_file()
+    # Verify DiskPool on machine
+    status = create_diskpool_file()
+    if status != PASS:
+        return status
 
+    #Verify the virtual Network on the machine
     vir_network = net_list(server)
     if len(vir_network) > 0:
         test_network = vir_network[0]
@@ -124,6 +94,7 @@ def main():
             logger.error("Failed to create the Virtual Network '%s'",
                          test_network)
             return SKIP
+
     net_instid = 'NetworkPool/%s' %test_network
     instid_list = ['ProcessorPool/0', 'MemoryPool/0',
                    'DiskPool/foo', net_instid]
@@ -159,7 +130,7 @@ def main():
             status = ret_value
         if status != PASS: 
             break
-    clean_up_restore()
+    cleanup_restore()
     return status
 if __name__ == "__main__":
     sys.exit(main())
