@@ -317,7 +317,7 @@ class CIMIndicationSubscription:
         headers = {"CIMOperation" : "MethodCall",
                    "CIMMethod"    : method,
                    "CIMObject"    : "root/PG_Interop",
-                   "Content-Type" : "text/cimxml"}
+                   "Content-Type" : 'application/xml; charset="utf-8"'}
  
         if auth_hdr:
             headers["Authorization"] = "Basic %s" % auth_hdr
@@ -325,7 +325,8 @@ class CIMIndicationSubscription:
         conn.request("POST", "/cimom", body, headers)
         resp = conn.getresponse()
         if not resp.getheader("content-length"):
-            raise Exception("Authentication (or request) Failed!")
+            raise Exception("Request Failed: %d %s" %
+                            (resp.status, resp.reason))
 
         resp.read()
 
