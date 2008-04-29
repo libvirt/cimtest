@@ -25,15 +25,17 @@ import sys
 import pywbem
 from pywbem.cim_obj import CIMInstanceName
 from VirtLib import utils
-from VirtLib.live import domain_list
+from VirtLib.live import domain_list, active_domain_list
 from XenKvmLib import vsms, vxml
 from XenKvmLib.classes import get_typed_class
+from XenKvmLib.const import CIM_REV
 from CimTest.Globals import do_main
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 default_dom = 'test_domain'
+rev = 528
 
 @do_main(sup_types)
 def main():
@@ -48,8 +50,11 @@ def main():
     cs_ref = CIMInstanceName(classname, keybindings = {
                                         'Name':default_dom,
                                         'CreationClassName':classname})
-    
-    list_before = domain_list(options.ip, options.virt)
+    if CIM_REV < rev:
+        dl_func = active_domain_list
+    else:
+        dl_func = domain_list
+    list_before = dl_func(options.ip, options.virt)
     status = PASS
     rc = -1
     
@@ -61,7 +66,7 @@ def main():
         logger.error(details)
         status = FAIL
 
-    list_after = domain_list(options.ip, options.virt)
+    list_after = dl_func(options.ip, options.virt)
 
     status = PASS
     if default_dom not in list_before:
