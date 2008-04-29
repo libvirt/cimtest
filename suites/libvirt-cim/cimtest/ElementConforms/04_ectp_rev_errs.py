@@ -173,6 +173,8 @@ def main():
         retval = try_invalid_assoc(cs, comp_name_val, i, tc_scen[i], options.virt)
         if retval != PASS:
             status = retval
+    
+    cxml.undefine(options.ip)
 
     return status
 if __name__ == "__main__":
