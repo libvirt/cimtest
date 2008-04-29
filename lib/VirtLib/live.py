@@ -301,15 +301,15 @@ def get_bridge_from_network_xml(network, server, virt="Xen"):
     if len(bridge) > 1:
         return bridge[1] 
 
-def network_by_bridge(bridge, server):
+def network_by_bridge(bridge, server, virt="Xen"):
     """Function returns virtual network for a given bridge"""
 
-    networks = net_list(server)
+    networks = net_list(server, virt)
     if len(networks) == 0:
         return None 
 
     for network in networks:
-        if bridge == get_bridge_from_network_xml(network, server):
+        if bridge == get_bridge_from_network_xml(network, server, virt):
             return network
 
     return None
