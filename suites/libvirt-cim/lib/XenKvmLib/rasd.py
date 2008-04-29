@@ -25,6 +25,11 @@ from CimTest import Globals
 from CimTest.Globals import log_param, logger
 from CimTest.ReturnCodes import FAIL, PASS
 
+pasd_cn = 'ProcResourceAllocationSettingData'
+nasd_cn = 'NetResourceAllocationSettingData'
+dasd_cn = 'DiskResourceAllocationSettingData'
+masd_cn = 'MemResourceAllocationSettingData'
+
 def CCN_err(assoc_info, list):
     Globals.logger.error("%s Mismatch", 'CreationClassName')
     Globals.logger.error("Returned %s instead of %s", \

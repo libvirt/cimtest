@@ -28,14 +28,13 @@
 
 
 import sys
-import XenKvmLib
 from XenKvmLib import enumclass
 from CimTest.Globals import do_main, CIM_ERROR_ENUMERATE
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.rasd import verify_procrasd_values, verify_netrasd_values, \
-verify_diskrasd_values, verify_memrasd_values 
+from XenKvmLib import rasd 
+from XenKvmLib.const import CIM_REV
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL
 
@@ -45,41 +44,43 @@ test_dom    = "VSSDC_dom"
 test_vcpus  = 1
 test_mem    = 128
 test_mac    = "00:11:22:33:44:aa"
+prev = 531
+mrev = 529
 
-def init_list(virt="Xen"):
+def init_list(virt):
     """
         Creating the lists that will be used for comparisons.
     """
-    procrasd = {
-                 "InstanceID" : '%s/%s' %(test_dom, "proc"),\
-                 "ResourceType" : 3,\
-                 "CreationClassName": get_typed_class(virt, 'ProcResourceAllocationSettingData')
-                }
-
-    netrasd = {
-                "InstanceID"  : '%s/%s' %(test_dom,test_mac), \
-                "ResourceType" : 10 , \
-                "ntype1": "bridge", \
-                "ntype2": "ethernet", \
-                "CreationClassName": get_typed_class(virt, 'NetResourceAllocationSettingData')
-               }
+    proc = {
+            "InstanceID" : '%s/%s' % (test_dom, "proc"),
+            "ResourceType" : 3,
+            "CreationClassName" : get_typed_class(virt, rasd.pasd_cn)}
+    net = {
+            "InstanceID" : '%s/%s' % (test_dom,test_mac),
+            "ResourceType" : 10 ,
+            "ntype1" : "bridge",
+            "ntype2" : "ethernet",
+            "CreationClassName" : get_typed_class(virt, rasd.nasd_cn)}
     address = vsxml.xml_get_disk_source()
-    diskrasd = {
-                "InstanceID"  : '%s/%s' %(test_dom, test_disk), \
-                "ResourceType" : 17, \
-                "Address"      : address, \
-                "CreationClassName": get_typed_class(virt, 'DiskResourceAllocationSettingData')
-               }
-    memrasd = {
-               "InstanceID"  : '%s/%s' %(test_dom, "mem"), \
-               "ResourceType" : 4, \
-               "AllocationUnits" : "KiloBytes",\
-               "VirtualQuantity" : (test_mem * 1024), \
-               "CreationClassName": get_typed_class(virt, 'MemResourceAllocationSettingData')
-              }
-    return procrasd, netrasd, diskrasd, memrasd
+    disk = {
+            "InstanceID"  : '%s/%s' % (test_dom, test_disk),
+            "ResourceType" : 17,
+            "Address" : address,
+            "CreationClassName" : get_typed_class(virt, rasd.dasd_cn)}
+    mem = {
+            "InstanceID" : '%s/%s' % (test_dom, "mem"),
+            "ResourceType" : 4,
+            "AllocationUnits" : "KiloBytes",
+            "VirtualQuantity" : (test_mem * 1024),
+            "CreationClassName" : get_typed_class(virt, rasd.masd_cn)}
+    if CIM_REV < prev:
+        proc['InstanceID'] = '%s/0' % test_dom
+    if CIM_REV < mrev:
+        mem['AllocationUnits'] = 'MegaBytes'
 
-def get_inst_from_list(classname, rasd_list, filter_name, exp_val):
+    return proc, net, disk, mem
+
+def get_inst_from_list(server, classname, rasd_list, filter_name, exp_val):
     status = PASS
     ret = FAIL 
     inst = []
@@ -94,14 +95,14 @@ def get_inst_from_list(classname, rasd_list, filter_name, exp_val):
         status = FAIL
     return status, inst
 
-def get_rasd_values(classname):
+def get_rasd_values(classname, virt, server):
     status = PASS
     rasd_list   = []
     try:
-        rasd_list = enumclass.enumerate_inst(server, eval('enumclass.' + classname), virt)
+        rasd_list = enumclass.enumerate_inst(server, classname, virt)
         if len(rasd_list) < 1:
-            logger.error("%s returned %i instances, excepted atleast 1 instance", classname, \
-                                                                               len(rasd_list))
+            logger.error("%s returned %i instances, excepted at least 1.",
+                    classname, len(rasd_list))
             return FAIL, rasd_list
     except Exception, detail:
         logger.error(CIM_ERROR_ENUMERATE, classname)
@@ -111,7 +112,8 @@ def get_rasd_values(classname):
     # Get the RASD info related to the domain "ONLY". 
     # We should get atleast one record.
     filter_name =  {"key" : "InstanceID"}
-    status, rasd_values = get_inst_from_list(classname, rasd_list, filter_name, test_dom)
+    status, rasd_values = get_inst_from_list(server, classname, rasd_list,
+                                             filter_name, test_dom)
     if status != PASS or len(rasd_values) == 0:
         return status, rasd_values
 
@@ -122,14 +124,14 @@ def verify_rasd_values(rasd_values_info):
     try: 
         for rasd_instance in rasd_values_info:
             CCName = rasd_instance.classname
-            if 'ProcResourceAllocationSettingData' in CCName :
-                status = verify_procrasd_values(rasd_instance, procrasd,)
-            elif 'NetResourceAllocationSettingData' in CCName :
-                status  = verify_netrasd_values(rasd_instance, netrasd)
-            elif 'DiskResourceAllocationSettingData' in CCName:
-                status = verify_diskrasd_values(rasd_instance, diskrasd)
-            elif 'MemResourceAllocationSettingData' in CCName :
-                status  = verify_memrasd_values(rasd_instance, memrasd)
+            if rasd.pasd_cn in CCName :
+                status = rasd.verify_procrasd_values(rasd_instance, procrasd,)
+            elif rasd.nasd_cn in CCName :
+                status = rasd.verify_netrasd_values(rasd_instance, netrasd)
+            elif rasd.dasd_cn in CCName:
+                status = rasd.verify_diskrasd_values(rasd_instance, diskrasd)
+            elif rasd.masd_cn in CCName :
+                status = rasd.verify_memrasd_values(rasd_instance, memrasd)
             else:
                 status = FAIL
             if status != PASS:
@@ -142,32 +144,31 @@ def verify_rasd_values(rasd_values_info):
    
 @do_main(sup_types)
 def main():
-    options = main.options
-    destroy_and_undefine_all(options.ip)
+    virt = main.options.virt
+    server = main.options.ip
+    destroy_and_undefine_all(server)
     global test_disk, vsxml
-    global virt, server
     global procrasd, netrasd, diskrasd, memrasd
-    server = options.ip 
-    virt = options.virt
     if virt == "Xen":
         test_disk = "xvda"
     else:
         test_disk = "hda"
-    vsxml = get_class(virt)(test_dom, mem=test_mem, vcpus = test_vcpus, mac = test_mac, 
-                                                                      disk = test_disk)
+    virtxml = get_class(virt)
+    vsxml = virtxml(test_dom, mem=test_mem, vcpus = test_vcpus,
+                    mac = test_mac, disk = test_disk)
     try:
-        bridge = vsxml.set_vbridge(server)
-        ret = vsxml.define(options.ip)
+        vsxml.set_vbridge(server)
+        ret = vsxml.define(server)
         if not ret:
             logger.error("Failed to Define the domain: %s", test_dom)
             return FAIL 
     except Exception, details:
         logger.error("Exception : %s", details)
         return FAIL
-    class_list = [ get_typed_class(virt, "DiskResourceAllocationSettingData"), 
-                   get_typed_class(virt, "MemResourceAllocationSettingData"), 
-                   get_typed_class(virt, "ProcResourceAllocationSettingData"), 
-                   get_typed_class(virt, "NetResourceAllocationSettingData")
+    class_list = [ get_typed_class(virt, rasd.dasd_cn), 
+                   get_typed_class(virt, rasd.masd_cn), 
+                   get_typed_class(virt, rasd.pasd_cn), 
+                   get_typed_class(virt, rasd.nasd_cn)
                  ]  
     status = PASS 
     procrasd, netrasd, diskrasd, memrasd = init_list(virt)
@@ -175,11 +176,12 @@ def main():
     # For each loop
     # 1) Enumerate one RASD type
     # 2) Get the RASD info related to the domain "ONLY".
-    # 3) Verifies the RASD values with those supplied during defining the domain.
+    # 3) Verifies the RASD values with those supplied during
+    #    defining the domain.
 
     for classname in sorted(class_list):
         # Enumerate each RASD types
-        status, rasd_values = get_rasd_values(classname)
+        status, rasd_values = get_rasd_values(classname, virt, server)
         if status != PASS or len(rasd_values) ==0 :
             break
 
