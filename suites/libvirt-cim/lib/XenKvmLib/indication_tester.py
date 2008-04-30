@@ -395,9 +395,9 @@ def main():
                       action="store_true",
                       help="Print received indications to stdout.")
     parser.add_option("-U", "--user", dest="username", default=None,
-                      help="HTTP Auth username", dest="username")
+                      help="HTTP Auth username")
     parser.add_option("-P", "--pass", dest="password", default=None,
-                      help="HTTP Auth password", dest="password")
+                      help="HTTP Auth password")
 
     (options, args) = parser.parse_args()
 
