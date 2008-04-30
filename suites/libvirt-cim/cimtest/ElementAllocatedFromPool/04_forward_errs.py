@@ -29,8 +29,6 @@
 #
 
 import sys
-import os
-from distutils.file_util import move_file
 import pywbem
 from pywbem.cim_obj import CIMInstanceName
 from XenKvmLib import assoc
@@ -41,6 +39,8 @@ from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 from CimTest.Globals import do_main, platform_sup
 from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
+from XenKvmLib.common_util import cleanup_restore, test_dpath, \
+create_diskpool_file
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 bug_no             = "88651"
@@ -49,49 +49,16 @@ test_dom_invalid   = "Invalid"
 test_mac   = "00:11:22:33:44:aa"
 test_vcpus = 1
 exp_list = [
-             {'desc' : "No such instance (SystemName)", 'rc' : pywbem.CIM_ERR_NOT_FOUND}, \
-             {'desc' : "No DeviceID specified", 'rc' : pywbem.CIM_ERR_FAILED}, \
-             {'desc' : "No such instance", 'rc' : pywbem.CIM_ERR_NOT_FOUND}, \
-             {'desc' : "One or more parameter values passed to the method were invalid", \
-                                                       'rc' : pywbem.CIM_ERR_INVALID_PARAMETER}, \
-             {'desc' : "No such instance (CreationClassName)", 'rc' : pywbem.CIM_ERR_NOT_FOUND }, \
-             {'desc' : "No such instance (SystemCreationClassName)", 'rc' : \
-                                                                         pywbem.CIM_ERR_NOT_FOUND },  
+             {'desc' : "No such instance (SystemName)", 'rc' : pywbem.CIM_ERR_NOT_FOUND}, 
+             {'desc' : "No DeviceID specified", 'rc' : pywbem.CIM_ERR_FAILED}, 
+             {'desc' : "No such instance", 'rc' : pywbem.CIM_ERR_NOT_FOUND}, 
+             {'desc' : "CIM_ERR_INVALID_PARAMETER", 
+                'rc' : pywbem.CIM_ERR_INVALID_PARAMETER}, 
+             {'desc' : "No such instance (CreationClassName)",
+                'rc' : pywbem.CIM_ERR_NOT_FOUND }, 
+             {'desc' : "No such instance (SystemCreationClassName)", 
+                'rc' :  pywbem.CIM_ERR_NOT_FOUND },  
             ]
-
-
-test_dpath = "foo"
-disk_file = '/tmp/diskpool.conf'
-back_disk_file = disk_file + "." + "02_reverse"
-
-
-def conf_file():
-    """
-        Creating diskpool.conf file.
-    """
-    try:
-        f = open(disk_file, 'w')
-        f.write('%s %s' % (test_dpath, '/'))
-        f.close()
-    except Exception,detail:
-        Globals.logger.error("Exception: %s", detail)
-        status = FAIL
-        sys.exit(status)
-
-def clean_up_restore(ip):
-    """
-         Restoring back the original diskpool.conf
-         file.
-    """
-    try:
-        if os.path.exists(back_disk_file):
-            os.remove(disk_file)
-            move_file(back_disk_file, disk_file)
-    except Exception, detail:
-        Globals.logger.error("Exception: %s", detail)
-        status = FAIL
-        vsxml.undefine(ip) 
-        sys.exit(status)
 
 def try_assoc(conn, exp_ret, dev_dom_name, invalid_keyname_list, test_vals, log_msg):
 
@@ -102,9 +69,9 @@ def try_assoc(conn, exp_ret, dev_dom_name, invalid_keyname_list, test_vals, log_
     procid = "%s/%s" % (dev_dom_name, 0)
     
     lelist = {
-                  get_typed_class(virt, "LogicalDisk") : diskid, \
-                  get_typed_class(virt, "NetworkPort") : netid, \
-                  get_typed_class(virt, "Memory"     ) : memid, \
+                  get_typed_class(virt, "LogicalDisk") : diskid, 
+                  get_typed_class(virt, "NetworkPort") : netid, 
+                  get_typed_class(virt, "Memory"     ) : memid, 
                   get_typed_class(virt, "Processor"  ) : procid
              }
 
@@ -125,9 +92,9 @@ def try_assoc(conn, exp_ret, dev_dom_name, invalid_keyname_list, test_vals, log_
     else:
         snkeyname = "SystemName"
  
-    test_keys = { devkeyname  : devkeyname, \
-                  ccnkeyname  : ccnkeyname, \
-                  sccnkeyname : sccnkeyname, \
+    test_keys = { devkeyname  : devkeyname, 
+                  ccnkeyname  : ccnkeyname, 
+                  sccnkeyname : sccnkeyname, 
                   snkeyname   : snkeyname 
                 }
     for cn, devid in sorted(lelist.items()):
@@ -142,20 +109,19 @@ def try_assoc(conn, exp_ret, dev_dom_name, invalid_keyname_list, test_vals, log_
         else:
             ccn = cn
 
-        keys = { test_keys[devkeyname]  : dev_id, \
-                 test_keys[ccnkeyname]  : ccn, \
-                 test_keys[sccnkeyname] : test_vals['sccn'], \
-                 test_keys[snkeyname]   :  test_vals['sn'] 
+        keys = { test_keys[devkeyname]  : dev_id, 
+                 test_keys[ccnkeyname]  : ccn, 
+                 test_keys[sccnkeyname] : test_vals['sccn'], 
+                 test_keys[snkeyname]   : test_vals['sn'] 
                }
-
         if test_vals['cn'] != "valid":
             inst_cn = "InvalidClassName"
         else:
             inst_cn = cn
         instanceref = CIMInstanceName(inst_cn, keybindings=keys)
         try:
-            assoc_info = conn.AssociatorNames(instanceref, \
-                                  AssocClass=assoc_classname)
+            assoc_info = conn.AssociatorNames(instanceref, 
+                                              AssocClass=assoc_classname)
         except pywbem.CIMError, (err_no, desc):
             if err_no == exp_ret['rc'] and desc.find(exp_ret['desc']) >= 0:
                 logger.info("Got expected exception where ")
@@ -196,22 +162,21 @@ def err_invalid_sysname_keyname(conn, exp_ret):
 # 
 #
 # 
-    test_keys = { 'DeviceID' : "valid", \
-                   'CreationClassName' : "valid", \
-                   'SystemCreationClassName' : "valid", \
-                   'SystemName' : "invalid" \
+    test_keys = { 'DeviceID' : "valid", 
+                   'CreationClassName' : "valid", 
+                   'SystemCreationClassName' : "valid", 
+                   'SystemName' : "invalid" 
                  } 
-    test_vals = { 'devid' : "valid", \
-                   'sccn' : get_typed_class(virt, "ComputerSystem"), \
-                   'sn' : test_dom, \
-                   'ccn' : "valid", \
+    test_vals = { 'devid' : "valid", 
+                   'sccn' : get_typed_class(virt, "ComputerSystem"), 
+                   'sn' : test_dom, 
+                   'ccn' : "valid", 
                    'cn' : "valid"
                  }
 
     log_msg = "Invalid SystemName Key Name was supplied."
 
-    return try_assoc(conn, exp_ret, test_dom, test_keys, \
-                                         test_vals, log_msg)
+    return try_assoc(conn, exp_ret, test_dom, test_keys, test_vals, log_msg)
 
 def err_invalid_sysname_keyvalue(conn, exp_ret):
 
@@ -232,22 +197,21 @@ def err_invalid_sysname_keyvalue(conn, exp_ret):
 #
 # Similarly we check for Memory,Network,Processor.
 # 
-    test_keys = { 'DeviceID' : "valid", \
-                   'CreationClassName' : "valid", \
-                   'SystemCreationClassName' : "valid", \
-                   'SystemName' : "valid" \
+    test_keys = { 'DeviceID' : "valid", 
+                   'CreationClassName' : "valid", 
+                   'SystemCreationClassName' : "valid", 
+                   'SystemName' : "valid" 
                  } 
-    test_vals = { 'devid' : "valid", \
-                   'sccn' : get_typed_class(virt, "ComputerSystem"), \
-                   'sn' : "invalid", \
-                   'ccn' : "valid", \
+    test_vals = { 'devid' : "valid", 
+                   'sccn' : get_typed_class(virt, "ComputerSystem"), 
+                   'sn' : "invalid", 
+                   'ccn' : "valid", 
                    'cn' : "valid"
                  }
 
     log_msg = "Non-existing SystemName was supplied."
 
-    return try_assoc(conn, exp_ret, test_dom, test_keys, \
-                                         test_vals, log_msg)
+    return try_assoc(conn, exp_ret, test_dom, test_keys, test_vals, log_msg)
 
 def err_invalid_devid_keyname(conn, exp_ret):
 # This is used to verify the that the
@@ -271,22 +235,21 @@ def err_invalid_devid_keyname(conn, exp_ret):
 #
 #
 
-    test_keys = { 'DeviceID' : "invalid", \
-                   'CreationClassName' : "valid", \
-                   'SystemCreationClassName' : "valid", \
-                   'SystemName' : "valid" \
+    test_keys = { 'DeviceID' : "invalid", 
+                   'CreationClassName' : "valid", 
+                   'SystemCreationClassName' : "valid", 
+                   'SystemName' : "valid" 
                  } 
-    test_vals = { 'devid' : "valid", \
-                   'sccn' : get_typed_class(virt, "ComputerSystem"), \
-                   'sn' : test_dom, \
-                   'ccn' : "valid", \
+    test_vals = { 'devid' : "valid", 
+                   'sccn' : get_typed_class(virt, "ComputerSystem"), 
+                   'sn' : test_dom, 
+                   'ccn' : "valid",
                    'cn' : "valid"
                  }
 
     log_msg = "Invalid deviceid keyname was supplied."
 
-    return try_assoc(conn, exp_ret, test_dom, test_keys, \
-                                         test_vals, log_msg)
+    return try_assoc(conn, exp_ret, test_dom, test_keys, test_vals, log_msg)
 
 def err_invalid_devid_keyvalue(conn, exp_ret):
 
@@ -309,22 +272,22 @@ def err_invalid_devid_keyvalue(conn, exp_ret):
 # Similarly we check for Network.
 # 
 # 
-    test_keys = { 'DeviceID' : "valid", \
-                   'CreationClassName' : "valid", \
-                   'SystemCreationClassName' : "valid", \
-                   'SystemName' : "valid" \
+    test_keys = { 'DeviceID' : "valid", 
+                   'CreationClassName' : "valid", 
+                   'SystemCreationClassName' : "valid", 
+                   'SystemName' : "valid" 
                  } 
-    test_vals = { 'devid' : "invalid", \
-                   'sccn' : get_typed_class(virt, "ComputerSystem"), \
-                   'sn' : test_dom, \
-                   'ccn' : "valid", \
+    test_vals = { 'devid' : "invalid", 
+                   'sccn' : get_typed_class(virt, "ComputerSystem"), 
+                   'sn' : test_dom, 
+                   'ccn' : "valid",
                    'cn' : "valid"
                  }
 
     log_msg = "Invalid deviceid keyvalue was supplied."
 
-    return try_assoc(conn, exp_ret, test_dom_invalid, test_keys, \
-                                                test_vals, log_msg)
+    return try_assoc(conn, exp_ret, test_dom_invalid, test_keys, test_vals, 
+                     log_msg)
 
 def err_invalid_classname(conn, exp_ret):
 
@@ -348,22 +311,21 @@ def err_invalid_classname(conn, exp_ret):
 # Similarly we check for Memory,Network,Processor.
 # 
 # 
-    test_keys = { 'DeviceID' : "valid", \
-                   'CreationClassName' : "valid", \
-                   'SystemCreationClassName' : "valid", \
-                   'SystemName' : "valid" \
+    test_keys = { 'DeviceID' : "valid", 
+                   'CreationClassName' : "valid", 
+                   'SystemCreationClassName' : "valid", 
+                   'SystemName' : "valid" 
                  } 
-    test_vals = { 'devid' : "valid", \
-                   'sccn' : get_typed_class(virt, "ComputerSystem"), \
-                   'sn' : test_dom, \
-                   'ccn' : "valid", \
+    test_vals = { 'devid' : "valid", 
+                   'sccn' : get_typed_class(virt, "ComputerSystem"), 
+                   'sn' : test_dom, 
+                   'ccn' : "valid", 
                    'cn' : "invalid"
                  }
 
     log_msg = "Invalid classname value was supplied."
 
-    return try_assoc(conn, exp_ret, test_dom, test_keys, \
-                                         test_vals, log_msg)
+    return try_assoc(conn, exp_ret, test_dom, test_keys, test_vals, log_msg)
 
 def err_invalid_creationclassname_keyname(conn, exp_ret):
 
@@ -388,22 +350,21 @@ def err_invalid_creationclassname_keyname(conn, exp_ret):
 # Similarly we check for Memory,Network,Processor.
 # 
 
-    test_keys = { 'DeviceID' : "valid", \
-                   'CreationClassName' : "invalid", \
-                   'SystemCreationClassName' : "valid", \
-                   'SystemName' : "valid" \
+    test_keys = { 'DeviceID' : "valid", 
+                   'CreationClassName' : "invalid", 
+                   'SystemCreationClassName' : "valid", 
+                   'SystemName' : "valid" 
                  } 
-    test_vals = { 'devid' : "valid", \
-                   'sccn' : get_typed_class(virt, "ComputerSystem"), \
-                   'sn' : test_dom, \
-                   'ccn' : "valid", \
+    test_vals = { 'devid' : "valid", 
+                   'sccn' : get_typed_class(virt, "ComputerSystem"), 
+                   'sn' : test_dom, 
+                   'ccn' : "valid", 
                    'cn' : "valid"
                  }
 
     log_msg = "Invalid creationclassname keyname was supplied."
 
-    return try_assoc(conn, exp_ret, test_dom, test_keys, \
-                                         test_vals, log_msg)
+    return try_assoc(conn, exp_ret, test_dom, test_keys, test_vals, log_msg)
 
 def err_invalid_creationclassname_keyvalue(conn, exp_ret):
 
@@ -426,22 +387,21 @@ def err_invalid_creationclassname_keyvalue(conn, exp_ret):
 # Similarly we check for Memory,Network,Processor.
 # 
 
-    test_keys = { 'DeviceID' : "valid", \
-                   'CreationClassName' : "valid", \
-                   'SystemCreationClassName' : "valid", \
-                   'SystemName' : "valid" \
+    test_keys = { 'DeviceID' : "valid", 
+                   'CreationClassName' : "valid", 
+                   'SystemCreationClassName' : "valid", 
+                   'SystemName' : "valid" 
                  } 
-    test_vals = { 'devid' : "valid", \
-                   'sccn' : get_typed_class(virt, "ComputerSystem"), \
-                   'sn' : test_dom, \
-                   'ccn' : "invalid", \
+    test_vals = { 'devid' : "valid", 
+                   'sccn' : get_typed_class(virt, "ComputerSystem"), 
+                   'sn' : test_dom, 
+                   'ccn' : "invalid", 
                    'cn' : "valid"
                  }
 
     log_msg = "Invalid creatioclassname keyvalue was supplied."
 
-    return try_assoc(conn, exp_ret, test_dom, test_keys, \
-                                         test_vals, log_msg)
+    return try_assoc(conn, exp_ret, test_dom, test_keys, test_vals, log_msg)
 
 def err_invalid_syscreationclassname_keyname(conn, exp_ret):
 
@@ -464,22 +424,21 @@ def err_invalid_syscreationclassname_keyname(conn, exp_ret):
 # Similarly we check for Memory,Network,Processor.
 # 
 
-    test_keys = { 'DeviceID' : "valid", \
-                   'CreationClassName' : "valid", \
-                   'SystemCreationClassName' : "invalid", \
-                   'SystemName' : "valid" \
+    test_keys = { 'DeviceID' : "valid", 
+                   'CreationClassName' : "valid", 
+                   'SystemCreationClassName' : "invalid", 
+                   'SystemName' : "valid" 
                  } 
-    test_vals = { 'devid' : "valid", \
-                   'sccn' : get_typed_class(virt, "ComputerSystem"), \
-                   'sn' : test_dom, \
-                   'ccn' : "valid", \
+    test_vals = { 'devid' : "valid", 
+                   'sccn' : get_typed_class(virt, "ComputerSystem"), 
+                   'sn' : test_dom, 
+                   'ccn' : "valid", 
                    'cn' : "valid"
                  }
 
     log_msg = "Invalid system creatioclassname keyvalue was supplied."
 
-    return try_assoc(conn, exp_ret, test_dom, test_keys, \
-                                         test_vals, log_msg)
+    return try_assoc(conn, exp_ret, test_dom, test_keys, test_vals, log_msg)
 
 def err_invalid_syscreationclassname_keyvalue(conn, exp_ret):
 
@@ -502,22 +461,26 @@ def err_invalid_syscreationclassname_keyvalue(conn, exp_ret):
 # Similarly we check for Memory,Network,Processor.
 # 
 
-    test_keys = { 'DeviceID' : "valid", \
-                   'CreationClassName' : "valid", \
-                   'SystemCreationClassName' : "valid", \
-                   'SystemName' : "valid" \
+    test_keys = { 'DeviceID' : "valid", 
+                   'CreationClassName' : "valid", 
+                   'SystemCreationClassName' : "valid", 
+                   'SystemName' : "valid" 
                  } 
-    test_vals = { 'devid' : "valid", \
-                   'sccn' : "invalid", \
-                   'sn' : test_dom, \
-                   'ccn' : "valid", \
+    test_vals = { 'devid' : "valid", 
+                   'sccn' : "invalid", 
+                   'sn' : test_dom, 
+                   'ccn' : "valid", 
                    'cn' : "valid"
                  }
 
     log_msg = "Invalid system creatioclassname keyvalue was supplied."
 
-    return try_assoc(conn, exp_ret, test_dom, test_keys, \
-                                         test_vals, log_msg)
+    return try_assoc(conn, exp_ret, test_dom, test_keys, test_vals, log_msg)
+
+def clean_and_exit(server, msg):
+    logger.error("------FAILED: Invalid %s.------", msg)
+    cleanup_restore()
+    vsxml.undefine(server)
 
 @do_main(platform_sup)
 def main():
@@ -539,67 +502,67 @@ def main():
     destroy_and_undefine_all(options.ip)
     vsxml = get_class(virt)(test_dom, vcpus = test_vcpus, mac = test_mac, \
                                                           disk = test_disk)
-    if (os.path.exists(back_disk_file)):
-        os.unlink(back_disk_file)
+    # Verify DiskPool on machine
+    status = create_diskpool_file()
+    if status != PASS:
+        return status
 
-    if not (os.path.exists(disk_file)):
-        conf_file()
-    else:
-        move_file(disk_file, back_disk_file)
-        conf_file()
     bridge = vsxml.set_vbridge(options.ip)
     ret = vsxml.define(options.ip)
     if not ret:
-        Globals.logger.error("Failed to define the dom: %s", test_dom)
+        logger.error("Failed to define the dom: %s", test_dom)
         return FAIL
     conn = assoc.myWBEMConnection('http://%s' % options.ip,
                             (Globals.CIM_USER, Globals.CIM_PASS),
                                                   Globals.CIM_NS)
     assoc_classname = get_typed_class(virt, "ElementAllocatedFromPool")
+
     ret = err_invalid_sysname_keyname(conn, exp_list[0])
-    if ret:
-        Globals.logger.error("------FAILED: Invalid SystemName Key Name.------")
+    if ret != PASS:
+        clean_and_exit(options.ip, "SystemName KeyName")
         return ret
+
     ret = err_invalid_sysname_keyvalue(conn, exp_list[0])
-    if ret:
-        Globals.logger.error("------FAILED: Invalid SystemName Key Value.------")
+    if ret != PASS:
+        clean_and_exit(options.ip, "SystemName Key Value")
         return ret
+
     ret = err_invalid_devid_keyname(conn, exp_list[1])
-    if ret: 
-        Globals.logger.error("------FAILED: Invalid DeviceID \
-Keyname.------")
+    if ret != PASS:
+        clean_and_exit(options.ip, "DeviceID Keyname")
         return ret
+
     ret = err_invalid_devid_keyvalue(conn, exp_list[2])
-    if ret: 
-        Globals.logger.error("------FAILED: Invalid DeviceID \
-Keyvalue.------")
+    if ret != PASS:
+        clean_and_exit(options.ip, "DeviceID Keyvalue")
         return ret
+
     ret = err_invalid_classname(conn, exp_list[3])
-    if ret:
-        Globals.logger.error("------FAILED: Invalid classname\
-Keyname.------")
+    if ret != PASS:
+        clean_and_exit(options.ip, "classname Keyname")
         return ret
+
     ret = err_invalid_creationclassname_keyname(conn, exp_list[4])
-    if ret:
-        Globals.logger.error("------FAILED: Invalid creationclassname\
-Keyname.------")
+    if ret != PASS:
+        clean_and_exit(options.ip, "creationclassname Keyname")
         return ret
+
     ret = err_invalid_creationclassname_keyvalue(conn, exp_list[4]) 
-    if ret: 
-        Globals.logger.error("------FAILED: Invalid creationclassname\
-Keyvalue.------")
+    if ret != PASS:
+        clean_and_exit(options.ip, "creationclassname Keyvalue")
         return ret
+
     ret = err_invalid_syscreationclassname_keyname(conn, exp_list[5]) 
-    if ret: 
-        Globals.logger.error("------FAILED: Invalid System creationclassname\
-Keyname.------")
+    if ret != PASS:
+        clean_and_exit(options.ip, "System creationclassname Keyname")
         return ret
+
     ret = err_invalid_syscreationclassname_keyvalue(conn, exp_list[5]) 
-    if ret: 
-        Globals.logger.error("------FAILED: Invalid System creationclassname\
-Keyvalue.------")
+    if ret != PASS:
+        clean_and_exit(options.ip, "System creationclassname Keyvalue")
         return ret
-    clean_up_restore(options.ip)
+
+    cleanup_restore()
     vsxml.undefine(options.ip)
     return PASS
 if __name__ == "__main__":
