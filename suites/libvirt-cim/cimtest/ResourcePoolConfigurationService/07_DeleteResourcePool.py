@@ -50,7 +50,7 @@ from CimTest.Globals import do_main, platform_sup
 from XenKvmLib.classes import get_typed_class
 
 cim_errno  = pywbem.CIM_ERR_NOT_SUPPORTED
-cim_desc   = "The requested operation is not supported"
+cim_desc   = "CIM_ERR_NOT_SUPPORTED"
 cim_mname  = "DeleteResourcePool"
 
 @do_main(platform_sup)
