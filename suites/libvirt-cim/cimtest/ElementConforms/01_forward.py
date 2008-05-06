@@ -145,7 +145,7 @@ def main():
                              exp_count, count)
 
 
-        except BaseException, detail:
+        except Exception, detail:
             logger.error(CIM_ERROR_ASSOCIATORS, 'ElementConformsToProfile')
             logger.error("Exception: %s" % detail)
             status = FAIL
