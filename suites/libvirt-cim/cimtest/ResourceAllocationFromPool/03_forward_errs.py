@@ -28,12 +28,11 @@ from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
 from CimTest.Globals import logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
+from XenKvmLib.const import CIM_REV
 
 sup_types = ['Xen', 'XenFV', 'KVM']
 
-exp_rc = 6 #CIM_ERR_NOT_FOUND
-exp_desc = "No such instance (wrong) - resource pool type mismatch"
-
+rev = 466
 
 @do_main(sup_types)
 def main():
@@ -47,6 +46,13 @@ def main():
     conn = assoc.myWBEMConnection('http://%s' % options.ip,                                        
                                   (Globals.CIM_USER, Globals.CIM_PASS),
                                   Globals.CIM_NS)
+
+    exp_rc = 6 #CIM_ERR_NOT_FOUND
+    exp_desc = "No such instance (wrong) - resource pool type mismatch"
+    if CIM_REV < rev:
+        exp_rc = 1 # CIM_ERR_FAILED
+        exp_desc = "Invalid InstanceID or unsupported pool type"
+
     for k, v in poollist.items():
         instanceref = CIMInstanceName(k, 
                                       keybindings = {"InstanceID" : v})
