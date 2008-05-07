@@ -32,9 +32,16 @@ from XenKvmLib.devices import CIM_Instance
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, log_param, CIM_ERROR_ENUMERATE
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
+from XenKvmLib.const import CIM_REV
 
 test_dpath = "foo"
-disk_file = '/tmp/diskpool.conf'
+diskpoolconf_rev = 558
+
+if CIM_REV < diskpoolconf_rev:
+    disk_file = '/tmp/diskpool.conf'
+else:
+    disk_file = '/etc/libvirt/diskpool.conf'
+
 back_disk_file = disk_file + "." + "backup"
 
 def print_field_error(fieldname, ret_value, exp_value):
@@ -245,6 +252,7 @@ def conf_file():
        Creating diskpool.conf file.
     """
     status = PASS
+    logger.info("Disk conf file : %s", disk_file)
     try:
         f = open(disk_file, 'w')
         f.write('%s %s' % (test_dpath, '/'))
