@@ -63,7 +63,13 @@ def main():
             else:
                 sys.exit(0)
         else:
-            create_using_definesystem(test_dom, options.ip, None, None, options.virt)
+            status = create_using_definesystem(test_dom, options.ip, None, None,                     options.virt)
+            if status != PASS:
+                sub.unsubscribe(dict['default_auth'])
+                logger.info("Cancelling subscription for %s" % indication_name)
+                os.kill(pid, signal.SIGKILL)
+                return status
+
             for i in range(0,100):
                 pw = os.waitpid(pid, os.WNOHANG)[1]
                 if pw == 0:
