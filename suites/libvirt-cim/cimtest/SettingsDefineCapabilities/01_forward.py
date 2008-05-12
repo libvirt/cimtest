@@ -55,205 +55,189 @@
 import sys
 import os
 from distutils.file_util import move_file
-from VirtLib import utils
 from XenKvmLib import assoc
 from XenKvmLib import enumclass
-from CimTest import Globals
-from CimTest.Globals import do_main
 from XenKvmLib.test_xml import netxml 
 from XenKvmLib.test_doms import create_vnet 
 from VirtLib.live import net_list
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
+from CimTest.Globals import do_main, platform_sup, logger, \
+CIM_ERROR_GETINSTANCE, CIM_ERROR_ASSOCIATORS
+from XenKvmLib.classes import get_typed_class
+from XenKvmLib.common_util import cleanup_restore, test_dpath, \
+create_diskpool_file
+from XenKvmLib.common_util import print_field_error
+from XenKvmLib.const import CIM_REV
 
-sup_types = ['Xen']
-
-status = PASS
-test_dpath = "foo"
-disk_file = '/tmp/diskpool.conf'
-back_disk_file = disk_file + "." + "SSDC_01_forward" 
 diskid = "%s/%s" % ("DiskPool", test_dpath)
 memid = "%s/%s" % ("MemoryPool", 0)
 procid = "%s/%s" % ("ProcessorPool", 0)
+libvirtcim_sdc_rasd_rev = 571
 
-def conf_file():
-    """
-       Creating diskpool.conf file.
-    """
-    try:
-        f = open(disk_file, 'w')
-        f.write('%s %s' % (test_dpath, '/'))
-        f.close()
-    except Exception,detail:
-        Globals.logger.error("Exception: %s", detail)
-        status = SKIP 
-        sys.exit(status)
 
-def clean_up_restore():
+def get_or_bail(virt, ip, id, pool_class):
     """
-        Restoring back the original diskpool.conf 
-        file.
-    """
-    try: 
-        if os.path.exists(back_disk_file):
-            os.remove(disk_file)
-            move_file(back_disk_file, disk_file)
-    except Exception, detail:
-        Globals.logger.error("Exception: %s", detail)
-        status = SKIP 
-        sys.exit(status)
-         
-
-def get_or_bail(ip, id, pool_class):
-    """
-        Getinstance for the CLass and return instance on success, otherwise
+        Getinstance for the Class and return instance on success, otherwise
         exit after cleanup_restore .
     """
     key_list = { 'InstanceID' : id } 
-
     try:
-        instance = enumclass.getInstance(ip, pool_class, key_list)
+        instance = enumclass.getInstance(ip, pool_class, key_list, virt)
     except Exception, detail:
-        Globals.logger.error(Globals.CIM_ERROR_GETINSTANCE, '%s' % pool_class)
-        Globals.logger.error("Exception: %s", detail)
-        clean_up_restore()
-        status = FAIL 
-        sys.exit(status)
+        logger.error(CIM_ERROR_GETINSTANCE, '%s' % pool_class)
+        logger.error("Exception: %s", detail)
+        cleanup_restore()
+        sys.exit(FAIL)
     return instance
 
 
-def init_list(disk, mem, net, proc):
+def init_list(virt, dpool, npool, mpool, ppool):
     """
         Creating the lists that will be used for comparisons.
     """
 
     instlist = [ 
-              disk.InstanceID, \
-              mem.InstanceID, \
-              net.InstanceID, \
-              proc.InstanceID
-             ]
+                 dpool.InstanceID,
+                 mpool.InstanceID, 
+                 npool.InstanceID, 
+                 ppool.InstanceID
+               ]
     cllist = [ 
-              "Xen_DiskResourceAllocationSettingData", \
-              "Xen_MemResourceAllocationSettingData", \
-              "Xen_NetResourceAllocationSettingData", \
-              "Xen_ProcResourceAllocationSettingData"
+              get_typed_class(virt, "DiskResourceAllocationSettingData"),
+              get_typed_class(virt, "MemResourceAllocationSettingData"), 
+              get_typed_class(virt, "NetResourceAllocationSettingData"), 
+              get_typed_class(virt, "ProcResourceAllocationSettingData")
              ]
     rtype = { 
-              "Xen_DiskResourceAllocationSettingData" : 17, \
-              "Xen_MemResourceAllocationSettingData"  :  4, \
-              "Xen_NetResourceAllocationSettingData"  : 10, \
-              "Xen_ProcResourceAllocationSettingData" :  3
+              get_typed_class(virt, "DiskResourceAllocationSettingData") : 17, 
+              get_typed_class(virt, "MemResourceAllocationSettingData")  :  4, 
+              get_typed_class(virt, "NetResourceAllocationSettingData")  : 10, 
+              get_typed_class(virt, "ProcResourceAllocationSettingData") :  3
              }
     rangelist = {
-                  "Default"   : 0, \
-                  "Minimum"   : 1, \
-                  "Maximum"   : 2, \
+                  "Default"   : 0, 
+                  "Minimum"   : 1, 
+                  "Maximum"   : 2, 
                   "Increment" : 3 
                 }
     return instlist, cllist, rtype, rangelist
 
+def get_pool_info(virt, server, devid, poolname=""):
+        pool_cname = get_typed_class(virt, poolname)
+        pool_cn = eval("enumclass." + pool_cname)
+        return get_or_bail(virt, server, id=devid, pool_class=pool_cn)
 
-def print_error(index, fieldname, assoc_info, exp_value):
-    ret_value = assoc_info[index][fieldname]
-    Globals.logger.error("%s Mismatch", fieldname)
-    Globals.logger.error("Returned %s instead of %s", ret_value, exp_value)
-
-
-@do_main(sup_types)
-def main():
-    options = main.options
-    global status
-    
-    cn = 'Xen_AllocationCapabilities'  
-    loop = 0 
-    server = options.ip
-
-    # Taking care of already existing diskconf file
-    # Creating diskpool.conf if it does not exist
-    # Otherwise backing up the prev file and create new one.
-    os.system("rm -f %s" % back_disk_file )
-    if not (os.path.exists(disk_file)):
-        conf_file()
-    else:
-        move_file(disk_file, back_disk_file)
-        conf_file()
-
+def get_pool_details(virt, server):  
+    dpool = npool  = mpool  = ppool = None
     try :
-        disk = get_or_bail(server, id=diskid, \
-                                          pool_class=enumclass.Xen_DiskPool)
-        mem = get_or_bail(server, id = memid, \
-                                        pool_class=enumclass.Xen_MemoryPool)
-        vir_network = net_list(server)
+        dpool = get_pool_info(virt, server, diskid, poolname="DiskPool")
+        mpool = get_pool_info(virt, server, memid, poolname= "MemoryPool")
+        ppool = get_pool_info(virt, server, procid, poolname= "ProcessorPool")
+
+        vir_network = net_list(server, virt)
         if len(vir_network) > 0:
             test_network = vir_network[0]
         else:
             bridgename   = 'testbridge'
             test_network = 'default-net'
             net_xml, bridge = netxml(server, bridgename, test_network)
-            ret = create_vnet(server, net_xml)
+            ret = create_vnet(server, net_xml, virt)
             if not ret:
-                Globals.logger.error("Failed to create the Virtual Network '%s'", \
-                                                                        test_network)
+                logger.error("Failed to create Virtual Network '%s'",
+                         test_network)
                 return SKIP
+
         netid = "%s/%s" % ("NetworkPool", test_network)
-        net = get_or_bail(server, id = netid, \
-                                        pool_class=enumclass.Xen_NetworkPool) 
-        proc = get_or_bail(server, id = procid, \
-                                      pool_class=enumclass.Xen_ProcessorPool) 
+        npool = get_pool_info(virt, server, netid, poolname= "NetworkPool")
     
     except Exception, detail:
-        Globals.logger.error("Exception: %s", detail)
-        clean_up_restore()
-        status = FAIL 
-        return status
+        logger.error("Exception: %s", detail)
+        return FAIL, dpool, npool, mpool, ppool
 
-    instlist, cllist, rtype, rangelist = init_list(disk, mem, net, proc )
+    return PASS, dpool, npool, mpool, ppool
 
+def verify_rasd_fields(loop, assoc_info, cllist, rtype, rangelist):
+    for inst in assoc_info:
+        if inst.classname != cllist[loop]:
+            print_field_error("Classname", inst.classname, cllist[loop])
+            return FAIL 
+        if inst['ResourceType'] != rtype[cllist[loop]]:
+            print_field_error("ResourceType", inst['ResourceType'], 
+                              rtype[cllist[loop]])
+            return FAIL 
+
+        # The following properties have been removed in the patchset 571
+        # but is present in the rpm libvirt-cim and hence retained it.
+
+        if CIM_REV < libvirtcim_sdc_rasd_rev:
+            ppolicy = inst['PropertyPolicy']
+            if ppolicy != 0 and ppolicy != 1:
+                print_field_error("PropertyPolicy", inst['PropertyPolicy'], 
+                                   ppolicy)
+                return FAIL 
+
+            vrole  = inst['ValueRole']
+            if vrole < 0 or vrole > 4:
+                print_field_error("ValueRole", inst['ValueRole'], vrole)
+                return FAIL 
+
+            insid  = inst['InstanceID']
+            vrange = rangelist[insid]
+            if vrange != inst['ValueRange']:
+                print_field_error("ValueRange", inst['ValueRange'], vrange)
+                return FAIL 
+
+    return PASS
+
+def verify_sdc_with_ac(virt, server, dpool, npool, mpool, ppool):
+    loop = 0 
+    instlist, cllist, rtype, rangelist = init_list(virt, dpool, npool, mpool, 
+                                                   ppool)
+    assoc_cname = get_typed_class(virt, "SettingsDefineCapabilities")
+    cn =  get_typed_class(virt, "AllocationCapabilities")
     for instid in sorted(instlist):
         try:
-            assoc_info = assoc.Associators(options.ip, \
-                                              "Xen_SettingsDefineCapabilities",
-                                              cn,
-                                              InstanceID = instid)  
+            assoc_info = assoc.Associators(server, assoc_cname, cn, 
+                                           InstanceID = instid, virt=virt)  
             if len(assoc_info) != 4:
-                Globals.logger.error("Xen_SettingsDefineCapabilities returned \
-%i ResourcePool objects instead 4", len(assoc_info))
+                logger.error("%s returned %i ResourcePool objects"
+                             "instead 4", assoc_cname, len(assoc_info))
                 status = FAIL
                 break
-            for i in range(len(assoc_info)):
-                if assoc_info[i].classname != cllist[loop]:
-                    print_error(i, "Classname", assoc_info, cllist[loop])
-                    status = FAIL 
-                if assoc_info[i]['ResourceType'] != rtype[cllist[loop]]:
-                    print_error(i, "ResourceType", assoc_info, rtype[cllist[loop]])
-                    status = FAIL 
-                ppolicy = assoc_info[i]['PropertyPolicy']
-                if ppolicy != 0 and ppolicy != 1:
-                    print_error(i, "PropertyPolicy", assoc_info, ppolicy)
-                    status = FAIL 
-                vrole  = assoc_info[i]['ValueRole']
-                if vrole < 0 or vrole > 4:
-                    print_error(i, "ValueRole", assoc_info, vrole)
-                    status = FAIL 
-                insid  = assoc_info[i]['InstanceID']
-                vrange = rangelist[insid]
-                if vrange != assoc_info[i]['ValueRange']:
-                    print_error(i, "ValueRange", assoc_info, vrange)
-                    status = FAIL 
-                if status != 0:
-                    break
-            if status != 0:
+            status = verify_rasd_fields(loop, assoc_info, cllist, rtype, 
+                                        rangelist)
+            if status != PASS:
                 break
             else:
                 loop = loop + 1 
+
         except Exception, detail:
-            Globals.logger.error(Globals.CIM_ERROR_ASSOCIATORS, \
-                                  'Xen_SettingsDefineCapabilities')
-            Globals.logger.error("Exception: %s", detail)
-            clean_up_restore()
+            logger.error(CIM_ERROR_ASSOCIATORS, assoc_cname)
+            logger.error("Exception: %s", detail)
             status = FAIL
 
-    clean_up_restore()
+    return status
+
+@do_main(platform_sup)
+def main():
+    options = main.options
+
+    server = options.ip
+    virt = options.virt
+
+    # Verify DiskPool on machine
+    status = create_diskpool_file()
+    if status != PASS:
+        return status
+
+    status, dpool, npool, mpool, ppool = get_pool_details(virt, server)
+    if status != PASS or dpool.InstanceID == None or mpool.InstanceID == None \
+       or npool.InstanceID == None or ppool.InstanceID == None:
+        cleanup_restore()
+        return FAIL
+
+    status = verify_sdc_with_ac(virt, server, dpool, npool, mpool, ppool)
+    cleanup_restore()
     return status
     
 if __name__ == "__main__":
