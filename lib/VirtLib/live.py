@@ -313,3 +313,28 @@ def network_by_bridge(bridge, server, virt="Xen"):
             return network
 
     return None
+
+def virsh_version(server, virt="KVM"):
+    cmd = "virsh -c %s -v " % utils.virt2uri(virt)
+    ret, out = utils.run_remote(server, cmd)
+    if ret != 0:
+        return None
+    return out
+
+def diskpool_list(server, virt="KVM"):
+    """Function to list active DiskPool list"""
+    names = []
+    cmd = "virsh -c %s pool-list | sed -e '1,2 d' -e '$ d'" % \
+           utils.virt2uri(virt)
+    ret, out = utils.run_remote(server, cmd)
+    
+    if ret != 0:
+        return names 
+
+    lines = out.split("\n")
+    for line in lines:
+        disk_pool = line.split()
+        if len(disk_pool) >= 1 and disk_pool[1] == "active":
+            names.append(disk_pool[0])
+
+    return names
