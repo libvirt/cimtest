@@ -1,3 +1,4 @@
+#!/usr/bin/python
 #
 # Copyright 2008 IBM Corp.
 #
@@ -33,6 +34,8 @@ from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, log_param, CIM_ERROR_ENUMERATE
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 from XenKvmLib.const import CIM_REV
+from VirtLib.live import diskpool_list, virsh_version, net_list
+from XenKvmLib.vxml import PoolXML, NetXML
 
 test_dpath = "foo"
 diskpoolconf_rev = 558
@@ -265,12 +268,20 @@ def conf_file():
     return status
 
 
-def cleanup_restore():
+def cleanup_restore(server, virt):
     """
         Restoring back the original diskpool.conf 
         file.
     """
     status = PASS
+    libvirt_version = virsh_version(server, virt)
+    # The conf file is not present on  the machine if 
+    # libvirt_version >= 0.4.1 and CIM_REV > 558
+    # Hence Skipping the logic to delete the new conf file
+    # and just returning PASS
+    if libvirt_version >= '0.4.1' and \
+       CIM_REV > diskpoolconf_rev:
+        return status
     try:
         if os.path.exists(back_disk_file):
             os.remove(disk_file)
@@ -294,3 +305,57 @@ def create_diskpool_file():
     
     return conf_file()
 
+def create_diskpool(server, virt='KVM'):
+    status = PASS
+    dpoolname = None
+    try:
+        dpool_list = diskpool_list(server, virt='KVM')
+        if len(dpool_list) > 0:
+            dpoolname=dpool_list[0]
+        else:
+            diskxml = PoolXML(server, virt=virt)
+            ret = diskxml.create_vpool()
+            if not ret:
+                logger.error('Failed to create the disk pool "%s"',
+                         dpoolname)
+                status = FAIL
+            else:
+                dpoolname=diskxml.xml_get_diskpool_name()
+    except Exception, detail:
+        logger.error("Exception: In fn create_diskpool(): %s", detail)
+        status=FAIL
+    return status, dpoolname
+
+def create_diskpool_conf(server, virt):
+    libvirt_version = virsh_version(server, virt)
+    if libvirt_version >= '0.4.1' and \
+       CIM_REV > diskpoolconf_rev:
+        status, dpoolname = create_diskpool(server, virt=virt)
+        diskid = "%s/%s" % ("DiskPool", dpoolname)
+    else:
+        status = create_diskpool_file()
+        diskid = "%s/%s" % ("DiskPool", test_dpath)
+
+    return status, diskid
+
+
+def create_netpool_conf(server, virt):
+    status = PASS
+    test_network = None
+    try:
+        vir_network = net_list(server, virt)
+        if len(vir_network) > 0:
+            test_network = vir_network[0]
+        else:
+            netxml = NetXML(server, virt=virt)
+            ret = netxml.create_vnet()
+            if not ret:
+                logger.error("Failed to create Virtual Network '%s'",
+                              test_network)
+                status = FAIL
+            else:
+                test_network = netxml.xml_get_netpool_name()
+    except Exception, detail:
+        logger.error("Exception: In fn create_netpool_conf(): %s", detail)
+        status=FAIL
+    return status, test_network
