@@ -57,19 +57,16 @@ import os
 from distutils.file_util import move_file
 from XenKvmLib import assoc
 from XenKvmLib import enumclass
-from XenKvmLib.test_xml import netxml 
-from XenKvmLib.test_doms import create_vnet 
-from VirtLib.live import net_list
+from VirtLib.live import virsh_version
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from CimTest.Globals import do_main, platform_sup, logger, \
 CIM_ERROR_GETINSTANCE, CIM_ERROR_ASSOCIATORS
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.common_util import cleanup_restore, test_dpath, \
-create_diskpool_file
+from XenKvmLib.common_util import cleanup_restore, create_diskpool_conf, \
+create_netpool_conf
 from XenKvmLib.common_util import print_field_error
 from XenKvmLib.const import CIM_REV
 
-diskid = "%s/%s" % ("DiskPool", test_dpath)
 memid = "%s/%s" % ("MemoryPool", 0)
 procid = "%s/%s" % ("ProcessorPool", 0)
 libvirtcim_sdc_rasd_rev = 571
@@ -86,7 +83,7 @@ def get_or_bail(virt, ip, id, pool_class):
     except Exception, detail:
         logger.error(CIM_ERROR_GETINSTANCE, '%s' % pool_class)
         logger.error("Exception: %s", detail)
-        cleanup_restore()
+        cleanup_restore(ip, virt)
         sys.exit(FAIL)
     return instance
 
@@ -130,22 +127,17 @@ def get_pool_info(virt, server, devid, poolname=""):
 def get_pool_details(virt, server):  
     dpool = npool  = mpool  = ppool = None
     try :
+        status, diskid = create_diskpool_conf(server, virt)
+        if status != PASS:
+            return status,  dpool, npool, mpool, ppool
+
         dpool = get_pool_info(virt, server, diskid, poolname="DiskPool")
         mpool = get_pool_info(virt, server, memid, poolname= "MemoryPool")
         ppool = get_pool_info(virt, server, procid, poolname= "ProcessorPool")
 
-        vir_network = net_list(server, virt)
-        if len(vir_network) > 0:
-            test_network = vir_network[0]
-        else:
-            bridgename   = 'testbridge'
-            test_network = 'default-net'
-            net_xml, bridge = netxml(server, bridgename, test_network)
-            ret = create_vnet(server, net_xml, virt)
-            if not ret:
-                logger.error("Failed to create Virtual Network '%s'",
-                         test_network)
-                return SKIP
+        status, test_network = create_netpool_conf(server, virt)
+        if status != PASS:
+            return status,  dpool, npool, mpool, ppool
 
         netid = "%s/%s" % ("NetworkPool", test_network)
         npool = get_pool_info(virt, server, netid, poolname= "NetworkPool")
@@ -225,19 +217,14 @@ def main():
     server = options.ip
     virt = options.virt
 
-    # Verify DiskPool on machine
-    status = create_diskpool_file()
-    if status != PASS:
-        return status
-
     status, dpool, npool, mpool, ppool = get_pool_details(virt, server)
     if status != PASS or dpool.InstanceID == None or mpool.InstanceID == None \
        or npool.InstanceID == None or ppool.InstanceID == None:
-        cleanup_restore()
+        cleanup_restore(server, virt)
         return FAIL
 
     status = verify_sdc_with_ac(virt, server, dpool, npool, mpool, ppool)
-    cleanup_restore()
+    cleanup_restore(server, virt)
     return status
     
 if __name__ == "__main__":
