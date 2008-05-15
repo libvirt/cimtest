@@ -143,12 +143,14 @@ class Virsh:
             self.vuri = 'qemu:///system'
 
     def run(self, ip, vcmd, param):
-        file_arg_cmds = ['define', 'create', 'net-create']
+        file_arg_cmds = ['define', 'create', 'net-create', 'pool-create', 'pool-destroy']
         if vcmd in file_arg_cmds:
             ntf = tempfile.NamedTemporaryFile('w')
             ntf.write(param)
             ntf.flush()
             name = ntf.name
+        elif vcmd == 'pool-destroy':
+            name = param
         elif param is None:
             name = ""
         else:
@@ -211,6 +213,28 @@ class NetXML(Virsh, XMLClass):
     def create_vnet(self):
         return self.run(self.server, 'net-create', self.xml_string)
 
+class PoolXML(Virsh, XMLClass):
+
+    def __init__(self, server, poolname=const.default_pool_name,
+                               virt='xen'):
+
+        XMLClass.__init__(self)
+        if virt == 'XenFV':
+            virt = 'xen'
+        Virsh.__init__(self, str(virt).lower())
+        self.pool_name = poolname
+        self.server = server
+
+        pool = self.add_sub_node(self.xdoc, 'pool', type='dir')
+        self.add_sub_node(pool, 'name', self.pool_name)
+        target = self.add_sub_node(pool, 'target')
+        self.add_sub_node(target, 'path', '/tmp')
+
+    def create_vpool(self):
+        return self.run(self.server, 'pool-create', self.xml_string)
+
+    def destroy_vpool(self):
+        return self.run(self.server, 'pool-destroy', self.pool_name)
 
 class VirtXML(Virsh, XMLClass):
     """Base class for all XML generation & operation"""

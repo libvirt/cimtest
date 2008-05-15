@@ -37,6 +37,9 @@ if not CIM_REV or not CIM_SET:
 default_bridge_name = 'testbridge'
 default_network_name = 'default-net'
 
+#vxml.PoolXML
+default_pool_name = 'testpool'
+
 # vxml.VirtXML
 default_domname = 'domU1'
 default_memory = 128
