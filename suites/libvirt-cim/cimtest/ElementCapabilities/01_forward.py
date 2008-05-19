@@ -27,69 +27,106 @@ from XenKvmLib import assoc
 from XenKvmLib import hostsystem
 from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
-from CimTest.Globals import do_main
+from CimTest.Globals import do_main, logger, CIM_ERROR_ASSOCIATORNAMES, \
+CIM_ERROR_ENUMERATE
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
+from XenKvmLib.const import CIM_REV
+from XenKvmLib.enumclass import enumerate
 
 sup_types = ['Xen', 'XenFV', 'KVM']
+ac_to_pool_version = 561
+
+def append_to_list(server, virt, poolname, valid_elc_id):
+    keys_list = ['InstanceID']
+    pool_list = enumerate(server, poolname, keys_list, virt) 
+    if len(pool_list) > 0:
+        for pool in pool_list:
+            valid_elc_id.append(pool.InstanceID)
+    return valid_elc_id
+
+def set_pool_info(server, virt, valid_elc_id):
+    try:
+        valid_elc_id = append_to_list(server, virt, "DiskPool", valid_elc_id)
+        valid_elc_id = append_to_list(server, virt, "MemoryPool", valid_elc_id)
+        valid_elc_id = append_to_list(server, virt, "ProcessorPool", valid_elc_id)
+        valid_elc_id = append_to_list(server, virt, "NetworkPool", valid_elc_id)
+    except Exception, details:
+        logger.error("Exception: In fn set_pool_info(): %s", details)
+        return FAIL, valid_elc_id
+
+    return PASS, valid_elc_id
+
 
 @do_main(sup_types)
 def main():
     options = main.options
+    server = options.ip
+    virt = options.virt
 
     try:
-        host_sys = hostsystem.enumerate(options.ip, options.virt)[0]
+        host_sys = hostsystem.enumerate(server, virt)[0]
     except Exception:
-        Globals.logger.error(Globals.CIM_ERROR_ENUMERATE, get_typed_class(options.virt, 'HostSystem'))
+        logger.error(CIM_ERROR_ENUMERATE, get_typed_class(virt, 'HostSystem'))
         return FAIL
 
     try:
-        elc = assoc.AssociatorNames(options.ip,
+        elc = assoc.AssociatorNames(server,
                                      "ElementCapabilities",
                                      "HostSystem", 
-                                     options.virt,
+                                     virt,
                                      Name = host_sys.Name,
                                      CreationClassName = host_sys.CreationClassName)
     except Exception:
-        Globals.logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % host_sys.Name)
+        logger.error(CIM_ERROR_ASSOCIATORNAMES % host_sys.Name)
         return FAIL
 
 
-    valid_elc_name = [get_typed_class(options.virt, "VirtualSystemManagementCapabilities"),
-                      get_typed_class(options.virt, "VirtualSystemMigrationCapabilities")]
+    valid_elc_name = [get_typed_class(virt, "VirtualSystemManagementCapabilities"),
+                      get_typed_class(virt, "VirtualSystemMigrationCapabilities")]
+
     valid_elc_id = ["ManagementCapabilities", 
                     "MigrationCapabilities"]
 
+    if CIM_REV >= ac_to_pool_version:
+        valid_elc_name.append(get_typed_class(virt, "AllocationCapabilities"))
+        status, valid_elc_id = set_pool_info(server, virt, valid_elc_id)
+        if status != PASS:
+            return status
+
     if len(elc) == 0:
-        Globals.logger.error("ElementCapabilities association failed, excepted at least one instance")
+        logger.error("ElementCapabilities association failed, excepted at least one instance")
         return FAIL
-    for i in range(0,len(elc)):
-        if elc[i].classname not in valid_elc_name:
-            Globals.logger.error("ElementCapabilities association classname error")
+
+    for i in elc:
+        if i.classname not in valid_elc_name:
+            logger.error("ElementCapabilities association classname error")
             return FAIL
-        elif elc[i].keybindings['InstanceID'] not in valid_elc_id:
-            Globals.logger.error("ElementCapabilities association InstanceID error")
+        if i['InstanceID'] not in valid_elc_id:
+            logger.error("ElementCapabilities association InstanceID error ")
             return FAIL
 
-
-    cs = live.domain_list(options.ip, options.virt)
+    cs = live.domain_list(server, virt)
+    ccn  = get_typed_class(virt, "ComputerSystem")
     for system in cs:  
         try:
-	    elec = assoc.AssociatorNames(options.ip,
+	    elec = assoc.AssociatorNames(server,
                                          "ElementCapabilities",
                                          "ComputerSystem",
-                                         options.virt,
+                                         virt,
                                          Name = system,
-                                         CreationClassName = get_typed_class(options.virt, "ComputerSystem"))
+                                         CreationClassName = ccn)
   	except Exception:
-            Globals.logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % system)
+            logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % system)
             return FAIL     
-         
-        if elec[0].classname != get_typed_class(options.virt, "EnabledLogicalElementCapabilities"):
-	    Globals.logger.error("ElementCapabilities association classname error")
+        cn = get_typed_class(virt, "EnabledLogicalElementCapabilities") 
+        if elec[0].classname != cn:
+	    logger.error("ElementCapabilities association classname error")
             return FAIL
         elif elec[0].keybindings['InstanceID'] != system:
-            Globals.logger.error("ElementCapabilities association InstanceID error")
+            logger.error("ElementCapabilities association InstanceID error")
             return FAIL
+
+    return PASS
 
 if __name__ == "__main__":
     sys.exit(main())
