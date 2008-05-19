@@ -48,11 +48,13 @@ from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES, do_main
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.test_xml import testxml
-from XenKvmLib.test_doms import test_domain_function, destroy_and_undefine_all
+from XenKvmLib.test_doms import destroy_and_undefine_all
+from XenKvmLib.const import CIM_REV
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 test_dom = "domgst"
 test_vcpus = 1
+libvirtcim_sdc_rasd_rev = 571
 
 def setup_env(server, virt="Xen"):
     status = PASS
@@ -64,7 +66,7 @@ def setup_env(server, virt="Xen"):
         logger.error("Failed to define the dom: %s", test_dom)
         status = FAIL
 
-    return status
+    return status, vsxml
 
 def print_err(err, detail, cn):
     logger.error(err % cn)
@@ -154,7 +156,7 @@ def get_alloccap(server, devpool, virt="Xen"):
                 '%s_MemoryPool' % virt : 4, 
                 '%s_DiskPool' % virt : 17 ,
                 '%s_NetworkPool' % virt : 10 }
-
+   
     for inst in devpool:
         try:
             assoc_info = Associators(server,
@@ -240,22 +242,26 @@ def check_rasd_vals(inst, cn, rt, rangelist):
         if inst['ResourceType'] != rt:
             logger.error("In ResourceType for %s " % rt)
             return FAIL
+ 
+        # The following properties have been removed in the patchset 571
+        # but is present in the rpm libvirt-cim and hence retained it.
 
-        ppolicy = inst['PropertyPolicy']
-        if ppolicy != 0 and ppolicy != 1:
-            logger.error("In PropertyPolicy for %s " % ppolicy)
-            return FAIL
+        if CIM_REV < libvirtcim_sdc_rasd_rev:
+            ppolicy = inst['PropertyPolicy']
+            if ppolicy != 0 and ppolicy != 1:
+                logger.error("In PropertyPolicy for %s " % ppolicy)
+                return FAIL
 
-        vrole  = inst['ValueRole']
-        if vrole < 0 or vrole > 4:
-            logger.error("In ValueRole %s " % vrole)
-            return FAIL
+            vrole  = inst['ValueRole']
+            if vrole < 0 or vrole > 4:
+                logger.error("In ValueRole %s " % vrole)
+                return FAIL
 
-        insid  = inst['InstanceID']
-        vrange = rangelist[insid]
-        if vrange != inst['ValueRange']:
-            logger.error("In ValueRange for %s " % vrange)
-            return FAIL
+            insid  = inst['InstanceID']
+            vrange = rangelist[insid]
+            if vrange != inst['ValueRange']:
+                logger.error("In ValueRange for %s " % vrange)
+                return FAIL
 
     except Exception, detail:
         logger.error("Error checking RASD attribute values %s" % detail)
@@ -263,40 +269,40 @@ def check_rasd_vals(inst, cn, rt, rangelist):
 
     return PASS
 
-def clean_up(server, status):
-    """
-        Removing the guest and returning status
-    """
-    test_domain_function(test_dom, server, "undefine")
-    sys.exit(status)
-
 @do_main(sup_types)
 def main():
     options = main.options
     status = PASS 
 
-    if options.virt == 'XenFV':
-        options.virt = 'Xen'
+    server = options.ip
+    virt = options.virt
 
-    status = setup_env(options.ip, options.virt)
+    if virt == 'XenFV':
+        virt = 'Xen'
+
+    status, vsxml = setup_env(server, virt)
     if status != PASS:
         return status
 
-    status, hs, clsname = get_hostsys(options.ip, options.virt)
+    status, hs, clsname = get_hostsys(server, virt)
     if status != PASS or hs == None:
-        clean_up(options.ip, status)
+        vsxml.undefine(server)
+        return status
 
-    status, devpool = get_hostrespool(options.ip, hs, clsname, options.virt)
+    status, devpool = get_hostrespool(server, hs, clsname, virt)
     if status != PASS or devpool == None:
-        clean_up(options.ip, status)
+        vsxml.undefine(server)
+        return status
 
-    status, alloccap = get_alloccap(options.ip, devpool, options.virt)
+    status, alloccap = get_alloccap(server, devpool, virt)
     if status != PASS or alloccap == None:
-        clean_up(options.ip, status)
+        vsxml.undefine(server)
+        return status
 
-    status = get_rasddetails(options.ip, alloccap, options.virt)
+    status = get_rasddetails(server, alloccap, virt)
 
-    clean_up(options.ip, status)
+    vsxml.undefine(server)
+    return status
 
 if __name__ == "__main__":
     sys.exit(main())
