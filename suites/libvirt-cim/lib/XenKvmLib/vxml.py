@@ -213,6 +213,11 @@ class NetXML(Virsh, XMLClass):
     def create_vnet(self):
         return self.run(self.server, 'net-create', self.xml_string)
 
+    def xml_get_netpool_name(self):
+        npoolname = self.get_value_xpath('/network/name')
+        return npoolname
+
+
 class PoolXML(Virsh, XMLClass):
 
     def __init__(self, server, poolname=const.default_pool_name,
@@ -235,6 +240,11 @@ class PoolXML(Virsh, XMLClass):
 
     def destroy_vpool(self):
         return self.run(self.server, 'pool-destroy', self.pool_name)
+
+    def xml_get_diskpool_name(self):
+        dpoolname = self.get_value_xpath('/pool/name')
+        return dpoolname
+
 
 class VirtXML(Virsh, XMLClass):
     """Base class for all XML generation & operation"""
