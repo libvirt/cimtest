@@ -141,7 +141,7 @@ def main():
         return FAIL
     status = verify_fields(pool_list, netpool, get_typed_class(virt, np_cn))
     
-    cleanup_restore()
+    cleanup_restore(ip, virt)
     return status
 
 if __name__ == "__main__":

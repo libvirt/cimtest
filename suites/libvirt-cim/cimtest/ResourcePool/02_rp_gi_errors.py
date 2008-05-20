@@ -109,7 +109,7 @@ def main():
         if not ret:
             logger.error("Failed to create the Virtual Network '%s'",
                          test_network)
-            cleanup_restore()
+            cleanup_restore(ip, virt)
             return SKIP
     netid = "%s/%s" % ("NetworkPool", test_network)
 
@@ -124,16 +124,16 @@ def main():
         ret_value = err_invalid_instid_keyname(conn, cn, instid)
         if ret_value != PASS:
             logger.error("------ FAILED: Invalid InstanceID Key Name.------")
-            cleanup_restore()
+            cleanup_restore(ip, virt)
             return  ret_value
 
         ret_value = err_invalid_instid_keyvalue(conn, cn)
         if ret_value != PASS:
             logger.error("------ FAILED: Invalid InstanceID Key Value.------")
-            cleanup_restore()
+            cleanup_restore(ip, virt)
             return ret_value
 
-    cleanup_restore()
+    cleanup_restore(ip, virt)
     return PASS
 
 if __name__ == "__main__":

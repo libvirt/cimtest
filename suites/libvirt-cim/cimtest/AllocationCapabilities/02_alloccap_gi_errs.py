@@ -76,6 +76,7 @@ def main():
 
     options = main.options
     server = options.ip
+    virt = options.virt
     # Verify DiskPool on machine
     status = create_diskpool_file()
     if status != PASS:
@@ -130,7 +131,7 @@ def main():
             status = ret_value
         if status != PASS: 
             break
-    cleanup_restore()
+    cleanup_restore(server, virt)
     return status
 if __name__ == "__main__":
     sys.exit(main())

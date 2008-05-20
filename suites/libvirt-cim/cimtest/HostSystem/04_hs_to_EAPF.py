@@ -179,7 +179,7 @@ def get_assocname_info(server, cn, an, qcn, hostname):
         status = FAIL
 
     if status != PASS:
-        cleanup_restore()
+        cleanup_restore(server, virt='Xen')
         test_domain_function(test_dom, server, "destroy")
 
     return status, assoc_info
@@ -221,7 +221,7 @@ def verify_eafp_values(server, in_pllist):
         except Exception, detail:
             logger.error(CIM_ERROR_ASSOCIATORS, an)
             logger.error("Exception: %s", detail)
-            cleanup_restore()
+            cleanup_restore(server, virt='Xen')
             status = FAIL
     return status
 
@@ -229,7 +229,7 @@ def verify_eafp_values(server, in_pllist):
 def main():
     options= main.options
     server = options.ip
-
+    virt=options.virt
     # Get the host info 
     status, host_name, classname = get_host_info(server)
     if status != PASS:
@@ -256,14 +256,14 @@ def main():
 
     status = setup_env(server)
     if status != PASS:
-        cleanup_restore()
+        cleanup_restore(server, virt=virt)
         test_domain_function(test_dom, server, cmd = "destroy")
         return status
 
     in_pllist = pool_init_list(pool)
     status = verify_eafp_values(server, in_pllist)
     ret = test_domain_function(test_dom, server, cmd = "destroy")
-    cleanup_restore()
+    cleanup_restore(server, virt=virt)
     return status
 if __name__ == "__main__":
     sys.exit(main())

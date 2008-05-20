@@ -477,9 +477,9 @@ def err_invalid_syscreationclassname_keyvalue(conn, exp_ret):
 
     return try_assoc(conn, exp_ret, test_dom, test_keys, test_vals, log_msg)
 
-def clean_and_exit(server, msg):
+def clean_and_exit(server, virt,  msg):
     logger.error("------FAILED: Invalid %s.------", msg)
-    cleanup_restore()
+    cleanup_restore(server, virt)
     vsxml.undefine(server)
 
 @do_main(platform_sup)
@@ -519,50 +519,50 @@ def main():
 
     ret = err_invalid_sysname_keyname(conn, exp_list[0])
     if ret != PASS:
-        clean_and_exit(options.ip, "SystemName KeyName")
+        clean_and_exit(options.ip, virt, "SystemName KeyName")
         return ret
 
     ret = err_invalid_sysname_keyvalue(conn, exp_list[0])
     if ret != PASS:
-        clean_and_exit(options.ip, "SystemName Key Value")
+        clean_and_exit(options.ip, virt, "SystemName Key Value")
         return ret
 
     ret = err_invalid_devid_keyname(conn, exp_list[1])
     if ret != PASS:
-        clean_and_exit(options.ip, "DeviceID Keyname")
+        clean_and_exit(options.ip, virt, "DeviceID Keyname")
         return ret
 
     ret = err_invalid_devid_keyvalue(conn, exp_list[2])
     if ret != PASS:
-        clean_and_exit(options.ip, "DeviceID Keyvalue")
+        clean_and_exit(options.ip, virt, "DeviceID Keyvalue")
         return ret
 
     ret = err_invalid_classname(conn, exp_list[3])
     if ret != PASS:
-        clean_and_exit(options.ip, "classname Keyname")
+        clean_and_exit(options.ip, virt, "classname Keyname")
         return ret
 
     ret = err_invalid_creationclassname_keyname(conn, exp_list[4])
     if ret != PASS:
-        clean_and_exit(options.ip, "creationclassname Keyname")
+        clean_and_exit(options.ip, virt, "creationclassname Keyname")
         return ret
 
     ret = err_invalid_creationclassname_keyvalue(conn, exp_list[4]) 
     if ret != PASS:
-        clean_and_exit(options.ip, "creationclassname Keyvalue")
+        clean_and_exit(options.ip, virt, "creationclassname Keyvalue")
         return ret
 
     ret = err_invalid_syscreationclassname_keyname(conn, exp_list[5]) 
     if ret != PASS:
-        clean_and_exit(options.ip, "System creationclassname Keyname")
+        clean_and_exit(options.ip, virt, "System creationclassname Keyname")
         return ret
 
     ret = err_invalid_syscreationclassname_keyvalue(conn, exp_list[5]) 
     if ret != PASS:
-        clean_and_exit(options.ip, "System creationclassname Keyvalue")
+        clean_and_exit(options.ip, virt, "System creationclassname Keyvalue")
         return ret
 
-    cleanup_restore()
+    cleanup_restore(options.ip, virt)
     vsxml.undefine(options.ip)
     return PASS
 if __name__ == "__main__":

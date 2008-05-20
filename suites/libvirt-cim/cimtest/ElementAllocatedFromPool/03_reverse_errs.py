@@ -170,9 +170,9 @@ def err_invalid_keyvalue():
             break
     return status
 
-def clean_and_exit(server, msg):
+def clean_and_exit(server, virt, msg):
     logger.error("------FAILED: Invalid %s.------", msg)
-    cleanup_restore()
+    cleanup_restore(server, virt)
     vsxml.undefine(server)
 
 @do_main(platform_sup)
@@ -207,20 +207,20 @@ def main():
     assoc_classname = get_typed_class(virt, "ElementAllocatedFromPool")
     ret = err_invalid_keyname()
     if ret != PASS: 
-        clean_and_exit(options.ip, "KeyName")
+        clean_and_exit(options.ip, virt, "KeyName")
         return ret
 
     ret = err_invalid_keyvalue()
     if ret != PASS: 
-        clean_and_exit(options.ip, "KeyValue")
+        clean_and_exit(options.ip, virt, "KeyValue")
         return ret
 
     ret = err_invalid_ccname()
     if ret != PASS: 
-        clean_and_exit(options.ip, "CCName")
+        clean_and_exit(options.ip, virt, "CCName")
         return ret
 
-    cleanup_restore()
+    cleanup_restore(options.ip, virt)
     vsxml.undefine(options.ip)
     return PASS
 if __name__ == "__main__":
