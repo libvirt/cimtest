@@ -215,6 +215,9 @@ class NetXML(Virsh, XMLClass):
     def create_vnet(self):
         return self.run(self.server, 'net-create', self.xml_string)
 
+    def destroy_vnet(self):
+        return self.run(self.server, 'net-destroy', self.net_name)
+
     def xml_get_netpool_name(self):
         npoolname = self.get_value_xpath('/network/name')
         return npoolname

@@ -151,13 +151,13 @@ def get_dasd_class(virt):
     pass
 
 class CIM_NetResourceAllocationSettingData(CIMClassMOF):
-    def __init__(self, type, mac, name):
+    def __init__(self, type, mac, name, virt_net=None): 
         self.Address = mac
         self.NetworkType = type
-        if type == 'ethernet' or type == 'bridge' :
-            self.ResourceType = RASD_TYPE_NET_ETHER
-        else:
-            self.ResourceType = RASD_TYPE_NET_OTHER
+        self.ResourceType = RASD_TYPE_NET_ETHER
+
+        if virt_net != None :
+            self.PoolID = "NetworkPool/%s" % virt_net
         
         if mac != None:
             self.InstanceID = '%s/%s' % (name, mac)

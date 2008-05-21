@@ -22,6 +22,7 @@
 #
 import os
 import pywbem
+import random
 from distutils.file_util import move_file
 from XenKvmLib.test_xml import * 
 from XenKvmLib.test_doms import * 
@@ -331,19 +332,22 @@ def create_diskpool_conf(server, virt):
     return status, diskid
 
 
-def create_netpool_conf(server, virt):
+def create_netpool_conf(server, virt, use_existing=True):
     status = PASS
     test_network = None
     try:
-        vir_network = net_list(server, virt)
-        if len(vir_network) > 0:
-            test_network = vir_network[0]
-        else:
-            netxml = NetXML(server, virt=virt)
+        if use_existing == True:
+            vir_network = net_list(server, virt)
+            if len(vir_network) > 0:
+                test_network = vir_network[0]
+
+        if test_network == None:
+            net_name = "default-net" + str(random.randint(1, 100))
+            netxml = NetXML(server, virt=virt, networkname=net_name)
             ret = netxml.create_vnet()
             if not ret:
                 logger.error("Failed to create Virtual Network '%s'",
-                              test_network)
+                              net_name)
                 status = FAIL
             else:
                 test_network = netxml.xml_get_netpool_name()
@@ -351,3 +355,17 @@ def create_netpool_conf(server, virt):
         logger.error("Exception: In fn create_netpool_conf(): %s", detail)
         status=FAIL
     return status, test_network
+
+def destroy_netpool(server, virt, net_name):
+    if net_name == None:
+        return FAIL
+  
+    netxml = NetXML(server, virt=virt, networkname=net_name)
+    ret = netxml.destroy_vnet()
+    if not ret:
+        logger.error("Failed to destroy Virtual Network '%s'",
+                     net_name)
+        return FAIL
+
+    return PASS 
+
