@@ -106,7 +106,7 @@ def main():
     tc_scen     = ['INVALID_InstID_Keyname', 'INVALID_InstID_Keyvalue']
 
     for i in range(len(tc_scen)):
-        retval = try_invalid_assoc(sv_name_val, i, tc_scen[i])
+        retval = try_invalid_assoc(sv_name_val, i, tc_scen[i], options.virt)
         if retval != PASS:
             status = retval
 
