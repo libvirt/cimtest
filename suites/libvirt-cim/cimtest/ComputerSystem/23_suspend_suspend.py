@@ -52,7 +52,7 @@ sup_types = ['Xen', 'XenFV']
 ACTIVE_STATE = 2
 SUSPND_STATE = 9
 
-bug         = "91410"
+bug         = "00001"
 default_dom = 'test_domain'
 TIME        = "00000000000000.000000:000"
 

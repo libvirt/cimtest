@@ -53,7 +53,7 @@ from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 sup_types = ['Xen', 'KVM', 'XenFV']
 test_dom = "DomST1"
 mem = 128 # MB
-bug_no  = "85769"
+bug_no  = "00002"
 START_STATE = 3 
 FINAL_STATE = 2
 REQUESTED_STATE = FINAL_STATE 

@@ -43,7 +43,7 @@ from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 
 sup_types = ['Xen', 'KVM', 'XenFV']
-bug = "91410"
+bug = "00001"
 
 default_dom = 'test_domain'
 REQUESTED_STATE = 2

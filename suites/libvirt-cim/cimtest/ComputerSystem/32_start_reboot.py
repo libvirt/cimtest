@@ -51,7 +51,7 @@ sup_types = ['Xen', 'XenFV']
 ACTIVE_STATE = 2
 REBOOT_STATE = 10
 
-bug         = "91410"
+bug         = "00001"
 default_dom = 'test_domain'
 TIME        = "00000000000000.000000:000"
 

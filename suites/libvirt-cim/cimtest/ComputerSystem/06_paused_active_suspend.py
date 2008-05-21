@@ -56,7 +56,7 @@ test_dom = "DomST1"
 mem = 128 # MB
 # Keeping the bug no for future reference
 # bug_no_req_change_method = "90559"
-bug_no_req_change_prop   = "85769"
+bug_no_req_change_prop   = "00002"
 START_STATE = 2 
 FINAL_STATE = 9
 REQUESTED_STATE = FINAL_STATE
