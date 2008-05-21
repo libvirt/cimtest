@@ -68,6 +68,7 @@ test_vcpus  = 1
 test_mem    = 128
 test_mac    = "00:11:22:33:44:aa"
 rev = 529
+proc_instid_rev = 590
 
 def init_list(vsxml, virt="Xen"):
     """
@@ -81,7 +82,7 @@ def init_list(vsxml, virt="Xen"):
 
     rasd_values = { 
                     proc_cn              : {
-                                             "InstanceID" : '%s/%s' %(test_dom, "0"),
+                                             "InstanceID" : '%s/%s' %(test_dom, "proc"),
                                              "ResourceType" : 3,
                                             }, 
                     disk_cn              : {
@@ -104,6 +105,9 @@ def init_list(vsxml, virt="Xen"):
                   } 
     if CIM_REV < rev:
        rasd_values[mem_cn]['AllocationUnits'] = "MegaBytes"
+
+    if CIM_REV < proc_instid_rev:
+       rasd_values[proc_cn]['InstanceID'] = '%s/%s' %(test_dom, 0)
 
     return rasd_values
 
