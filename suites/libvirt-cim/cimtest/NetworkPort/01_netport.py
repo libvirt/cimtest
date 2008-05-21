@@ -45,8 +45,6 @@ sup_types = ['Xen', 'KVM', 'XenFV']
 test_dom = "test_domain"
 test_mac = "00:11:22:33:44:55"
 
-bug = "90844"
-
 @do_main(sup_types)
 def main():
     options = main.options
@@ -69,7 +67,7 @@ def main():
     except Exception, detail:
         logger.error("Exception: %s" % detail)
         vsxml.undefine(options.ip)
-        return XFAIL_RC(bug)
+        return FAIL
 
     if dev.DeviceID == None:
         logger.error("Error retrieving instance for devid %s" % devid)

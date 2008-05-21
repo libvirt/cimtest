@@ -39,7 +39,6 @@ ncpu = 3
 nmem = 78
 
 bug_cpu = '90079'
-bug_net = '90853'
 
 @do_main(sup_types)
 def main():
@@ -94,7 +93,7 @@ def main():
     except Exception, details:
         logger.error('Error invoking ModifyRS')
         logger.error(details)
-        return XFAIL_RC(bug_net)
+        return FAIL
 
     cxml.undefine(options.ip)
     if rc == -1:

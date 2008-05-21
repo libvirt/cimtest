@@ -53,8 +53,8 @@ from CimTest.ReturnCodes import FAIL, PASS, XFAIL_RC
 from CimTest.Globals import do_main, platform_sup
 from XenKvmLib.classes import get_typed_class
 
-cim_errno  = pywbem.CIM_ERR_NOT_SUPPORTED
-cim_desc   = "The requested operation is not supported"
+cim_errno  = pywbem.CIM_ERR_FAILED
+cim_desc   = "Unknown Method"
 cim_mname  = "AddResourcesToResourcePool"
 bug = 92173
 
@@ -74,6 +74,7 @@ def main():
         else:
             logger.error("Unexpected rc code %s and description %s\n" \
                                                        %(err_no, desc))
+            print desc
             return XFAIL_RC(bug)
      
     logger.error("The execution should not have reached here!!")
