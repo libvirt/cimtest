@@ -141,6 +141,8 @@ class Virsh:
             self.vuri = 'xen:///'
         elif vir_type == 'kvm':
             self.vuri = 'qemu:///system'
+        elif vir_type == 'lxc':
+            self.vuri = 'lxc:///system'
 
     def run(self, ip, vcmd, param):
         file_arg_cmds = ['define', 'create', 'net-create', 'pool-create', 'pool-destroy']
@@ -280,7 +282,7 @@ class VirtXML(Virsh, XMLClass):
         raise NotImplementedError('virtual method, implement your own')
     
     def issubinstance(self):
-        return isinstance(self, (XenXML, KVMXML, XenFVXML))
+        return isinstance(self, (XenXML, KVMXML, XenFVXML, LXCXML))
 
     def set_memory(self, mem):
         self.set_cdata('/domain/memory', mem * 1024)
@@ -308,6 +310,8 @@ class VirtXML(Virsh, XMLClass):
         return self.run(ip, 'define', self.xml_string)
 
     def undefine(self, ip):
+        if os.path.exists(const.LXC_init_path):
+            os.remove(const.LXC_init_path)
         return self.run(ip, 'undefine', self.dname)
 
     def start(self, ip):
@@ -317,6 +321,8 @@ class VirtXML(Virsh, XMLClass):
         return self.run(ip, 'stop', self.dname)        
 
     def destroy(self, ip):
+        if os.path.exists(const.LXC_init_path):
+            os.remove(const.LXC_init_path)
         return self.run(ip, 'destroy', self.dname)
 
     def create(self, ip):
@@ -626,6 +632,37 @@ class XenFVXML(VirtXML):
 
     def set_vbridge(self, ip):
         return self._set_vbridge(ip, 'XenFV')
+
+class LXCXML(VirtXML):
+
+    def __init__(self, test_dom=const.default_domname,
+                       mem=const.default_memory,
+                       vcpus=const.default_vcpus,
+                       tty=const.LXC_default_tty):
+        VirtXML.__init__(self, 'lxc', test_dom, set_uuid(), mem, vcpus)
+        self._os(const.LXC_init_path)
+        self._devices(const.LXC_default_tty)
+        self.create_lxc_file(CIM_IP, const.LXC_init_path)
+
+    def _os(self, os_init):
+        os = self.get_node('/domain/os')
+        self.add_sub_node(os, 'init', os_init)
+
+    def _devices(self, tty):
+        devices = self.get_node('/domain/devices')
+
+        interface = self.add_sub_node(devices, 'console', tty)
+
+    def create_lxc_file(self, ip, lxc_file):
+        try:
+            f = open(lxc_file, 'w')
+            f.write('%s' % 'exec /bin/sh')
+            cmd = 'chmod +x %s' % lxc_file
+            s, o = utils.run_remote(ip, cmd)
+            f.close()
+        except Exception:
+            logger.error("Creation of LXC file Failed")
+            return False
 
 
 def get_class(virt):

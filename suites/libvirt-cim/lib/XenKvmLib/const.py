@@ -81,3 +81,7 @@ XenFV_secondary_disk_path = os.path.join(_image_dir, 'default-kvm-dimage.2ND')
 XenFV_default_disk_dev = 'hda'
 XenFV_default_mac = '00:16:3e:5d:c7:9e'
 XenFV_default_net_type = 'bridge'
+
+#vxml.LXCXML
+LXC_init_path = os.path.join(_image_dir, 'cimtest_lxc_init')
+LXC_default_tty = '/dev/ptmx'

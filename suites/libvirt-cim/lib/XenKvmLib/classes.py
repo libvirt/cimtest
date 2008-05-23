@@ -19,7 +19,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 #
 
-virt_types = ['Xen', 'KVM', 'XenFV']
+virt_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 def get_typed_class(virt, basename):
     if virt not in virt_types:

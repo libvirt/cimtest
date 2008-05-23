@@ -69,6 +69,9 @@ class Xen_ComputerSystem(CIM_System):
 class KVM_ComputerSystem(CIM_System):
     pass
 
+class LXC_ComputerSystem(CIM_System):
+    pass
+
 def get_cs_class(virt):
     if virt in virt_types:
         return eval(get_typed_class(virt, 'ComputerSystem'))

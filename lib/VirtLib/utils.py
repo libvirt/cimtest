@@ -161,5 +161,7 @@ def virt2uri(virt):
         return "xen:///"
     if virt == "KVM":
         return "qemu:///system"
+    if virt == "LXC":
+        return "lxc:///system"
     return ""
 

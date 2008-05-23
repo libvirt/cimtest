@@ -66,8 +66,8 @@ parser = OptionParser()
 parser.add_option("-i", "--ip", dest="ip", default="localhost", 
                   help="IP address of machine to test, default: localhost")
 parser.add_option("-v", "--virt", dest="virt", type="choice",
-                  choices=platform_sup, default="Xen",
-                  help="Virt type, select from: 'Xen' & 'KVM' & 'XenFV', default: Xen")
+                  choices=['Xen', 'KVM', 'XenFV', 'LXC'], default="Xen",
+                  help="Virt type, select from: 'Xen' & 'KVM' & 'XenFV' & 'LXC', default: Xen")
 parser.add_option("-d", "--debug-output", action="store_true", dest="debug",
                   help="Duplicate the output to stderr")
 
