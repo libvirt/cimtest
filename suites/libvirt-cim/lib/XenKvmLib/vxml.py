@@ -253,6 +253,11 @@ class VirtXML(Virsh, XMLClass):
     dname = ""                # domain name
 
     def __init__(self, domain_type, name, uuid, mem, vcpu):
+        is_XenFV = False
+        if domain_type == "xenfv":
+            is_XenFV = True
+            domain_type = "xen"
+
         XMLClass.__init__(self)
         Virsh.__init__(self, domain_type)
         # domain root nodes
@@ -260,6 +265,10 @@ class VirtXML(Virsh, XMLClass):
 
         self.add_sub_node(domain, 'name', name)
         self.add_sub_node(domain, 'uuid', uuid)
+        
+        if is_XenFV is True:
+            self.add_sub_node(domain, 'features')
+
         self.add_sub_node(domain, 'os')
         self.add_sub_node(domain, 'memory', mem * 1024)
         self.add_sub_node(domain, 'vcpu', vcpu)
@@ -631,10 +640,17 @@ class XenFVXML(VirtXML):
         if not os.path.exists(disk_file_path):
             logger.error('Error: Disk image does not exist')
             sys.exit(1)
-        VirtXML.__init__(self, 'xen', test_dom, set_uuid(), mem, vcpus)
+        VirtXML.__init__(self, 'xenfv', test_dom, set_uuid(), mem, vcpus)
+        self._features()
         self._os(const.XenFV_default_loader)
         self._devices(const.XenFV_default_emulator,
                       const.default_net_type, mac, disk_file_path, disk) 
+
+    def _features(self):
+        features = self.get_node('/domain/features')
+        self.add_sub_node(features, 'pae')
+        self.add_sub_node(features, 'acpi')
+        self.add_sub_node(features, 'apic')
 
     def _os(self, os_loader):
         os = self.get_node('/domain/os')
@@ -646,6 +662,9 @@ class XenFVXML(VirtXML):
         devices = self.get_node('/domain/devices')
 
         self.add_sub_node(devices, 'emulator', emu)
+        self.add_sub_node(devices, 'graphics', type='vnc', port='5900',
+                          keymap='en-us')
+        self.add_sub_node(devices, 'input', type='mouse', bus='xen')
         disk = self.add_sub_node(devices, 'disk', type='file')
         self.add_sub_node(disk, 'source', file=disk_img)
         self.add_sub_node(disk, 'target', dev=disk_dev)
