@@ -14,6 +14,20 @@
 PARTED="parted -s"
 TMPMOUNT=/tmp/cimtest_image_temp
 SIZE=16
+QEMU_VER=082
+QEMU_FILE=""
+
+if [ -e "/usr/lib64/xen/bin/qemu-dm" ]; then
+    QEMU_FILE="/usr/lib64/xen/bin/qemu-dm"
+elif [ -e "/usr/lib/xen/bin/qemu-dm" ]; then
+    QEMU_FILE="/usr/lib/xen/bin/qemu-dm"
+fi
+
+if [ -z $QEMU_FILE ]; then
+    CU_QEMU_VER=0
+else
+    CUR_QEMU_VER=`strings $QEMU_FILE | awk '/version [0-9]/ { print $5; }' | sed 's/,//' | sed 's/\.//g'`
+fi
 
 die() {
     echo "FAILED: $i" >&2
@@ -110,10 +124,19 @@ default 0
 timeout 1
 title Test Environment
     root (hd0,0)
+EOF
+
+if [ $CUR_QEMU_VER -lt $QEMU_VER ]; then
+    cat >>${root}/grub/grub.conf <<EOF
+    kernel /vmlinuz root=/dev/hda1
+    initrd /initrd
+EOF
+else
+    cat >>${root}/grub/grub.conf <<EOF
     kernel /vmlinuz root=/dev/sda1
     initrd /initrd
 EOF
-
+fi
 }
 
 ramdisk=$1
