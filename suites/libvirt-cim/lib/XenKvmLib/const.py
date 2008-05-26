@@ -66,7 +66,7 @@ KVM_disk_path = os.path.join(_image_dir, 'default-kvm-dimage')
 KVM_secondary_disk_path = os.path.join(_image_dir, 'default-kvm-dimage.2ND')
 KVM_default_disk_dev = 'hda'
 KVM_default_mac = '11:22:33:aa:bb:cc'
-KVM_default_net_type = 'bridge'
+KVM_default_net_type = 'network'
 
 # vxml.XenFVXML
 s, o = platform.architecture()

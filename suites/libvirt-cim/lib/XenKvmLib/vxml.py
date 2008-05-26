@@ -574,8 +574,30 @@ class KVMXML(VirtXML):
 
         interface = self.add_sub_node(devices, 'interface', type=net_type)
         self.add_sub_node(interface, 'mac', address=net_mac)
+
         if net_type == 'bridge':
             self.set_vbridge(CIM_IP)    
+        elif net_type == 'network':
+            self.set_vnetwork(interface)
+        else:
+            logger.error("%s is not a valid network type", net_type)
+            sys.exit(1)
+
+    def set_vnetwork(self, interface): 
+        network_list = live.net_list(CIM_IP, virt='KVM')
+        if len(network_list) > 0:
+            nname = network_list[0]
+        else:
+            logger.info('No virutal network found')
+            logger.info('Trying to create one ......')
+            netxml = NetXML(CIM_IP, virt='KVM')
+            ret = netxml.create_vnet()
+            if not ret:
+                logger.error('Failed to create the virtual network "%s"',
+                             netxml.net_name)
+                sys.exit(SKIP)
+            nname = netxml.xml_get_netpool_name()
+        self.add_sub_node(interface, 'source', network=nname)
     
     def set_emulator(self, emu):
         return self._set_emulator(emu)
