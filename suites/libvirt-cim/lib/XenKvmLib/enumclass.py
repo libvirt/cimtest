@@ -164,6 +164,9 @@ class Xen_VirtualSystemMigrationCapabilities(Virt_VirtualSystemMigrationCapabili
 class KVM_VirtualSystemMigrationCapabilities(Virt_VirtualSystemMigrationCapabilities):
     pass
 
+class LXC_VirtualSystemMigrationCapabilities(Virt_VirtualSystemMigrationCapabilities):
+    pass
+
 class Xen_AllocationCapabilities(CIM_AllocationCapabilities):
     pass
 

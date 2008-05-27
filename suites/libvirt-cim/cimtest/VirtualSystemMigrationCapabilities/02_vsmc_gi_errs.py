@@ -54,7 +54,7 @@ from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.common_util import try_getinstance
 from XenKvmLib.classes import get_typed_class
 
-sup_types = ['Xen', 'XenFV', 'KVM']
+sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
 expr_values = {
                 "invalid_instid" :  { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \

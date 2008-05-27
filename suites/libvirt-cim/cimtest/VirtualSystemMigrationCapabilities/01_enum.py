@@ -28,7 +28,7 @@ from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import CIM_ERROR_ENUMERATE, logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen', 'XenFV', 'KVM']
+sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
 def print_error(fieldname, ret_value, exp_value):
     logger.error("%s Mismatch", fieldname)
