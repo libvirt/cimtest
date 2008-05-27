@@ -137,6 +137,9 @@ class Xen_ResourcePoolConfigurationCapabilities(CIM_ResourcePoolConfigurationCap
 class KVM_ResourcePoolConfigurationCapabilities(CIM_ResourcePoolConfigurationCapabilities):
     pass
 
+class LXC_ResourcePoolConfigurationCapabilities(CIM_ResourcePoolConfigurationCapabilities):
+    pass
+
 class Xen_EnabledLogicalElementCapabilities(CIM_EnabledLogicalElementCapabilities):
     pass
     
