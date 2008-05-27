@@ -50,6 +50,9 @@ class Xen_HostSystem(CIM_System):
 class KVM_HostSystem(CIM_System):
     pass
 
+class LXC_HostSystem(CIM_System):
+    pass
+
 
 def enumerate(server, virt='Xen'):
     conn = pywbem.WBEMConnection('http://%s' % server,

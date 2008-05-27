@@ -50,6 +50,8 @@ class Xen_ResourcePoolConfigurationService(CIM_ResourcePoolConfigurationService)
 class KVM_ResourcePoolConfigurationService(CIM_ResourcePoolConfigurationService):
     pass
 
+class LXC_ResourcePoolConfigurationService(CIM_ResourcePoolConfigurationService):
+    pass
 
 def enumerate(server, classname):
     conn = pywbem.WBEMConnection('http://%s' % server,

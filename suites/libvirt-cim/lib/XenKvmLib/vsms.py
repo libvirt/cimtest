@@ -66,6 +66,9 @@ class Xen_VirtualSystemManagementService(CIM_VirtualSystemManagementService):
 class KVM_VirtualSystemManagementService(CIM_VirtualSystemManagementService):
     pass
 
+class LXC_VirtualSystemManagementService(CIM_VirtualSystemManagementService):
+    pass
+
 @eval_cls('VirtualSystemManagementService')
 def get_vsms_class(virt):
     pass
