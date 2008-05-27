@@ -146,6 +146,9 @@ class Xen_EnabledLogicalElementCapabilities(CIM_EnabledLogicalElementCapabilitie
 class KVM_EnabledLogicalElementCapabilities(CIM_EnabledLogicalElementCapabilities):
     pass
 
+class LXC_EnabledLogicalElementCapabilities(CIM_EnabledLogicalElementCapabilities):
+    pass
+
 class Xen_DiskPool(CIM_ResourcePool):
     pass
 

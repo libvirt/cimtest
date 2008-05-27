@@ -29,7 +29,7 @@ from CimTest.Globals import do_main
 from VirtLib import live
 from VirtLib import utils
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 @do_main(sup_types)
 def main():

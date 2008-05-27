@@ -58,7 +58,7 @@ from XenKvmLib.classes import get_typed_class
 from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS, do_main
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 expr_values = {
                 "invalid_instid_keyname" :  {  'rc'   : pywbem.CIM_ERR_FAILED, \
