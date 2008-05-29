@@ -27,7 +27,8 @@ from CimTest.Globals import do_main
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, platform_sup
 from CimTest.ReturnCodes import PASS, FAIL
 
-@do_main(platform_sup)
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
+@do_main(sup_types)
 def main():
     options = main.options
 

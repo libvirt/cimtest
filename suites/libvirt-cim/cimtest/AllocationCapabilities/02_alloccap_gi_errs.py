@@ -71,7 +71,8 @@ memid = "%s/%s" % ("MemoryPool", 0)
 procid = "%s/%s" % ("ProcessorPool", 0)
 rev = 463
 
-@do_main(platform_sup)     
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
+@do_main(sup_types)     
 def main():
 
     options = main.options

@@ -119,10 +119,16 @@ class Xen_MemoryPool(CIM_ResourcePool):
 class KVM_MemoryPool(CIM_ResourcePool):
     pass
 
+class LXC_MemoryPool(CIM_ResourcePool):
+    pass
+
 class Xen_ProcessorPool(CIM_ResourcePool):
     pass
 
 class KVM_ProcessorPool(CIM_ResourcePool):
+    pass
+
+class LXC_ProcessorPool(CIM_ResourcePool):
     pass
 
 class Xen_VirtualSystemManagementCapabilities(CIM_VirtualSystemManagementCapabilities):
@@ -155,10 +161,16 @@ class Xen_DiskPool(CIM_ResourcePool):
 class KVM_DiskPool(CIM_ResourcePool):
     pass
 
+class LXC_DiskPool(CIM_ResourcePool):
+    pass
+
 class Xen_NetworkPool(CIM_ResourcePool):
     pass
 
 class KVM_NetworkPool(CIM_ResourcePool):
+    pass
+
+class LXC_NetworkPool(CIM_ResourcePool):
     pass
 
 class Xen_VirtualSystemMigrationCapabilities(Virt_VirtualSystemMigrationCapabilities):
@@ -174,6 +186,9 @@ class Xen_AllocationCapabilities(CIM_AllocationCapabilities):
     pass
 
 class KVM_AllocationCapabilities(CIM_AllocationCapabilities):
+    pass
+
+class LXC_AllocationCapabilities(CIM_AllocationCapabilities):
     pass
 
 class Xen_VirtualSystemMigrationSettingData(CIM_VirtualSystemMigrationSettingData):
