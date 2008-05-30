@@ -133,7 +133,7 @@ from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import logger, CIM_USER, do_main
 from CimTest.Globals import CIM_PASS, CIM_NS
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 expr_values = {
     "invalid_ccname"         : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, \

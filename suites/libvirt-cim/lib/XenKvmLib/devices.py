@@ -87,6 +87,9 @@ class Xen_Memory(CIM_Memory):
 class KVM_Memory(CIM_Memory):
     pass
 
+class LXC_Memory(CIM_Memory):
+    pass
+
 class Xen_Processor(CIM_Processor):
     pass
 

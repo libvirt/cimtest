@@ -33,7 +33,7 @@ from CimTest.Globals import logger
 from CimTest.Globals import do_main
 from XenKvmLib.const import CIM_REV
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom = "test_domain"
 mem = 256 #MB
