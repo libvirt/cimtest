@@ -55,7 +55,7 @@ from XenKvmLib.classes import get_class_basename
 from CimTest import Globals
 from CimTest.Globals import do_main
 
-sup_types = ['Xen', 'KVM']
+sup_types = ['Xen', 'KVM', 'LXC']
 esd_cn = 'ElementSettingData'
 vssd_cn = 'VirtualSystemSettingData'
 vssdc_cn = 'VirtualSystemSettingDataComponent'

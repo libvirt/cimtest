@@ -107,6 +107,9 @@ class Xen_VirtualSystemSettingData(CIM_MyClass):
 class KVM_VirtualSystemSettingData(CIM_MyClass):
     pass
 
+class LXC_VirtualSystemSettingData(CIM_MyClass):
+    pass
+
 class Xen_LogicalDisk(CIM_LogicalDevice):
     pass 
 
