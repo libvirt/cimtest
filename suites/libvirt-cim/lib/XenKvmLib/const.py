@@ -26,7 +26,11 @@ from CimTest.Globals import CIM_IP
 global CIM_REV
 global CIM_SET
 
-CIM_REV = int(os.getenv("CIM_REV"))
+rev = os.getenv("CIM_REV").strip("+")
+if rev.isdigit():
+    CIM_REV = int(rev)
+else:
+    CIM_REV = 0
 CIM_SET = os.getenv("CIM_SET")
 
 if not CIM_REV or not CIM_SET:
