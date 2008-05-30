@@ -81,7 +81,7 @@ from optparse import OptionParser
 from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS, do_main
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 expr_values = {
     "invalid_ccname" : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, \

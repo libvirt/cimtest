@@ -35,7 +35,7 @@ from CimTest import Globals
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL
 
-SUPPORTED_TYPES = ['Xen', 'KVM', 'XenFV']
+SUPPORTED_TYPES = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 @do_main(SUPPORTED_TYPES)
 def main():
