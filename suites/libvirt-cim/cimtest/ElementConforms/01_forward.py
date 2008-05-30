@@ -42,7 +42,7 @@ from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS, do_main
 from CimTest import Globals 
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen', 'XenFV', 'KVM']
+sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 test_dom = "domU"
 
 def verify_cs(item, id):

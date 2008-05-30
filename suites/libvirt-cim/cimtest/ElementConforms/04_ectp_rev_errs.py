@@ -89,9 +89,8 @@ from XenKvmLib.test_doms import destroy_and_undefine_all
 from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS, do_main
 
-sup_types = ['Xen', 'XenFV', 'KVM']
+sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
-bug          = '92642'
 test_dom = "domU"
 
 cs_values = {
@@ -122,7 +121,7 @@ def try_invalid_assoc(classname, name_val, i, field, virt="Xen"):
     else:
         expr_values = cs_values
     ret_val = try_assoc(conn, classname, ac_classname, keys, field_name=field, \
-                              expr_values=expr_values[field], bug_no=bug)
+                              expr_values=expr_values[field], bug_no="")
     if ret_val != PASS:
         logger.error("------ FAILED: %s------" % field)
     name_val[i] = temp

@@ -60,9 +60,8 @@ from CimTest.ReturnCodes import PASS, FAIL
 from CimTest import Globals
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, do_main
 
-sup_types = ['Xen', 'XenFV', 'KVM']
+sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
-bug          = '92642'
 
 expr_values = {
         "INVALID_InstID_Keyname"  : { 'rc'   : pywbem.CIM_ERR_FAILED, \
@@ -82,7 +81,7 @@ def try_invalid_assoc(name_val, i, field, virt="Xen"):
         k = j * 2
         keys[name_val[k]] = name_val[k+1]
     ret_val = try_assoc(conn, classname, ac_classname, keys, field_name=field, \
-                              expr_values=expr_values[field], bug_no=bug)
+                              expr_values=expr_values[field], bug_no="")
     if ret_val != PASS:
         logger.error("------ FAILED: %s------" % field)
     name_val[i] = temp
