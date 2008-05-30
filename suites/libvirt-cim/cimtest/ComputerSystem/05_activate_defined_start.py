@@ -50,7 +50,7 @@ from CimTest.Globals import do_main
 from XenKvmLib.common_util import call_request_state_change
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 test_dom = "DomST1"
 mem = 128 # MB
 bug_no  = "00002"

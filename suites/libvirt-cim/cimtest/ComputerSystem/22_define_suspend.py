@@ -37,7 +37,7 @@ from CimTest.Globals import do_main
 from CimTest import Globals
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 test_dom = "domgst"
 
 @do_main(sup_types)
