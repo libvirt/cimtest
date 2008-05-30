@@ -218,6 +218,9 @@ class Xen_VirtualSystemSnapshotServiceCapabilities(CIM_VirtualSystemSnapshotServ
 class KVM_VirtualSystemSnapshotServiceCapabilities(CIM_VirtualSystemSnapshotServiceCapabilities):
     pass
 
+class LXC_VirtualSystemSnapshotServiceCapabilities(CIM_VirtualSystemSnapshotServiceCapabilities):
+    pass
+
 class Xen_MemResourceAllocationSettingData(CIM_MemResourceAllocationSettingData):
     pass
 

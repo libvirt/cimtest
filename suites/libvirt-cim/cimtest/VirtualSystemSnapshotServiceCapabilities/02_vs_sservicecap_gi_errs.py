@@ -49,10 +49,10 @@ from XenKvmLib import assoc
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from CimTest.ReturnCodes import PASS
 from XenKvmLib.common_util import try_getinstance
-from CimTest.Globals import do_main, platform_sup
+from CimTest.Globals import do_main
 from XenKvmLib.classes import get_typed_class
 
-
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 expr_values = {
                 "invalid_instid" :  { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
                                       'desc' : 'No such instance (InstanceID)' }
@@ -62,7 +62,7 @@ def verify_fields():
     return try_getinstance(conn, classname, keys, field_name=field, \
                                  expr_values=expr_values['invalid_instid'], bug_no="")
 
-@do_main(platform_sup)
+@do_main(sup_types)
 def main():
     global options
     options = main.options
