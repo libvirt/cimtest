@@ -82,7 +82,7 @@ from CimTest.ReturnCodes import FAIL, PASS, SKIP
 from XenKvmLib.const import CIM_REV
 from XenKvmLib.common_util import print_field_error
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 libvirtcim_rev = 501
 

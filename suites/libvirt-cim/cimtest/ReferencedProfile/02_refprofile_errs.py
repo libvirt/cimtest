@@ -62,7 +62,7 @@ from CimTest.ReturnCodes import FAIL, PASS, SKIP
 from XenKvmLib.common_util import try_assoc
 from XenKvmLib.const import CIM_REV
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 libvirtcim_rev = 501
 
 expr_values = {
