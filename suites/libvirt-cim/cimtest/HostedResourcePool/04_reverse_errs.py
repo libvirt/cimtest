@@ -28,9 +28,10 @@ from XenKvmLib.common_util import try_assoc
 from CimTest import Globals
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS
-from CimTest.Globals import do_main, platform_sup
+from CimTest.Globals import do_main
 from XenKvmLib.classes import get_typed_class
 
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 expr_values = {
                 "Invalid_InstanceID_KeyName" : {
                                                   "rc"   : pywbem.CIM_ERR_FAILED, \
@@ -42,7 +43,7 @@ expr_values = {
                                                 }
               }
 
-@do_main(platform_sup)
+@do_main(sup_types)
 def main():
     options = main.options
     status = PASS

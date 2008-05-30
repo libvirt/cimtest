@@ -28,10 +28,11 @@ from XenKvmLib import hostsystem
 from CimTest import Globals
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL
-from CimTest.Globals import do_main, platform_sup
+from CimTest.Globals import do_main
 from XenKvmLib.classes import get_typed_class
 
-@do_main(platform_sup)
+sup_types=['Xen', 'KVM', 'XenFV', 'LXC']
+@do_main(sup_types)
 def main():
     options = main.options
     status = PASS

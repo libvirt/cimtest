@@ -29,14 +29,15 @@ from XenKvmLib.common_util import try_assoc
 from CimTest import Globals
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL
-from CimTest.Globals import do_main, platform_sup
+from CimTest.Globals import do_main
 from XenKvmLib.classes import get_typed_class
 
 expr_values = { "rc"   : pywbem.CIM_ERR_NOT_FOUND, \
                 "desc" : "No such instance"
               } 
 
-@do_main(platform_sup)
+sup_types=['Xen', 'KVM', 'XenFV', 'LXC']
+@do_main(sup_types)
 def main():
     options = main.options
     status = PASS
