@@ -55,7 +55,7 @@ from CimTest import Globals
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen', 'KVM']
+sup_types = ['Xen', 'KVM', 'LXC']
 
 test_dom = "hd_domain"
 test_mac = "00:11:22:33:44:55"
@@ -66,7 +66,10 @@ def main():
     status = PASS
 
     virtxml = vxml.get_class(options.virt)
-    cxml = virtxml(test_dom, mac = test_mac)
+    if options.virt == "LXC":
+        cxml = virtxml(test_dom)
+    else:
+        cxml = virtxml(test_dom, mac = test_mac)
     ret = cxml.define(options.ip)
     if not ret:
         Globals.logger.error("Failed to Create the dom: %s", test_dom)

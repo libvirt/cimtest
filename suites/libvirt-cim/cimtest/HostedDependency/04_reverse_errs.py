@@ -38,7 +38,7 @@ from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import get_host_info, try_assoc
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 
-sup_types = ['Xen', 'KVM']
+sup_types = ['Xen', 'KVM', 'LXC']
 
 test_dom = "hd_domain1"
 test_mac = "00:11:22:33:44:55"
@@ -109,7 +109,10 @@ def main():
     status = PASS
     server = options.ip
     virtxml = vxml.get_class(options.virt)
-    cxml = virtxml(test_dom, mac = test_mac)
+    if options.virt == "LXC":
+        cxml = virtxml(test_dom)
+    else:
+        cxml = virtxml(test_dom, mac = test_mac)
 
     ret = cxml.create(options.ip)
     if not ret:
