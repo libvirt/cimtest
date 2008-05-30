@@ -31,10 +31,11 @@ from XenKvmLib import assoc
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from CimTest.ReturnCodes import PASS
 from XenKvmLib.common_util import try_getinstance
-from CimTest.Globals import do_main, platform_sup
+from CimTest.Globals import do_main
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import get_host_info
 
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 expr_values = {
                 "INVALID_CCName"    :  { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
                                           'desc' : 'No such instance (CreationClassName)' }, \
@@ -219,7 +220,7 @@ def err_invalid_sname():
         return status
     return PASS
 
-@do_main(platform_sup)
+@do_main(sup_types)
 def main():
     global options
     options = main.options

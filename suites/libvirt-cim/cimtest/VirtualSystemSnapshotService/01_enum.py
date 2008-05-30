@@ -25,7 +25,7 @@ import sys
 from XenKvmLib import enumclass
 from CimTest.Globals import CIM_ERROR_ENUMERATE, logger
 from CimTest.ReturnCodes import PASS, FAIL
-from CimTest.Globals import do_main, platform_sup
+from CimTest.Globals import do_main
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import get_host_info
 
@@ -33,7 +33,8 @@ def print_error(fieldname, ret_value, exp_value):
     logger.error("%s Mismatch", fieldname)
     logger.error("Returned %s instead of %s", ret_value, exp_value)
 
-@do_main(platform_sup)
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
+@do_main(sup_types)
 def main():
     options = main.options
     # Expected results from enumeration

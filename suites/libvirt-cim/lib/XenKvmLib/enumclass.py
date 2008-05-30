@@ -209,6 +209,9 @@ class Xen_VirtualSystemSnapshotService(CIM_VirtualSystemSnapshotService):
 class KVM_VirtualSystemSnapshotService(CIM_VirtualSystemSnapshotService):
     pass
 
+class LXC_VirtualSystemSnapshotService(CIM_VirtualSystemSnapshotService):
+    pass
+
 class Xen_VirtualSystemSnapshotServiceCapabilities(CIM_VirtualSystemSnapshotServiceCapabilities):
     pass
 
