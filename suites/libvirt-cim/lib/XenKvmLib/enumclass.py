@@ -101,6 +101,9 @@ class Xen_RegisteredProfile(CIM_RegisteredProfile):
 class KVM_RegisteredProfile(CIM_RegisteredProfile):
     pass
 
+class LXC_RegisteredProfile(CIM_RegisteredProfile):
+    pass
+
 class Xen_VirtualSystemSettingData(CIM_MyClass):
     pass
 
