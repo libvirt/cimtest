@@ -29,6 +29,8 @@ from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import do_main, platform_sup
 from XenKvmLib.classes import get_typed_class
 
+platform_sup = ['Xen', 'KVM', 'XenFV', 'LXC']
+
 def print_error(fieldname, ret_value, exp_value):
     logger.error("%s Mismatch", fieldname)
     logger.error("Returned %s instead of %s", ret_value, exp_value)

@@ -206,6 +206,9 @@ class Xen_VirtualSystemMigrationSettingData(CIM_VirtualSystemMigrationSettingDat
 class KVM_VirtualSystemMigrationSettingData(CIM_VirtualSystemMigrationSettingData):
     pass
 
+class LXC_VirtualSystemMigrationSettingData(CIM_VirtualSystemMigrationSettingData):
+    pass
+
 class Xen_VirtualSystemSnapshotService(CIM_VirtualSystemSnapshotService):
     pass
 
