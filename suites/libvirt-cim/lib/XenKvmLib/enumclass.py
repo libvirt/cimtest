@@ -143,6 +143,9 @@ class Xen_VirtualSystemManagementCapabilities(CIM_VirtualSystemManagementCapabil
 class KVM_VirtualSystemManagementCapabilities(CIM_VirtualSystemManagementCapabilities):
     pass
 
+class LXC_VirtualSystemManagementCapabilities(CIM_VirtualSystemManagementCapabilities):
+    pass
+
 class Xen_ResourcePoolConfigurationCapabilities(CIM_ResourcePoolConfigurationCapabilities):
     pass
 
