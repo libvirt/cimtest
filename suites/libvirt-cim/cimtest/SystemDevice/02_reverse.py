@@ -33,7 +33,7 @@ from XenKvmLib import devices
 from CimTest.Globals import logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL 
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom = "test_domain"
 test_mac = "00:11:22:33:44:55"
@@ -44,10 +44,14 @@ def main():
 
     status = FAIL
     virt_xml = vxml.get_class(options.virt)
-    cxml = virt_xml(test_dom, mac=test_mac)
+    if options.virt == 'LXC':
+        cxml = virt_xml(test_dom)
+        devlist = ["Memory"]
+    else:
+        cxml = virt_xml(test_dom, mac=test_mac)
+        devlist = [ "NetworkPort", "Memory", "LogicalDisk", "Processor" ]
     cxml.create(options.ip)
 
-    devlist = [ "NetworkPort", "Memory", "LogicalDisk", "Processor" ]
 
     key_list = ["DeviceID", "CreationClassName", "SystemName",
                 "SystemCreationClassName"]

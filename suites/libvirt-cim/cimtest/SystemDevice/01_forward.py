@@ -33,7 +33,7 @@ from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom = "test_domain"
 test_mac = "00:11:22:33:44:55"
@@ -50,7 +50,10 @@ def main():
 
     status = PASS
     virt_xml = vxml.get_class(options.virt)
-    cxml = virt_xml(test_dom, vcpus = test_cpu, mac = test_mac, disk = test_disk)
+    if options.virt == 'LXC':
+        cxml = virt_xml(test_dom)
+    else:
+        cxml = virt_xml(test_dom, vcpus = test_cpu, mac = test_mac, disk = test_disk)
     ret = cxml.create(options.ip)
     if not ret:
         logger.error('Unable to create domain %s' % test_dom)

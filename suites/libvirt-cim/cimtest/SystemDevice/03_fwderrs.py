@@ -40,7 +40,7 @@ from CimTest.Globals import logger, do_main
 from CimTest import Globals
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom = "virt1"
 test_mac = "00:11:22:33:44:55"
@@ -64,15 +64,19 @@ def main():
 
     status = PASS
     virt_xml = vxml.get_class(options.virt)
-    cxml = virt_xml(test_dom, vcpus = test_cpu, mac = test_mac,
-                    disk = test_disk)
+    if options.virt == 'LXC':
+        cxml = virt_xml(test_dom)
+        devlist = ["Memory"]
+    else:
+        cxml = virt_xml(test_dom, vcpus = test_cpu, mac = test_mac,
+                        disk = test_disk)
+        devlist = [ "NetworkPort", "Memory", "LogicalDisk", "Processor" ]
 
     ret = cxml.create(options.ip)
     if not ret :
         logger.info("error while 'create' of VS")
         return FAIL
 
-    devlist = [ "NetworkPort", "Memory", "LogicalDisk", "Processor" ]
 
     # Building the dict for avoiding the correct key:val pairs 
     # while verifying with the Invalid values for the association
