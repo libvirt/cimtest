@@ -31,6 +31,8 @@ from CimTest.Globals import logger
 from CimTest.Globals import do_main, platform_sup
 from XenKvmLib.classes import get_typed_class
 
+platform_sup = ['Xen', 'XenFV', 'LXC', 'KVM']
+
 @do_main(platform_sup)
 def main():
     options = main.options
