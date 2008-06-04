@@ -32,7 +32,7 @@ from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, CIM_ERROR_ASSOCIATORNAM
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 
-sup_types = ['Xen', 'XenFV', 'KVM']
+sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
 def call_assoc(ip, cn, id, virt="Xen"):
     status = PASS

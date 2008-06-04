@@ -33,7 +33,7 @@ from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from XenKvmLib.const import CIM_REV
 from XenKvmLib.enumclass import enumerate
 
-sup_types = ['Xen', 'XenFV', 'KVM']
+sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 ac_to_pool_version = 561
 
 def append_to_list(server, virt, poolname, valid_elc_id):

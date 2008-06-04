@@ -29,7 +29,7 @@ from CimTest import Globals
 from CimTest.Globals import logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 
-sup_types = ['Xen', 'XenFV', 'KVM']
+sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
 exp_rc = 6 #CIM_ERR_NOT_FOUND
 exp_desc = "No such instance"
