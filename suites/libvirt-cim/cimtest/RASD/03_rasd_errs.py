@@ -63,7 +63,7 @@ from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS, CIM_ERROR_GETINSTANCE
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom    = "VSSDC_dom"
 test_vcpus  = 1
@@ -81,7 +81,7 @@ expr_values = {
                                              }
               }
 
-def init_list():
+def init_list(virt="Xen"):
     disk = {
              'cn'     : get_typed_class(virt, "DiskResourceAllocationSettingData"), \
              'instid' : '%s/%s' %(test_dom, test_disk)
@@ -99,8 +99,11 @@ def init_list():
              'cn'     : get_typed_class(virt, "NetResourceAllocationSettingData"), \
              'instid' : '%s/%s' %(test_dom,test_mac)
           }    
- 
-    rasd_values_list =[ disk, mem, proc, net ]
+    
+    if virt == 'LXC':
+        rasd_values_list =[ mem ]
+    else:
+        rasd_values_list =[ disk, mem, proc, net ]
     return rasd_values_list
 
 def verify_rasd_err(field, keys, rasd_type):
@@ -130,14 +133,16 @@ def main():
         test_disk = "xvda"
     else:
         test_disk = "hda"
-
-    vsxml = get_class(virt)(test_dom, \
-                            mem=test_mem, \
-                            vcpus = test_vcpus, \
-                            mac = test_mac, \
-                            disk = test_disk)
-    try:
+    if options.virt == 'LXC':
+        vsxml = get_class(virt)(test_dom)
+    else:
+        vsxml = get_class(virt)(test_dom, \
+                                mem=test_mem, \
+                                vcpus = test_vcpus, \
+                                mac = test_mac, \
+                                disk = test_disk)
         bridge = vsxml.set_vbridge(server)
+    try:
         ret = vsxml.define(options.ip)
         if not ret:
             logger.error("Failed to Define the domain: %s", test_dom)

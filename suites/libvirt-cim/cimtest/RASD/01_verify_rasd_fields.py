@@ -58,7 +58,7 @@ from XenKvmLib.const import CIM_REV
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom    = "VSSDC_dom"
 test_vcpus  = 1
@@ -102,9 +102,14 @@ def init_list(xml, disk, virt="Xen"):
 
 def assoc_values(assoc_info, xml, disk, virt="Xen"):
     procrasd, netrasd, diskrasd, memrasd = init_list(xml, disk, virt)
-    proc_status = 1
+    if virt == 'LXC':
+        proc_status = 0
+        disk_status = 0
+    else:
+        proc_status = 1
+        disk_status = 1
+
     net_status  = 0
-    disk_status = 1
     mem_status  = 1
     status = 0
     try: 
@@ -140,8 +145,11 @@ def main():
         test_disk = 'hda'
 
     virt_xml = vxml.get_class(options.virt)
-    cxml = virt_xml(test_dom, mem=test_mem, vcpus = test_vcpus,
-                    mac = test_mac, disk = test_disk)
+    if options.virt == 'LXC':
+        cxml = virt_xml(test_dom)
+    else:
+        cxml = virt_xml(test_dom, mem=test_mem, vcpus = test_vcpus,
+                        mac = test_mac, disk = test_disk)
     ret = cxml.create(options.ip)
     if not ret:
         logger.error('Unable to create domain %s' % test_dom)
