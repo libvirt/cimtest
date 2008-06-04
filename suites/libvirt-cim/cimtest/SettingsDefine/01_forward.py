@@ -37,7 +37,7 @@ from CimTest import Globals
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL 
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom = "domu1"
 test_mac = "00:11:22:33:44:aa"
@@ -71,19 +71,23 @@ def main():
     else:
         test_disk = 'hda'
     virt_xml = vxml.get_class(options.virt)
-    cxml = virt_xml(test_dom, vcpus = test_vcpus, mac = test_mac, 
-                    disk = test_disk)
+    if options.virt == 'LXC':
+        cxml = virt_xml(test_dom)
+        cn_id = {'Memory' : 'mem'}
+    else:
+        cxml = virt_xml(test_dom, vcpus = test_vcpus, mac = test_mac, 
+                        disk = test_disk)
+        cn_id = {
+                'LogicalDisk' : test_disk,
+                'Memory'      : 'mem',
+                'NetworkPort' : test_mac,
+                'Processor'   : test_vcpus -1 }
+
 
     ret = cxml.create(options.ip)
     if not ret:
         Globals.logger.error("Failed to Create the dom: %s", test_dom)
         return FAIL 
-
-    cn_id = {
-            'LogicalDisk' : test_disk,
-            'Memory'      : 'mem',
-            'NetworkPort' : test_mac,
-            'Processor'   : test_vcpus -1 }
 
 
     devlist = {}

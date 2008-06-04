@@ -154,7 +154,7 @@ from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from CimTest.Globals import do_main
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom = "domu1"
 test_mac = "00:11:22:33:44:aa"
@@ -215,8 +215,11 @@ def main():
         test_disk = 'hda'
 
     virt_xml = vxml.get_class(options.virt)
-    cxml= virt_xml(test_dom, vcpus = test_vcpus, mac = test_mac,
-                   disk = test_disk)
+    if options.virt == 'LXC':
+        cxml = virt_xml(test_dom)
+    else:
+        cxml= virt_xml(test_dom, vcpus = test_vcpus, mac = test_mac,
+                       disk = test_disk)
 
     ret = cxml.create(options.ip)
     if not ret:
@@ -226,13 +229,15 @@ def main():
     global conn
     conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, \
                                                         CIM_PASS), CIM_NS)
-
-    class_id = {
-                get_typed_class(options.virt, 'LogicalDisk') : test_disk,
-                get_typed_class(options.virt, 'Memory')      : 'mem',
-                get_typed_class(options.virt, 'NetworkPort') : test_mac,
-                get_typed_class(options.virt, 'Processor')   : test_vcpus - 1
-               }
+    if options.virt == 'LXC':
+        class_id = {get_typed_class(options.virt, 'Memory')      : 'mem'}
+    else:
+        class_id = {
+                    get_typed_class(options.virt, 'LogicalDisk') : test_disk,
+                    get_typed_class(options.virt, 'Memory')      : 'mem',
+                    get_typed_class(options.virt, 'NetworkPort') : test_mac,
+                    get_typed_class(options.virt, 'Processor')   : test_vcpus - 1
+                   }
 
     tc_scen = [
                 'INVALID_DevID_Keyname',   'INVALID_DevID_Keyval', \

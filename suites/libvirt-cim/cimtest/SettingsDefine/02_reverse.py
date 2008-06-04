@@ -62,7 +62,7 @@ from XenKvmLib.rasd import InstId_err
 from XenKvmLib.const import CIM_REV
 
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom    = "virtgst"
 test_vcpus  = 1
@@ -166,8 +166,11 @@ def main():
     
     status = PASS 
     virt_xml = vxml.get_class(options.virt)
-    cxml = virt_xml(test_dom, mem = test_mem, vcpus = test_vcpus,
-                    mac = test_mac, disk = test_disk)
+    if options.virt == 'LXC':
+        cxml = virt_xml(test_dom)
+    else:
+        cxml = virt_xml(test_dom, mem = test_mem, vcpus = test_vcpus,
+                        mac = test_mac, disk = test_disk)
     ret = cxml.create(options.ip)
     if not ret:
         logger.error("Failed to create the dom: %s", test_dom)

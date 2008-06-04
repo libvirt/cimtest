@@ -63,7 +63,7 @@ from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import do_main, logger
 from CimTest.Globals import CIM_USER, CIM_PASS, CIM_NS
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom = "domu1"
 test_mac = "00:11:22:33:44:aa"
@@ -104,8 +104,11 @@ def main():
         test_disk = 'hda'
     
     virt_xml = vxml.get_class(options.virt)
-    cxml = virt_xml(test_dom, vcpus = test_vcpus, mac = test_mac,
-                    disk = test_disk)
+    if options.virt == 'LXC':
+        cxml = virt_xml(test_dom)
+    else:
+        cxml = virt_xml(test_dom, vcpus = test_vcpus, mac = test_mac,
+                        disk = test_disk)
 
     ret = cxml.create(options.ip)
     if not ret:
@@ -117,12 +120,19 @@ def main():
                                                         CIM_PASS), CIM_NS)
 
     rasd_base= 'ResourceAllocationSettingData'
-    class_id = {
-                get_typed_class(options.virt, 'Disk' + rasd_base) : test_disk,
-                get_typed_class(options.virt, 'Mem' + rasd_base)  : 'mem',
-                get_typed_class(options.virt, 'Net' + rasd_base)  : test_mac,
-                get_typed_class(options.virt, 'Proc' + rasd_base) : test_vcpus - 1
-               }
+    if options.virt == 'LXC':
+        class_id = {
+                    get_typed_class(options.virt, 'Disk' + rasd_base) : test_disk,
+                    get_typed_class(options.virt, 'Mem' + rasd_base)  : 'mem',
+                    get_typed_class(options.virt, 'Proc' + rasd_base) : test_vcpus - 1
+                   }
+    else:
+        class_id = {
+                    get_typed_class(options.virt, 'Disk' + rasd_base) : test_disk,
+                    get_typed_class(options.virt, 'Mem' + rasd_base)  : 'mem',
+                    get_typed_class(options.virt, 'Net' + rasd_base)  : test_mac,
+                    get_typed_class(options.virt, 'Proc' + rasd_base) : test_vcpus - 1
+                   }
 
     tc_scen = ['INVALID_InstID_Keyname', 'INVALID_InstID_Keyval']
 
