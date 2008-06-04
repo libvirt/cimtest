@@ -34,6 +34,8 @@ from XenKvmLib.vxml import get_class
 from CimTest.Globals import do_main, platform_sup, logger
 from CimTest.ReturnCodes import PASS, FAIL
 
+platform_sup = ['Xen', 'KVM', 'XenFV', 'LXC']
+
 test_dom = "VSSD_dom"
 
 @do_main(platform_sup)
