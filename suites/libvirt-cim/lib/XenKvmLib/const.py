@@ -85,3 +85,5 @@ XenFV_default_net_type = 'bridge'
 #vxml.LXCXML
 LXC_init_path = os.path.join(_image_dir, 'cimtest_lxc_init')
 LXC_default_tty = '/dev/ptmx'
+LXC_default_mp = '/tmp'
+LXC_default_source = '/tmp/lxc_files'

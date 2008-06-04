@@ -102,6 +102,8 @@ class CIM_VirtualSystemSettingData(CIMClassMOF):
         self.isFullVirt = (type == 'KVM' or virt == 'XenFV')
         if self.isFullVirt:
             self.BootDevice = 'hd'
+        elif type == 'LXC':
+            self.InitPath = const.LXC_init_path
         else:
             self.Bootloader = live.bootloader(Globals.CIM_IP, 0)
             self.BootloaderArgs = ''
@@ -113,6 +115,9 @@ class Xen_VirtualSystemSettingData(CIM_VirtualSystemSettingData):
     pass
 
 class KVM_VirtualSystemSettingData(CIM_VirtualSystemSettingData):
+    pass
+
+class LXC_VirtualSystemSettingData(CIM_VirtualSystemSettingData):
     pass
 
 @eval_cls('VirtualSystemSettingData')
@@ -134,6 +139,12 @@ class Xen_DiskResourceAllocationSettingData(CIM_DiskResourceAllocationSettingDat
 
 class KVM_DiskResourceAllocationSettingData(CIM_DiskResourceAllocationSettingData):
     pass
+
+class LXC_DiskResourceAllocationSettingData(CIMClassMOF):
+    def __init__(self, mountpoint, source, name):
+        self.MountPoint = mountpoint
+        self.Address = source
+        self.InstanceID = '%s/%s' % (name, mountpoint)
 
 @eval_cls('DiskResourceAllocationSettingData')
 def get_dasd_class(virt):
@@ -157,6 +168,9 @@ class Xen_NetResourceAllocationSettingData(CIM_NetResourceAllocationSettingData)
 class KVM_NetResourceAllocationSettingData(CIM_NetResourceAllocationSettingData):
     pass
 
+class LXC_NetResourceAllocationSettingData(CIM_NetResourceAllocationSettingData):
+    pass
+
 @eval_cls('NetResourceAllocationSettingData')
 def get_nasd_class(virt):
     pass
@@ -175,6 +189,9 @@ class Xen_ProcResourceAllocationSettingData(CIM_ProcResourceAllocationSettingDat
     pass
 
 class KVM_ProcResourceAllocationSettingData(CIM_ProcResourceAllocationSettingData):
+    pass
+
+class LXC_ProcResourceAllocationSettingData(CIM_ProcResourceAllocationSettingData):
     pass
 
 @eval_cls('ProcResourceAllocationSettingData')
@@ -197,6 +214,9 @@ class Xen_MemResourceAllocationSettingData(CIM_MemResourceAllocationSettingData)
 class KVM_MemResourceAllocationSettingData(CIM_MemResourceAllocationSettingData):
     pass
 
+class LXC_MemResourceAllocationSettingData(CIM_MemResourceAllocationSettingData):
+    pass
+
 @eval_cls('MemResourceAllocationSettingData')
 def get_masd_class(virt):
     pass
@@ -212,17 +232,32 @@ def default_vssd_rasd_str(dom_name='test_domain',
     class_vssd = get_vssd_class(virt)
     vssd = class_vssd(name=dom_name, virt=virt)
 
-    class_dasd = get_dasd_class(virt)
-    if virt == 'KVM':
-        disk_dev = 'hda'
-        disk_source = const.KVM_disk_path
-    elif virt == 'XenFV':
-        disk_dev = 'hda'
-        disk_source = const.XenFV_disk_path
-    d = class_dasd(
-                dev=disk_dev, 
-                source=disk_source,
+    # LXC only takes disk and memory device for now.
+    # Only disk __init__ takes different params.
+    if virt == 'LXC':
+        d = LXC_DiskResourceAllocationSettingData(
+                mountpoint=const.LXC_default_mp,
+                source=const.LXC_default_source, name=dom_name)
+    else:
+        class_dasd = get_dasd_class(virt)
+        if virt == 'KVM':
+            disk_dev = 'hda'
+            disk_source = const.KVM_disk_path
+        elif virt == 'XenFV':
+            disk_dev = 'hda'
+            disk_source = const.XenFV_disk_path
+        d = class_dasd(
+                    dev=disk_dev, 
+                    source=disk_source,
+                    name=dom_name)
+    
+    class_masd = get_masd_class(virt)
+    m = class_masd(
+                megabytes=mem_mb,
                 name=dom_name)
+    if virt == 'LXC':
+        return vssd.mof(), [d.mof(), m.mof()]
+    
     class_nasd = get_nasd_class(virt)
     if virt == 'KVM':
         net_mac= const.KVM_default_mac
@@ -235,10 +270,6 @@ def default_vssd_rasd_str(dom_name='test_domain',
     class_pasd = get_pasd_class(virt)
     p = class_pasd(
                 vcpu=proc_vcpu,
-                name=dom_name)
-    class_masd = get_masd_class(virt)
-    m = class_masd(
-                megabytes=mem_mb,
                 name=dom_name)
 
     return vssd.mof(), [d.mof(), n.mof(), p.mof(), m.mof()]

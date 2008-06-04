@@ -30,7 +30,7 @@ from XenKvmLib.common_util import create_using_definesystem
 from CimTest.Globals import do_main
 from CimTest.Globals import logger
 
-SUPPORTED_TYPES = ['Xen', 'KVM', 'XenFV']
+SUPPORTED_TYPES = ['Xen', 'KVM', 'XenFV', 'LXC']
 default_dom = 'test_domain'
 
 @do_main(SUPPORTED_TYPES)
