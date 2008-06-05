@@ -39,7 +39,7 @@ RASD_TYPE_DISK
 from XenKvmLib.common_util import cleanup_restore, test_dpath, \
 create_diskpool_file
 
-sup_types = ['Xen', 'KVM']
+sup_types = ['Xen', 'KVM', 'LXC']
 
 diskid = "%s/%s" % ("DiskPool", test_dpath)
 dp_cn = 'DiskPool'
@@ -126,13 +126,14 @@ def main():
         logger.error(Globals.CIM_ERROR_ENUMERATE % pp_cn)
         return FAIL
     status = verify_fields(pool_list, propool, get_typed_class(virt, pp_cn))
-    
-    try:
-        diskpool = enumerate(ip, dp_cn, key_list, virt)
-    except Exception:
-        logger.error(Globals.CIM_ERROR_ENUMERATE % dp_cn)
-        return FAIL
-    status = verify_fields(pool_list, diskpool, get_typed_class(virt, dp_cn))
+   
+    if virt != 'LXC': 
+        try:
+            diskpool = enumerate(ip, dp_cn, key_list, virt)
+        except Exception:
+            logger.error(Globals.CIM_ERROR_ENUMERATE % dp_cn)
+            return FAIL
+        status = verify_fields(pool_list, diskpool, get_typed_class(virt, dp_cn))
     
     try:
         netpool = enumerate(ip, np_cn, key_list, virt)

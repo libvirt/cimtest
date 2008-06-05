@@ -40,7 +40,7 @@ from CimTest.Globals import do_main
 from XenKvmLib.common_util import cleanup_restore, test_dpath, \
 create_diskpool_file
 
-sup_types = ['Xen', 'KVM']
+sup_types = ['Xen', 'KVM', 'LXC']
 
 expr_values = {
         "invalid_keyname"  : { 'rc'   : pywbem.CIM_ERR_FAILED,
@@ -113,12 +113,19 @@ def main():
             return SKIP
     netid = "%s/%s" % ("NetworkPool", test_network)
 
-    cn_instid_list = {
-            get_typed_class(virt, "DiskPool")      : "DiskPool/foo",
-            get_typed_class(virt, "MemoryPool")    : "MemoryPool/0",
-            get_typed_class(virt, "NetworkPool")   : netid,
-            get_typed_class(virt, "ProcessorPool") : "ProcessorPool/0"
-            }
+    if virt == 'LXC':
+        cn_instid_list = {
+                          get_typed_class(virt, "MemoryPool")    : "MemoryPool/0",
+                          get_typed_class(virt, "NetworkPool")   : netid,
+                          get_typed_class(virt, "ProcessorPool") : "ProcessorPool/0"
+                         }
+    else:
+        cn_instid_list = {
+                          get_typed_class(virt, "DiskPool")      : "DiskPool/foo",
+                          get_typed_class(virt, "MemoryPool")    : "MemoryPool/0",
+                          get_typed_class(virt, "NetworkPool")   : netid,
+                          get_typed_class(virt, "ProcessorPool") : "ProcessorPool/0"
+                          }
 
     for cn, instid in cn_instid_list.items():
         ret_value = err_invalid_instid_keyname(conn, cn, instid)
