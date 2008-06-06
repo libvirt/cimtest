@@ -320,6 +320,6 @@ def getInstance(server, basename, keys, virt="Xen"):
 
     except pywbem.CIMError, arg:
         print arg[1]
-        return []
+        return None 
         
     return inst
