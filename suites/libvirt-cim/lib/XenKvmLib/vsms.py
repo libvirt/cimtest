@@ -105,8 +105,6 @@ class CIM_VirtualSystemSettingData(CIMClassMOF):
         elif type == 'LXC':
             self.InitPath = const.LXC_init_path
         else:
-            self.Bootloader = live.bootloader(Globals.CIM_IP, 0)
-            self.BootloaderArgs = ''
             self.Kernel = const.Xen_kernel_path
             self.Ramdisk = const.Xen_init_path
  
