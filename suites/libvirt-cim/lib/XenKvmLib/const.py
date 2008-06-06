@@ -40,6 +40,7 @@ if not CIM_REV or not CIM_SET:
 # vxml.NetXML
 default_bridge_name = 'testbridge'
 default_network_name = 'default-net'
+default_net_type = 'network'
 
 #vxml.PoolXML
 default_pool_name = 'testpool'
@@ -59,7 +60,6 @@ Xen_disk_path = os.path.join(_image_dir, 'default-xen-dimage')
 Xen_secondary_disk_path = os.path.join(_image_dir, 'default-xen-dimage.2ND')
 Xen_default_disk_dev = 'xvda'
 Xen_default_mac = '11:22:33:aa:bb:cc'
-Xen_default_net_type = 'ethernet'
 
 # vxml.KVMXML
 if fv_cap(CIM_IP):
@@ -70,7 +70,6 @@ KVM_disk_path = os.path.join(_image_dir, 'default-kvm-dimage')
 KVM_secondary_disk_path = os.path.join(_image_dir, 'default-kvm-dimage.2ND')
 KVM_default_disk_dev = 'hda'
 KVM_default_mac = '11:22:33:aa:bb:cc'
-KVM_default_net_type = 'network'
 
 # vxml.XenFVXML
 s, o = platform.architecture()
@@ -84,7 +83,6 @@ XenFV_disk_path = os.path.join(_image_dir, 'default-kvm-dimage')
 XenFV_secondary_disk_path = os.path.join(_image_dir, 'default-kvm-dimage.2ND')
 XenFV_default_disk_dev = 'hda'
 XenFV_default_mac = '00:16:3e:5d:c7:9e'
-XenFV_default_net_type = 'bridge'
 
 #vxml.LXCXML
 LXC_init_path = os.path.join(_image_dir, 'cimtest_lxc_init')

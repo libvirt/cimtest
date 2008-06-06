@@ -300,6 +300,10 @@ class VirtXML(Virsh, XMLClass):
         self.set_attributes('/domain/devices/interface/source', 
                             bridge=bridgename)
 
+    def set_nettype(self, nettype):
+        self.set_attributes('/domain/devices/interface/type', 
+                            type=nettype)
+
     def set_diskimg(self, diskimg):
         self.set_attributes('/domain/devices/disk/source', file=diskimg)
 
@@ -437,6 +441,38 @@ class VirtXML(Virsh, XMLClass):
 
         return vbr
 
+    def set_interface_details(self, devices, net_mac, net_type, virt_type):
+        interface = self.add_sub_node(devices, 'interface', type=net_type)
+        self.add_sub_node(interface, 'mac', address=net_mac)
+        if net_type == 'bridge':
+            self._set_vbridge(CIM_IP, virt_type)
+        elif net_type == 'network':
+            self.set_vnetwork(interface, virt_type)
+        elif net_type == 'ethernet':
+            pass
+        elif net_type == 'user':
+            pass
+        else:
+            logger.error("%s is not a valid network type", net_type)
+            sys.exit(1)
+
+    def set_vnetwork(self, interface, virt_type):
+        network_list = live.net_list(CIM_IP, virt_type)
+        if len(network_list) > 0:
+            nname = network_list[0]
+        else:
+            logger.info('No virutal network found')
+            logger.info('Trying to create one ......')
+            netxml = NetXML(CIM_IP, virt_type)
+            ret = netxml.create_vnet()
+            if not ret:
+                logger.error('Failed to create the virtual network "%s"',
+                             netxml.net_name)
+                sys.exit(SKIP)
+            nname = netxml.xml_get_netpool_name()
+        self.add_sub_node(interface, 'source', network=nname)
+
+
 
 class VirtCIM:
     def __init__(self, virt, dom_name, disk_dev, disk_source,
@@ -497,7 +533,7 @@ class XenXML(VirtXML, VirtCIM):
                        vcpus=const.default_vcpus,
                        mac=const.Xen_default_mac,
                        disk_file_path=const.Xen_disk_path,
-                       disk=const.Xen_default_disk_dev):
+                       disk=const.Xen_default_disk_dev): 
         if not (os.path.exists(const.Xen_kernel_path) \
                 and os.path.exists(const.Xen_init_path)):
             logger.error('ERROR: Either the kernel image '
@@ -505,10 +541,10 @@ class XenXML(VirtXML, VirtCIM):
             sys.exit(1)
         VirtXML.__init__(self, 'xen', test_dom, set_uuid(), mem, vcpus)
         self._os(const.Xen_kernel_path, const.Xen_init_path)
-        self._devices(disk_file_path, disk, const.Xen_default_net_type, mac)
+        self._devices(disk_file_path, disk, const.default_net_type, mac)
 
         VirtCIM.__init__(self, 'Xen', test_dom, disk, disk_file_path, 
-                         const.Xen_default_net_type, mac, vcpus, mem)
+                         const.default_net_type, mac, vcpus, mem)
 
     def _os(self, os_kernel, os_initrd):
         os = self.get_node('/domain/os')
@@ -524,9 +560,7 @@ class XenXML(VirtXML, VirtCIM):
         self.add_sub_node(disk, 'driver', name='file')
         self.add_sub_node(disk, 'source', file=disk_img)
         self.add_sub_node(disk, 'target', dev=disk_dev)
-        
-        interface = self.add_sub_node(devices, 'interface', type=net_type)
-        self.add_sub_node(interface, 'mac', address=net_mac)
+        self.set_interface_details(devices, net_mac, net_type, virt_type='Xen')
 
     def set_bootloader(self, ip, gtype=0):
         bldr = live.bootloader(ip, gtype)
@@ -558,7 +592,7 @@ class KVMXML(VirtXML):
             sys.exit(1)
         VirtXML.__init__(self, 'kvm', test_dom, set_uuid(), mem, vcpus)
         self._os()
-        self._devices(const.KVM_default_emulator, const.KVM_default_net_type,
+        self._devices(const.KVM_default_emulator, const.default_net_type,
                       disk_file_path, disk, mac)
 
     def _os(self):
@@ -572,33 +606,8 @@ class KVMXML(VirtXML):
         self.add_sub_node(disk, 'source', file=disk_img)
         self.add_sub_node(disk, 'target', dev=disk_dev)
 
-        interface = self.add_sub_node(devices, 'interface', type=net_type)
-        self.add_sub_node(interface, 'mac', address=net_mac)
+        self.set_interface_details(devices, net_mac, net_type, virt_type='KVM')
 
-        if net_type == 'bridge':
-            self.set_vbridge(CIM_IP)    
-        elif net_type == 'network':
-            self.set_vnetwork(interface)
-        else:
-            logger.error("%s is not a valid network type", net_type)
-            sys.exit(1)
-
-    def set_vnetwork(self, interface): 
-        network_list = live.net_list(CIM_IP, virt='KVM')
-        if len(network_list) > 0:
-            nname = network_list[0]
-        else:
-            logger.info('No virutal network found')
-            logger.info('Trying to create one ......')
-            netxml = NetXML(CIM_IP, virt='KVM')
-            ret = netxml.create_vnet()
-            if not ret:
-                logger.error('Failed to create the virtual network "%s"',
-                             netxml.net_name)
-                sys.exit(SKIP)
-            nname = netxml.xml_get_netpool_name()
-        self.add_sub_node(interface, 'source', network=nname)
-    
     def set_emulator(self, emu):
         return self._set_emulator(emu)
     
@@ -625,7 +634,7 @@ class XenFVXML(VirtXML):
         VirtXML.__init__(self, 'xen', test_dom, set_uuid(), mem, vcpus)
         self._os(const.XenFV_default_loader)
         self._devices(const.XenFV_default_emulator,
-                      const.XenFV_default_net_type, mac, disk_file_path, disk)
+                      const.default_net_type, mac, disk_file_path, disk) 
 
     def _os(self, os_loader):
         os = self.get_node('/domain/os')
@@ -637,14 +646,10 @@ class XenFVXML(VirtXML):
         devices = self.get_node('/domain/devices')
 
         self.add_sub_node(devices, 'emulator', emu)
-
-        interface = self.add_sub_node(devices, 'interface', type=net_type)
-        self.add_sub_node(interface, 'mac', address=net_mac)
-        self.set_bridge(CIM_IP)
-
         disk = self.add_sub_node(devices, 'disk', type='file')
         self.add_sub_node(disk, 'source', file=disk_img)
         self.add_sub_node(disk, 'target', dev=disk_dev)
+        self.set_interface_details(devices, net_mac, net_type, virt_type='XenFV')
 
     def set_emulator(self, emu):
         return self._set_emulator(emu)
