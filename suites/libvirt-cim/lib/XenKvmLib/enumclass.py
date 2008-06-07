@@ -233,6 +233,9 @@ class Xen_MemResourceAllocationSettingData(CIM_MemResourceAllocationSettingData)
 class KVM_MemResourceAllocationSettingData(CIM_MemResourceAllocationSettingData):
     pass
 
+class LXC_MemResourceAllocationSettingData(CIM_MemResourceAllocationSettingData):
+    pass
+
 class Xen_NetResourceAllocationSettingData(CIM_NetResourceAllocationSettingData):
     pass
 

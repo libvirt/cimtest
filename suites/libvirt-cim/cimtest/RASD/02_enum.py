@@ -38,7 +38,7 @@ from XenKvmLib.const import CIM_REV
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom    = "VSSDC_dom"
 test_vcpus  = 1
@@ -154,10 +154,20 @@ def main():
     else:
         test_disk = "hda"
     virtxml = get_class(virt)
-    vsxml = virtxml(test_dom, mem=test_mem, vcpus = test_vcpus,
+    if virt == 'LXC':
+        vsxml = virtxml(test_dom)
+        class_list = [get_typed_class(virt, rasd.masd_cn)]
+    else:
+        vsxml = virtxml(test_dom, mem=test_mem, vcpus = test_vcpus,
                     mac = test_mac, disk = test_disk)
-    try:
         vsxml.set_vbridge(server)
+        class_list = [ get_typed_class(virt, rasd.dasd_cn),
+                       get_typed_class(virt, rasd.masd_cn),
+                       get_typed_class(virt, rasd.pasd_cn),
+                       get_typed_class(virt, rasd.nasd_cn)
+                     ]
+
+    try:
         ret = vsxml.define(server)
         if not ret:
             logger.error("Failed to Define the domain: %s", test_dom)
@@ -165,11 +175,7 @@ def main():
     except Exception, details:
         logger.error("Exception : %s", details)
         return FAIL
-    class_list = [ get_typed_class(virt, rasd.dasd_cn), 
-                   get_typed_class(virt, rasd.masd_cn), 
-                   get_typed_class(virt, rasd.pasd_cn), 
-                   get_typed_class(virt, rasd.nasd_cn)
-                 ]  
+    
     status = PASS 
     procrasd, netrasd, diskrasd, memrasd = init_list(virt)
     
