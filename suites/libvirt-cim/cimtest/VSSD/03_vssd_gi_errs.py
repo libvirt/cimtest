@@ -58,6 +58,7 @@ from XenKvmLib.vxml import get_class
 from XenKvmLib.common_util import try_getinstance
 from XenKvmLib.test_doms import destroy_and_undefine_all
 
+platform_sup = ['Xen', 'KVM', 'XenFV', 'LXC']
 test_dom  = "VSSD_domain"
 
 expr_values = {
