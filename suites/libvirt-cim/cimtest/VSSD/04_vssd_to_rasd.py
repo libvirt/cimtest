@@ -55,7 +55,7 @@ from XenKvmLib.rasd import verify_procrasd_values, verify_netrasd_values, \
 verify_diskrasd_values, verify_memrasd_values 
 from XenKvmLib.const import CIM_REV
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom    = "VSSDC_dom"
 test_vcpus  = 1
@@ -64,13 +64,21 @@ test_mac    = "00:11:22:33:44:aa"
 proc_rev = 531
 mem_rev = 529
 
-def setup_env():  
+def setup_env(virt):  
     vsxml_info = None
     virt_xml = get_class(virt)
-    vsxml_info = virt_xml(test_dom,  mem=test_mem, vcpus = test_vcpus,
-                                             mac = test_mac, disk = test_disk)
+    if virt == 'LXC':
+        vsxml_info = virt_xml(test_dom)
+    else:
+        vsxml_info = virt_xml(test_dom,  mem=test_mem, vcpus = test_vcpus,
+                              mac = test_mac, disk = test_disk)
+        try:
+            bridge = vsxml_info.set_vbridge(server)
+        except Exception, details:
+            logger.error("Exception : %s", details)
+            return FAIL, vsxml_info
+
     try:
-        bridge = vsxml_info.set_vbridge(server)
         ret = vsxml_info.define(server)
         if not ret:
             logger.error("Failed to Define the domain: %s", test_dom)
@@ -177,7 +185,10 @@ def get_rasd_values_from_vssdc_assoc(vssd_values):
     assoc_cname = get_typed_class(virt, 'VirtualSystemSettingDataComponent')
     try:
         vssdc_assoc_info = assoc.Associators(server, assoc_cname, qcn, virt, InstanceID = instIdval)
-        if len(vssdc_assoc_info) < 4:
+        if len(vssdc_assoc_info) == 1 and \
+           vssdc_assoc_info[0].classname == 'LXC_MemResourceAllocationSettingData':
+           logger.info("%s returned expect objects" % assoc_cname)
+        elif len(vssdc_assoc_info) < 4:
             logger.error("%s returned %i %s objects, expected 4" % (assoc_cname, len(vssdc_assoc_info), qcn))
             status = FAIL
             
@@ -223,7 +234,7 @@ def main():
     else:
         test_disk = "hda"
 
-    status, vsxml = setup_env()
+    status, vsxml = setup_env(virt)
     if status != PASS:
         return status
 
