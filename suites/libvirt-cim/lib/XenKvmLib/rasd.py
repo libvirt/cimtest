@@ -23,7 +23,6 @@
 import sys
 from CimTest.Globals import log_param, logger
 from CimTest.ReturnCodes import FAIL, PASS
-from XenKvmLib.const import CIM_REV
 from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class
 
@@ -36,10 +35,6 @@ proccn =  'Processor'
 memcn  =  'Memory'
 netcn  =  'NetworkPort'
 diskcn =  'LogicalDisk'
-
-
-mem_units_rev = 529
-proc_instid_rev = 590
 
 def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem):
     """
@@ -60,20 +55,9 @@ def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem):
 
         disk_path = vsxml.xml_get_disk_source()
 
-        if CIM_REV < mem_units_rev:
-          alloc_units  = "MegaBytes"
-        else:
-          alloc_units  = "KiloBytes"
-
-        if CIM_REV < proc_instid_rev:
-           proc_id = '%s/%s' %(t_dom, 0)
-        else:
-           proc_id = '%s/%s' %(t_dom, "proc")
-       
-
         rasd_values = { 
                         proc_cn  : {
-                                     "InstanceID"   : proc_id,
+                                     "InstanceID"   : '%s/%s' %(t_dom, "proc"),
                                      "ResourceType" : 3,
                                     }, 
                         disk_cn  : {
@@ -90,7 +74,7 @@ def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem):
                         mem_cn   : {
                                     "InstanceID" : '%s/%s' %(t_dom, "mem"), 
                                     "ResourceType"    : 4, 
-                                    "AllocationUnits" : alloc_units,
+                                    "AllocationUnits" : "KiloBytes",
                                     "VirtualQuantity" : (t_mem * 1024),
                                   }
                       } 

@@ -62,14 +62,12 @@ from XenKvmLib.test_doms import destroy_and_undefine_all
 from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import do_main, logger
 from CimTest.Globals import CIM_USER, CIM_PASS, CIM_NS
-from XenKvmLib.const import CIM_REV
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
 test_dom     = "domu1"
 test_mac     = "00:11:22:33:44:aa"
 test_vcpus   = 1
-rev = 417
 
 expr_values = {
     "INVALID_InstID_Keyname"   : { 'rc'   : pywbem.CIM_ERR_FAILED, \
@@ -77,10 +75,6 @@ expr_values = {
     "INVALID_InstID_Keyval"    : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
                      'desc' : 'No such instance (INVALID_InstID_Keyval)'}
 }
-
-if CIM_REV < rev:
-    expr_values['INVALID_InstID_Keyval'] = {'rc' : pywbem.CIM_ERR_FAILED, \
-                                            'desc' : 'Invalid InstanceID'}
 
 def try_invalid_assoc(classname, name_val, i, field, virt="Xen"):
     ac_classname = get_typed_class(virt, "VirtualSystemSettingDataComponent")

@@ -59,8 +59,6 @@ from XenKvmLib import assoc
 from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class, get_class_basename
 from XenKvmLib.rasd import InstId_err
-from XenKvmLib.const import CIM_REV
-
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
@@ -68,9 +66,6 @@ test_dom    = "virtgst"
 test_vcpus  = 1
 test_mem    = 128
 test_mac    = "00:11:22:33:44:aa"
-proc_instid_rev = 590
-
-
 
 def call_assoc(ip, inst, exp_id, ccn, virt):
     if inst['InstanceID'] != exp_id:
@@ -195,9 +190,6 @@ def main():
             'NetResourceAllocationSettingData'  : '%s/%s' % (test_dom, test_mac),
             'DiskResourceAllocationSettingData' : '%s/%s' % (test_dom, test_disk),
             'MemResourceAllocationSettingData'  : '%s/%s' % (test_dom, 'mem')}
-
-    if CIM_REV < proc_instid_rev :
-        rasd_devid['ProcResourceAllocationSettingData'] = "%s/%s" % (test_dom, "0")
 
     global dev_devid
     dev_devid = {

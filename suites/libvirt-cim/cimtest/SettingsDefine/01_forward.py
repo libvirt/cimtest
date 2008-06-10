@@ -32,7 +32,6 @@ from XenKvmLib import vxml
 from XenKvmLib import assoc
 from XenKvmLib import devices
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.const import CIM_REV
 from CimTest import Globals
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL 
@@ -42,8 +41,6 @@ sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 test_dom = "domu1"
 test_mac = "00:11:22:33:44:aa"
 test_vcpus = 1
-proc_instid_rev = 590
-
 
 def print_error(cn, detail):
     Globals.logger.error(Globals.CIM_ERROR_GETINSTANCE, cn)
@@ -96,7 +93,7 @@ def main():
     for cn in cn_id.keys():
         key_list = get_keys(cn, cn_id[cn], 'ComputerSystem', options.virt)
 
-        if CIM_REV >= proc_instid_rev and cn == 'Processor':
+        if cn == 'Processor':
             exp_inst_id_val[cn] = "%s/%s" % (test_dom, "proc") 
         else:
             exp_inst_id_val[cn] = key_list['DeviceID']

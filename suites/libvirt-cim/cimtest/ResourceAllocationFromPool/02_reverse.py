@@ -29,7 +29,6 @@ from XenKvmLib import assoc
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.const import CIM_REV
 from CimTest import Globals
 from CimTest.Globals import logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL
@@ -43,7 +42,6 @@ test_dom    = "RAFP_dom"
 test_vcpus  = 1
 test_mem    = 128
 test_mac    = "00:11:22:33:44:aa"
-proc_instid_rev = 590
 
 def setup_env(server, virt):
     destroy_and_undefine_all(server)
@@ -73,12 +71,7 @@ def setup_env(server, virt):
 
 def init_list(test_disk, diskid, test_network, virt='Xen'):
 
-    if CIM_REV < proc_instid_rev:
-        procid = '%s/%s' % (test_dom, 0)
-    else:
-        procid = '%s/%s' % (test_dom, 'proc')
-
-    proc = { 'rasd_id' : procid,
+    proc = { 'rasd_id' : '%s/%s' % (test_dom, 'proc'),
              'pool_id' : 'ProcessorPool/0'
            }
 

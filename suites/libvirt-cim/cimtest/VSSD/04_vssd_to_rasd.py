@@ -53,7 +53,6 @@ from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.rasd import verify_procrasd_values, verify_netrasd_values, \
 verify_diskrasd_values, verify_memrasd_values 
-from XenKvmLib.const import CIM_REV
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
@@ -61,8 +60,6 @@ test_dom    = "VSSDC_dom"
 test_vcpus  = 1
 test_mem    = 128
 test_mac    = "00:11:22:33:44:aa"
-proc_rev = 531
-mem_rev = 529
 
 def setup_env(virt):  
     vsxml_info = None
@@ -97,8 +94,6 @@ def init_list(virt):
                  "ResourceType" : 3,
                  "CreationClassName": get_typed_class(virt, 'ProcResourceAllocationSettingData')
                 }
-    if CIM_REV < proc_rev:
-        procrasd['InstanceID'] = '%s/%s' %(test_dom, "0")
 
     netrasd = {
                 "InstanceID"  : '%s/%s' %(test_dom,test_mac), 
@@ -122,8 +117,7 @@ def init_list(virt):
                "VirtualQuantity" : (test_mem * 1024), 
                "CreationClassName": get_typed_class(virt, 'MemResourceAllocationSettingData')
               }
-    if CIM_REV < mem_rev:
-        memrasd['AllocationUnits'] = "MegaBytes"
+
     return procrasd, netrasd, diskrasd, memrasd
 
 def get_inst_from_list(classname, vssd_list, filter_name, exp_val):

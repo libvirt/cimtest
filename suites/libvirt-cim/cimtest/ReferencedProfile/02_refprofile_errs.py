@@ -60,10 +60,8 @@ from CimTest.Globals import do_main, CIM_USER, CIM_PASS
 from XenKvmLib.classes import get_typed_class
 from CimTest.ReturnCodes import FAIL, PASS, SKIP
 from XenKvmLib.common_util import try_assoc
-from XenKvmLib.const import CIM_REV
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
-libvirtcim_rev = 501
 
 expr_values = {
                 'INVALID_Instid_KeyName'  :  {
@@ -124,11 +122,6 @@ def main():
     virt = options.virt
     server = options.ip
     status = PASS
-    # Referenced Profile was introduced as part of changeset 501 
-    # and is not available in the libvirt-cim rpm, hence skipping tc
-    # if CIM_REV  501
-    if CIM_REV < libvirtcim_rev:
-        return SKIP
 
     prev_namespace = Globals.CIM_NS
     Globals.CIM_NS = 'root/interop'

@@ -30,11 +30,9 @@ from CimTest import Globals
 from CimTest.Globals import do_main, logger, CIM_ERROR_ASSOCIATORNAMES, \
 CIM_ERROR_ENUMERATE
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
-from XenKvmLib.const import CIM_REV
 from XenKvmLib.enumclass import enumerate
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
-ac_to_pool_version = 561
 
 def append_to_list(server, virt, poolname, valid_elc_id):
     keys_list = ['InstanceID']
@@ -87,11 +85,10 @@ def main():
     valid_elc_id = ["ManagementCapabilities", 
                     "MigrationCapabilities"]
 
-    if CIM_REV >= ac_to_pool_version:
-        valid_elc_name.append(get_typed_class(virt, "AllocationCapabilities"))
-        status, valid_elc_id = set_pool_info(server, virt, valid_elc_id)
-        if status != PASS:
-            return status
+    valid_elc_name.append(get_typed_class(virt, "AllocationCapabilities"))
+    status, valid_elc_id = set_pool_info(server, virt, valid_elc_id)
+    if status != PASS:
+        return status
 
     if len(elc) == 0:
         logger.error("ElementCapabilities association failed, excepted at least one instance")

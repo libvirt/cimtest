@@ -58,7 +58,6 @@ CIM_ERROR_ASSOCIATORS
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.rasd import verify_procrasd_values, verify_netrasd_values, \
 verify_diskrasd_values, verify_memrasd_values, rasd_init_list
-from XenKvmLib.const import CIM_REV
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 
@@ -67,8 +66,6 @@ test_dom    = "CrossClass_GuestDom"
 test_vcpus  = 1
 test_mem    = 128
 test_mac    = "00:11:22:33:44:aa"
-rev = 529
-proc_instid_rev = 590
 
 def setup_env(server, virt="Xen"):
     vsxml_info = None

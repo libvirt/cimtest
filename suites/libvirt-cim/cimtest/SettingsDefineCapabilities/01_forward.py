@@ -65,14 +65,11 @@ from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import cleanup_restore, create_diskpool_conf, \
 create_netpool_conf
 from XenKvmLib.common_util import print_field_error
-from XenKvmLib.const import CIM_REV
 
 platform_sup = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 memid = "%s/%s" % ("MemoryPool", 0)
 procid = "%s/%s" % ("ProcessorPool", 0)
-libvirtcim_sdc_rasd_rev = 571
-
 
 def get_or_bail(virt, ip, id, pool_class):
     """
@@ -164,27 +161,6 @@ def verify_rasd_fields(loop, assoc_info, cllist, rtype, rangelist):
             print_field_error("ResourceType", inst['ResourceType'], 
                               rtype[cllist[loop]])
             return FAIL 
-
-        # The following properties have been removed in the patchset 571
-        # but is present in the rpm libvirt-cim and hence retained it.
-
-        if CIM_REV < libvirtcim_sdc_rasd_rev:
-            ppolicy = inst['PropertyPolicy']
-            if ppolicy != 0 and ppolicy != 1:
-                print_field_error("PropertyPolicy", inst['PropertyPolicy'], 
-                                   ppolicy)
-                return FAIL 
-
-            vrole  = inst['ValueRole']
-            if vrole < 0 or vrole > 4:
-                print_field_error("ValueRole", inst['ValueRole'], vrole)
-                return FAIL 
-
-            insid  = inst['InstanceID']
-            vrange = rangelist[insid]
-            if vrange != inst['ValueRange']:
-                print_field_error("ValueRange", inst['ValueRange'], vrange)
-                return FAIL 
 
     return PASS
 

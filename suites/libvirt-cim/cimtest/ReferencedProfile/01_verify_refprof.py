@@ -79,12 +79,9 @@ from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, CIM_ERROR_ASSOCIATORS
 from CimTest.Globals import do_main
 from XenKvmLib.classes import get_typed_class
 from CimTest.ReturnCodes import FAIL, PASS, SKIP
-from XenKvmLib.const import CIM_REV
 from XenKvmLib.common_util import print_field_error
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
-
-libvirtcim_rev = 501
 
 def get_proflist():
     proflist = []
@@ -166,12 +163,6 @@ def main():
     virt = options.virt
     server = options.ip
     status = PASS
-
-    # Referenced Profile was introduced as part of changeset 501 
-    # and is not available in the libvirt-cim rpm, hence skipping tc
-    # if CIM_REV  501
-    if CIM_REV < libvirtcim_rev:
-        return SKIP
 
     prev_namespace = Globals.CIM_NS
     Globals.CIM_NS = 'root/interop'

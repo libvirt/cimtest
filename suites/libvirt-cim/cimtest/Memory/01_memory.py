@@ -31,13 +31,11 @@ from XenKvmLib.classes import get_typed_class
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from CimTest.Globals import logger
 from CimTest.Globals import do_main
-from XenKvmLib.const import CIM_REV
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom = "test_domain"
 mem = 256 #MB
-mem_change_version=585
 
 @do_main(sup_types)
 def main():
@@ -45,10 +43,7 @@ def main():
     
     vsxml = get_class(options.virt)(test_dom, mem)
     vsxml.define(options.ip)
-    if CIM_REV >= mem_change_version: 
-        alloc_mem = int(vsxml.xml_get_mem())
-    else:
-        alloc_mem = int(vsxml.xml_get_mem())/1024
+    alloc_mem = int(vsxml.xml_get_mem())
     
     devid = "%s/mem" % test_dom
     key_list = { 'DeviceID' : devid,

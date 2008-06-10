@@ -49,12 +49,10 @@ from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES, do_main
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.test_xml import testxml
 from XenKvmLib.test_doms import destroy_and_undefine_all
-from XenKvmLib.const import CIM_REV
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 test_dom = "domgst"
 test_vcpus = 1
-libvirtcim_sdc_rasd_rev = 571
 
 def setup_env(server, virt="Xen"):
     status = PASS
@@ -243,26 +241,6 @@ def check_rasd_vals(inst, cn, rt, rangelist):
             logger.error("In ResourceType for %s " % rt)
             return FAIL
  
-        # The following properties have been removed in the patchset 571
-        # but is present in the rpm libvirt-cim and hence retained it.
-
-        if CIM_REV < libvirtcim_sdc_rasd_rev:
-            ppolicy = inst['PropertyPolicy']
-            if ppolicy != 0 and ppolicy != 1:
-                logger.error("In PropertyPolicy for %s " % ppolicy)
-                return FAIL
-
-            vrole  = inst['ValueRole']
-            if vrole < 0 or vrole > 4:
-                logger.error("In ValueRole %s " % vrole)
-                return FAIL
-
-            insid  = inst['InstanceID']
-            vrange = rangelist[insid]
-            if vrange != inst['ValueRange']:
-                logger.error("In ValueRange for %s " % vrange)
-                return FAIL
-
     except Exception, detail:
         logger.error("Error checking RASD attribute values %s" % detail)
         return FAIL

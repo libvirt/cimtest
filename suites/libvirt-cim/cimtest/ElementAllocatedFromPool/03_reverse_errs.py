@@ -34,7 +34,6 @@ from XenKvmLib import assoc
 from CimTest import Globals
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.common_util import try_assoc
-from XenKvmLib.const import CIM_REV
 from CimTest.ReturnCodes import PASS, FAIL	
 from CimTest.Globals import do_main, platform_sup, logger
 from XenKvmLib.vxml import get_class
@@ -60,7 +59,6 @@ expr_values = {
                                         'desc'  : 'No such instance'
                                     } 
               }
-libvirt_rev = 393
 
 def err_invalid_ccname():
 # This is used to verify the that the  
@@ -156,10 +154,6 @@ def err_invalid_keyvalue():
               get_typed_class(virt, "NetworkPool")    , \
               get_typed_class(virt, "ProcessorPool")
              ]
-
-    if CIM_REV < libvirt_rev:
-        expr_values['invalid_keyvalue']['desc'] = 'Invalid InstanceID or unsupported pool type'
-        expr_values['invalid_keyvalue']['rc'] = pywbem.CIM_ERR_FAILED
 
     for classname in sorted(lelist):
         keys = { "InstanceID" : "InvalidKeyValue" }

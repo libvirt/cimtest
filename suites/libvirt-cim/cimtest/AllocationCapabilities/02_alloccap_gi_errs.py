@@ -62,14 +62,12 @@ from XenKvmLib.test_xml import netxml
 from XenKvmLib.test_doms import create_vnet
 from CimTest.Globals import do_main, platform_sup
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.const import CIM_REV
 from XenKvmLib.common_util import cleanup_restore, test_dpath, \
 create_diskpool_file
 
 diskid = "%s/%s" % ("DiskPool", test_dpath)
 memid = "%s/%s" % ("MemoryPool", 0)
 procid = "%s/%s" % ("ProcessorPool", 0)
-rev = 463
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 @do_main(sup_types)     
@@ -112,8 +110,6 @@ def main():
                                   'desc' : 'No InstanceID specified' },
             "invalid_keyvalue" : { 'rc' : pywbem.CIM_ERR_NOT_FOUND,
                                    'desc' : 'Instance not found' }}
-    if CIM_REV < rev:
-        exp['invalid_keyvalue']['desc'] = 'Object could not be found'
 
     ret_value = try_getinstance(conn, classname, keys, field_name=field,
                                 expr_values=exp['invalid_keyvalue'], bug_no="")

@@ -54,7 +54,6 @@ from XenKvmLib import assoc
 from XenKvmLib import vxml 
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib import rasd 
-from XenKvmLib.const import CIM_REV
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib import rasd

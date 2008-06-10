@@ -33,17 +33,11 @@ from XenKvmLib.devices import CIM_Instance
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, log_param, CIM_ERROR_ENUMERATE
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
-from XenKvmLib.const import CIM_REV
 from VirtLib.live import diskpool_list, virsh_version, net_list
 from XenKvmLib.vxml import PoolXML, NetXML
 
 test_dpath = "foo"
-diskpoolconf_rev = 558
-
-if CIM_REV < diskpoolconf_rev:
-    disk_file = '/tmp/diskpool.conf'
-else:
-    disk_file = '/etc/libvirt/diskpool.conf'
+disk_file = '/etc/libvirt/diskpool.conf'
 
 back_disk_file = disk_file + "." + "backup"
 
@@ -276,11 +270,10 @@ def cleanup_restore(server, virt):
     status = PASS
     libvirt_version = virsh_version(server, virt)
     # The conf file is not present on  the machine if 
-    # libvirt_version >= 0.4.1 and CIM_REV > 558
+    # libvirt_version >= 0.4.1
     # Hence Skipping the logic to delete the new conf file
     # and just returning PASS
-    if libvirt_version >= '0.4.1' and \
-       CIM_REV > diskpoolconf_rev:
+    if libvirt_version >= '0.4.1':
         return status
     try:
         if os.path.exists(back_disk_file):
@@ -328,8 +321,7 @@ def create_diskpool(server, virt='KVM'):
 
 def create_diskpool_conf(server, virt):
     libvirt_version = virsh_version(server, virt)
-    if libvirt_version >= '0.4.1' and \
-       CIM_REV > diskpoolconf_rev:
+    if libvirt_version >= '0.4.1':
         status, dpoolname = create_diskpool(server, virt=virt)
         diskid = "%s/%s" % ("DiskPool", dpoolname)
     else:
