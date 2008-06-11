@@ -45,6 +45,7 @@ from CimTest.Globals import do_main, platform_sup
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import print_field_error
 
+platform_sup = ['Xen', 'KVM', 'XenFV', 'LXC']
 @do_main(platform_sup)
 def main():
     options = main.options
