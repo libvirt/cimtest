@@ -31,11 +31,18 @@ from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import FAIL, PASS
+from XenKvmLib import vsms_util
+from XenKvmLib.common_util import create_netpool_conf, destroy_netpool
 
 sup_types = ['Xen', 'KVM']
 default_dom = 'rstest_domain'
-nnmac = '99:aa:bb:cc:ee:ff'
-npvcpu = 2
+nmac = '99:aa:bb:cc:ee:ff'
+ntype = 'network'
+
+def cleanup_env(ip, virt, cxml, net_name):
+    destroy_netpool(ip, virt, net_name)
+    cxml.destroy(ip)
+    cxml.undefine(ip)
 
 @do_main(sup_types)
 def main():
@@ -49,51 +56,67 @@ def main():
     service = vsms.get_vsms_class(options.virt)(options.ip)
     cxml = vxml.get_class(options.virt)(default_dom)
     classname = get_typed_class(options.virt, 'VirtualSystemSettingData')
+    inst_id = '%s:%s' % (options.virt, default_dom)
     vssd_ref = CIMInstanceName(classname, keybindings = {
-                               'InstanceID' : '%s:%s' % (options.virt, default_dom),
+                               'InstanceID' : inst_id,
                                'CreationClassName' : classname})
     dasd = vsms.get_dasd_class(options.virt)(dev=nddev,
                                              source=cxml.secondary_disk_path,
                                              name=default_dom)
-    nasd = vsms.get_nasd_class(options.virt)(type='ethernet', mac=nnmac,
-                                             name=default_dom)
-    pasd = vsms.get_pasd_class(options.virt)(vcpu=npvcpu, name=default_dom)
+    disk_attr = { 'nddev' : nddev,
+                  'src_path' : cxml.secondary_disk_path
+                }
+
+    status, net_name = create_netpool_conf(options.ip, options.virt,
+                                           use_existing=False)
+    if status != PASS:
+        logger.error('Unable to create network pool')
+        return FAIL
+
+    nasd = vsms.get_nasd_class(options.virt)(type=ntype,
+                                             mac=nmac,
+                                             name=default_dom,
+                                             virt_net=net_name)
+
+    net_attr = { 'ntype' : ntype,
+                 'net_name' : net_name,
+                 'nmac' : nmac
+               }
 
     status = FAIL
-    try:
-        cxml.define(options.ip)
-        # Add disk resource setting
-        service.AddResourceSettings(AffectedConfiguration=vssd_ref, 
-                                    ResourceSettings=[str(dasd)])
-        cxml.dumpxml(options.ip)
-        disk_dev = cxml.get_value_xpath(
-                    '/domain/devices/disk/target/@dev[. = "%s"]' % nddev) 
-        if disk_dev != nddev:
-            raise Exception('Error adding rs for disk_dev')
-        logger.info('good status for disk_dev')
-        # Add net resource setting
-        service.AddResourceSettings(AffectedConfiguration=vssd_ref,
-                                    ResourceSettings=[str(nasd)])
-        cxml.dumpxml(options.ip)
-        net_mac = cxml.get_value_xpath(
-                    '/domain/devices/interface/mac/@address[. = "%s"]' % nnmac)
-        if net_mac.lower() != nnmac:
-            raise Exception('Error adding rs for net_mac')
-        logger.info('good status for net_mac')
-        # Add processor resource setting
-        service.AddResourceSettings(AffectedConfiguration=vssd_ref,
-                                    ResourceSettings=[str(pasd)])
-        cxml.dumpxml(options.ip)
-        proc_vcpu = cxml.xml_get_vcpu()
-        if int(proc_vcpu) != int(npvcpu):
-            raise Exception('Error adding rs for proc_vcpu')
-        logger.info('good status for proc_vcpu')
-        status = PASS
-    except Exception, details:
-        logger.error('Error invoking AddRS')
-        logger.error(details)
 
-    cxml.undefine(options.ip)
+    if options.virt == "KVM": 
+        test_cases = ["define"]
+    else:
+        test_cases = ["define", "start"]
+
+    for case in test_cases:
+        #Each time through, define guest using a default XML
+        cxml.undefine(options.ip)
+        cxml = vxml.get_class(options.virt)(default_dom)
+        ret = cxml.define(options.ip)
+        if not ret:
+            logger.error("Failed to define the dom: %s", default_dom)
+            cleanup_env(options.ip, options.virt, cxml, net_name)
+            return FAIL
+        if case == "start":
+            ret = cxml.start(options.ip)
+            if not ret:
+                logger.error("Failed to start the dom: %s", default_dom)
+                cleanup_env(options.ip, options.virt, cxml, net_name)
+                return FAIL
+
+        status = vsms_util.add_disk_res(options.ip, service, cxml, vssd_ref,
+                                         dasd, disk_attr)
+        if status != PASS:
+            break
+
+        status = vsms_util.add_net_res(options.ip, service, options.virt, cxml,
+                                       vssd_ref, nasd, net_attr)
+        if status != PASS:
+            break
+
+    cleanup_env(options.ip, options.virt, cxml, net_name)
 
     return status
 
