@@ -338,3 +338,12 @@ def diskpool_list(server, virt="KVM"):
             names.append(disk_pool[0])
 
     return names
+
+def virsh_vcpuinfo(server, dom, virt="Xen"):
+    cmd = "virsh -c %s vcpuinfo %s | grep VCPU | wc -l" % (utils.virt2uri(virt),
+          dom)
+    ret, out = utils.run_remote(server, cmd)
+    if out.isdigit():
+        return out
+    return None
+
