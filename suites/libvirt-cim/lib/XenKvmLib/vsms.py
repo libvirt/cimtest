@@ -183,7 +183,7 @@ class CIM_ProcResourceAllocationSettingData(CIMClassMOF):
             self.VirtualQuantity = vcpu
         
         if name != None:
-            self.InstanceID = '%s/0' % name
+            self.InstanceID = '%s/proc' % name
 
 class Xen_ProcResourceAllocationSettingData(CIM_ProcResourceAllocationSettingData):
     pass
