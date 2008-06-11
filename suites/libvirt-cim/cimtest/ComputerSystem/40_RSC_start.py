@@ -85,14 +85,14 @@ def main():
             raise Exception("Unable start dom %s using RequestedStateChange()", 
                             default_dom)
 
-        rc = check_attributes(domain_name, ip, options.virt)
+        rc = check_attributes(default_dom, options.ip, options.virt)
         if rc != 0:
             raise Exception("Attributes for %s not set as expected.",
                             default_dom)
 
     except Exception, detail:
         logger.error("Exception: %s", detail)
-        status = rc
+        status = FAIL
 
     undefine_test_domain(default_dom, options.ip, options.virt)
 
