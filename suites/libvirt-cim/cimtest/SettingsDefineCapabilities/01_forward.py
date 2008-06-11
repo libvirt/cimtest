@@ -67,6 +67,8 @@ create_netpool_conf
 from XenKvmLib.common_util import print_field_error
 from XenKvmLib.const import CIM_REV
 
+platform_sup = ['Xen', 'KVM', 'XenFV', 'LXC']
+
 memid = "%s/%s" % ("MemoryPool", 0)
 procid = "%s/%s" % ("ProcessorPool", 0)
 libvirtcim_sdc_rasd_rev = 571
@@ -93,24 +95,29 @@ def init_list(virt, dpool, npool, mpool, ppool):
         Creating the lists that will be used for comparisons.
     """
 
-    instlist = [ 
-                 dpool.InstanceID,
-                 mpool.InstanceID, 
-                 npool.InstanceID, 
-                 ppool.InstanceID
-               ]
-    cllist = [ 
-              get_typed_class(virt, "DiskResourceAllocationSettingData"),
-              get_typed_class(virt, "MemResourceAllocationSettingData"), 
-              get_typed_class(virt, "NetResourceAllocationSettingData"), 
-              get_typed_class(virt, "ProcResourceAllocationSettingData")
-             ]
-    rtype = { 
-              get_typed_class(virt, "DiskResourceAllocationSettingData") : 17, 
-              get_typed_class(virt, "MemResourceAllocationSettingData")  :  4, 
-              get_typed_class(virt, "NetResourceAllocationSettingData")  : 10, 
-              get_typed_class(virt, "ProcResourceAllocationSettingData") :  3
-             }
+    if virt == 'LXC':
+        instlist = [ mpool.InstanceID ]
+        cllist = [ get_typed_class(virt, "MemResourceAllocationSettingData") ]
+        rtype = { get_typed_class(virt, "MemResourceAllocationSettingData")  :  4 }
+    else:    
+        instlist = [ 
+                    dpool.InstanceID,
+                    mpool.InstanceID, 
+                    npool.InstanceID, 
+                    ppool.InstanceID
+                   ]
+        cllist = [ 
+                  get_typed_class(virt, "DiskResourceAllocationSettingData"),
+                  get_typed_class(virt, "MemResourceAllocationSettingData"), 
+                  get_typed_class(virt, "NetResourceAllocationSettingData"), 
+                  get_typed_class(virt, "ProcResourceAllocationSettingData")
+                 ]
+        rtype = { 
+                  get_typed_class(virt, "DiskResourceAllocationSettingData") : 17, 
+                  get_typed_class(virt, "MemResourceAllocationSettingData")  :  4, 
+                  get_typed_class(virt, "NetResourceAllocationSettingData")  : 10, 
+                  get_typed_class(virt, "ProcResourceAllocationSettingData") :  3
+                }
     rangelist = {
                   "Default"   : 0, 
                   "Minimum"   : 1, 
