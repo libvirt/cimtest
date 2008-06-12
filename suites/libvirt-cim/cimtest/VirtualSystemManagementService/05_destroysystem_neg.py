@@ -33,7 +33,7 @@ from CimTest.Globals import logger
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import FAIL, PASS, SKIP
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 vsms_status_version = 534
 
 def destroysystem_fail(tc, options):
