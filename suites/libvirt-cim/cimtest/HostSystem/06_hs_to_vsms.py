@@ -53,7 +53,7 @@ from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES, \
 CIM_ERROR_ASSOCIATORS
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 def print_err(err, detail, cn):
     logger.error(err % cn)
