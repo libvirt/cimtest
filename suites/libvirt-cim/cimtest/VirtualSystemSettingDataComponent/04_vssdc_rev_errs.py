@@ -66,7 +66,7 @@ from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import do_main, logger
 from CimTest.Globals import CIM_USER, CIM_PASS, CIM_NS
 
-sup_types = ['Xen', 'XenFV', 'KVM']
+sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
 test_dom     = "domu1"
 
@@ -121,7 +121,7 @@ def main():
     if options.virt == "Xen" or options.virt == "XenFV":
         inst_id = "Xen:%s" % test_dom
     else:
-        inst_id = "KVM:%s" % test_dom
+        inst_id = "%s:%s" % (options.virt, test_dom)
   
     name_val = ['InstanceID', inst_id]
 
