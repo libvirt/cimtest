@@ -34,7 +34,7 @@ from XenKvmLib.common_util import create_using_definesystem
 from XenKvmLib.devices import get_dom_mem_inst
 from CimTest.Globals import logger, do_main
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 default_dom = "domu"
 
 def check_mem(memInst):
