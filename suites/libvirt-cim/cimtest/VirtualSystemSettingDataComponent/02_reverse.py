@@ -57,7 +57,7 @@ from CimTest.Globals import logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.const import CIM_REV
 
-sup_types = ['Xen', 'XenFV', 'KVM']
+sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
 test_dom    = "VSSDC_dom"
 test_vcpus  = 1
@@ -143,17 +143,20 @@ def main():
     else:
         test_disk = "hdb"
     virt_xml = vxml.get_class(options.virt)
-    cxml = virt_xml(test_dom, vcpus = test_vcpus, mac = test_mac, disk = test_disk)
+    if options.virt == 'LXC':
+        cxml = virt_xml(test_dom)
+    else:
+        cxml = virt_xml(test_dom, vcpus = test_vcpus, mac = test_mac, disk = test_disk)
     ret = cxml.create(options.ip)
     if not ret:
         logger.error("Failed to create the dom: %s", test_dom)
         status = FAIL
         return status
 
-    if options.virt == "Xen" or options.virt == "XenFV":
+    if options.virt == "XenFV":
         instIdval = "Xen:%s" % test_dom
     else:
-        instIdval = "KVM:%s" % test_dom
+        instIdval = "%s:%s" % (options.virt, test_dom)
     
     try:
         assoc_info = assoc.AssociatorNames(options.ip,

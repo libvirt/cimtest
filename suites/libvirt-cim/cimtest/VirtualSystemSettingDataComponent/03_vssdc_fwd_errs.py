@@ -64,7 +64,7 @@ from CimTest.Globals import do_main, logger
 from CimTest.Globals import CIM_USER, CIM_PASS, CIM_NS
 from XenKvmLib.const import CIM_REV
 
-sup_types = ['Xen', 'XenFV', 'KVM']
+sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
 test_dom     = "domu1"
 test_mac     = "00:11:22:33:44:aa"
@@ -115,7 +115,10 @@ def main():
         test_disk = "hda"
 
     virt_xml = vxml.get_class(options.virt)
-    cxml = virt_xml(test_dom, vcpus = test_vcpus, mac = test_mac, disk = test_disk)
+    if options.virt == 'LXC':
+        cxml = virt_xml(test_dom)
+    else:
+        cxml = virt_xml(test_dom, vcpus = test_vcpus, mac = test_mac, disk = test_disk)
     ret = cxml.create(options.ip)
     if not ret:
         logger.error('Unable to create domain %s' % test_dom)
