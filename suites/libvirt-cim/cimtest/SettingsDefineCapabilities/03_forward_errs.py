@@ -37,9 +37,9 @@ from XenKvmLib.classes import get_typed_class
 
 expr_values = {
    "invalid_instid_keyname"  : { 'rc'   : pywbem.CIM_ERR_FAILED, 
-                                 'desc' : 'CIM_ERR_FAILED: Missing InstanceID'},
+                                 'desc' : 'Missing InstanceID'},
    "invalid_instid_keyvalue" : { 'rc' : pywbem.CIM_ERR_FAILED, 
-                                 'desc' : 'CIM_ERR_FAILED: Unable to determine\
+                                 'desc' : 'Unable to determine\
  resource type' },
    "invalid_ccname_keyname"  : { 'rc'   : pywbem.CIM_ERR_INVALID_PARAMETER, 
                                  'desc' : 'CIM_ERR_INVALID_PARAMETER' }
