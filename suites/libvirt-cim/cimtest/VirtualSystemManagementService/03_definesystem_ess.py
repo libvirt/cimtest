@@ -32,7 +32,7 @@ from CimTest.Globals import logger
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 exp_rc = 1 #CMPI_RC_ERR_FAILED
 exp_desc = 'Unable to parse embedded object'
 

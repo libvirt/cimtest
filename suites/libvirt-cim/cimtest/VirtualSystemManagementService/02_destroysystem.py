@@ -33,7 +33,7 @@ from CimTest.Globals import do_main
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 default_dom = 'test_domain'
 rev = 528
 
