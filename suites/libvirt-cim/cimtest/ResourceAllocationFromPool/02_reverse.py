@@ -38,7 +38,7 @@ from XenKvmLib.common_util import cleanup_restore, create_diskpool_conf, \
 create_netpool_conf
 
 
-sup_types = ['Xen', 'XenFV', 'KVM']
+sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 test_dom    = "RAFP_dom"
 test_vcpus  = 1
 test_mem    = 128
@@ -54,8 +54,11 @@ def setup_env(server, virt):
         test_disk = "hda"
 
     virtxml = get_class(virt)
-    vsxml = virtxml(test_dom, mem=test_mem, vcpus = test_vcpus,
-                    mac = test_mac, disk = test_disk)
+    if virt == 'LXC':
+        vsxml = virtxml(test_dom)
+    else:
+        vsxml = virtxml(test_dom, mem=test_mem, vcpus = test_vcpus,
+                        mac = test_mac, disk = test_disk)
     try:
         ret = vsxml.define(server)
         if not ret:
@@ -68,7 +71,7 @@ def setup_env(server, virt):
 
     return PASS, vsxml, test_disk
 
-def init_list(test_disk, diskid, test_network):
+def init_list(test_disk, diskid, test_network, virt='Xen'):
 
     if CIM_REV < proc_instid_rev:
         procid = '%s/%s' % (test_dom, 0)
@@ -92,12 +95,17 @@ def init_list(test_disk, diskid, test_network):
              'pool_id' : diskid
            }
 
-    cn_id_list = {
-                   'MemResourceAllocationSettingData'  : mem,
-                   'ProcResourceAllocationSettingData' : proc,
-                   'NetResourceAllocationSettingData'  : net,
-                   'DiskResourceAllocationSettingData' : disk
-                }
+    if virt == 'LXC':
+        cn_id_list = {
+                       'MemResourceAllocationSettingData'  : mem,
+                     }
+    else:
+        cn_id_list = {
+                       'MemResourceAllocationSettingData'  : mem,
+                       'ProcResourceAllocationSettingData' : proc,
+                       'NetResourceAllocationSettingData'  : net,
+                       'DiskResourceAllocationSettingData' : disk
+                     }
 
     return cn_id_list
 
@@ -174,7 +182,7 @@ def main():
     if status != PASS:
         return status
 
-    cn_id_list = init_list(test_disk, diskid, test_network)
+    cn_id_list = init_list(test_disk, diskid, test_network, options.virt)
 
     for rasd_cn, id_info in cn_id_list.iteritems():
         status = get_rasdinst_verify_pool_from_RAFP(server, virt, vsxml, 
