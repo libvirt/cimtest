@@ -83,7 +83,7 @@ from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS, VIRSH_ERROR_DEFI
 from CimTest.Globals import do_main
 
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 expr_values = {
     "invalid_name_keyvalue"   : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, \

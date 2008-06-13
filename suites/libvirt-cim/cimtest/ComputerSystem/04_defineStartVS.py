@@ -38,7 +38,7 @@ from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 test_dom = "domguest"
 
 @do_main(sup_types)
