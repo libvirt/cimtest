@@ -59,15 +59,17 @@
 import sys
 from VirtLib import utils
 from XenKvmLib import computersystem
-from XenKvmLib.test_xml import testxml, disk_path
-from XenKvmLib.test_doms import test_domain_function, destroy_and_undefine_all
+from XenKvmLib.vxml import get_class
+from XenKvmLib.classes import get_typed_class
+from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.assoc import Associators, AssociatorNames
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES, \
 CIM_ERROR_ASSOCIATORS
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL
+from XenKvmLib import rasd
 from XenKvmLib.rasd import verify_procrasd_values, verify_netrasd_values, \
-verify_diskrasd_values, verify_memrasd_values
+verify_diskrasd_values, verify_memrasd_values, rasd_init_list
 
 sup_types = ['Xen']
 
@@ -75,55 +77,18 @@ test_dom    = "CrossClass_GuestDom"
 test_vcpus  = 1
 test_mem    = 128
 test_mac    = "00:11:22:33:44:aa"
-test_disk   = 'xvda'
-vstype      = 'Xen'
+test_disk = "xvda"
 
-
-def rasd_init_list():
+def vssd_init_list(virt):
     """
         Creating the lists that will be used for comparisons.
     """
-    proc_rasd = {
-                         "InstanceID" : '%s/%s' %(test_dom, "proc"),\
-                       "ResourceType" : 3,\
-                }
-
-    disk_rasd = {
-                       "InstanceID"  : '%s/%s' %(test_dom, test_disk), \
-                      "ResourceType" : 17, \
-                      "Address"      : disk_path, \
-                }
-    net_rasd =  {
-                       "InstanceID"  : '%s/%s' %(test_dom,test_mac), \
-                      "ResourceType" : 10 , \
-                             "ntype1": "bridge", \
-                             "ntype2": "ethernet", \
-                }
-    mem_rasd =  {
-                       "InstanceID"  : '%s/%s' %(test_dom, "mem"), \
-                      "ResourceType" : 4, \
-                   "AllocationUnits" : "KiloBytes",\
-                   "VirtualQuantity" : (test_mem * 1024), \
-                }
-    rasd_values = {  "Xen_Processor"   : proc_rasd, \
-                     "Xen_LogicalDisk" : disk_rasd, \
-                     "Xen_NetworkPort" : net_rasd, \
-                     "Xen_Memory"      : mem_rasd 
-                  }
-    return rasd_values
-
-
-def vssd_init_list():
-    """
-        Creating the lists that will be used for comparisons.
-    """
-    
     vssd_values = { 
                       'Caption'                 : "Virtual System", \
-                      'InstanceID'              : '%s:%s' % (vstype, test_dom), \
+                      'InstanceID'              : '%s:%s' % (virt, test_dom), \
                       'ElementName'             : test_dom, \
                       'VirtualSystemIdentifier' : test_dom, \
-                      'VirtualSystemType'       : vstype, \
+                      'VirtualSystemType'       : virt, \
                       'Classname'               : "Xen_VirtualSystemSettingData"
                   } 
 
@@ -142,19 +107,23 @@ def cs_init_list(cs_dom):
                  }
     return cs_values 
 
-def setup_env(server):
+def setup_env(server, virt):
+    vsxml_info = None
     status = PASS
     destroy_and_undefine_all(server)
-    test_xml = testxml(test_dom, mem = test_mem,    \
-                                 vcpus = test_vcpus, \
-                                     mac = test_mac,  \
-                                      disk = test_disk)
+    virt_xml =  get_class(virt)
+    vsxml_info = virt_xml(test_dom, mem = test_mem,
+                          vcpus=test_vcpus,
+                          mac = test_mac,
+                          disk = test_disk)
 
-    ret = test_domain_function(test_xml, server, cmd = "create")
+    ret = vsxml_info.create(server)
     if not ret:
         logger.error("Failed to create the dom: %s", test_dom)
         status = FAIL
-    return status
+
+    return status, vsxml_info
+
 
 def print_err(err, detail, cn):
     logger.error(err % cn)
@@ -168,7 +137,7 @@ def vssd_sds_err( an, fieldname, ret_val, exp_val):
     logger.error(err)
     logger.error(detail)
 
-def get_inst_from_list(server, cn, cs_list, exp_val):
+def get_inst_from_list(server, vsxml, cn, cs_list, exp_val):
     status = PASS
     ret = -1
     inst = None 
@@ -179,12 +148,12 @@ def get_inst_from_list(server, cn, cs_list, exp_val):
 
     if ret != PASS:
         logger.error("%s with %s was not returned" % (cn, exp_val))
-        test_domain_function(test_dom, server, "destroy")
+        vsxml.destroy(server)
         status = FAIL
 
     return status, inst
 
-def get_associatornames_info(server, cn, an, qcn, name):
+def get_associatornames_info(server, vsxml, cn, an, qcn, name):
     status = PASS
     assoc_info = []
     try:
@@ -201,11 +170,11 @@ def get_associatornames_info(server, cn, an, qcn, name):
         status = FAIL
 
     if status != PASS:
-        test_domain_function(test_dom, server, "destroy")
+        vsxml.destroy(server)
 
     return status, assoc_info
 
-def get_associators_info(server, cn, an, qcn, instid):
+def get_associators_info(server, vsxml, cn, an, qcn, instid):
     status = PASS
     assoc_info = []
     try:
@@ -223,17 +192,19 @@ def get_associators_info(server, cn, an, qcn, instid):
         status = FAIL
 
     if status != PASS:
-        test_domain_function(test_dom, server, "destroy")
+        vsxml.destroy(server)
 
     return status, assoc_info
 
 def check_len(an, assoc_list_info, qcn, exp_len):
     if len(assoc_list_info) != exp_len:
-        logger.error("%s returned %i %s objects" % (an, len(assoc_list_info), qcn))
+        logger.error("%s returned %i %s objects", an, 
+                                                  len(assoc_list_info), qcn)
         return FAIL 
     return PASS 
 
-def get_setdefstate_verify_RASD_build_vssdc_input(server, sd_assoc_info):
+def get_SDS_verify_RASD_build_vssdc_input(server, virt, vsxml, 
+                                          test_disk, sd_assoc_info):
     status = PASS
     in_setting_define_state = {} 
     in_vssdc = {}
@@ -254,7 +225,12 @@ def get_setdefstate_verify_RASD_build_vssdc_input(server, sd_assoc_info):
             return FAIL, in_setting_define_state
 # Get the rasd values that will be used to compare with the Xen_SettingsDefineState
 # output.
-        rasd_values = rasd_init_list()
+        status, rasd_values, in_list = rasd_init_list(vsxml, virt, test_disk, 
+                                                      test_dom, test_mac, 
+                                                      test_mem)
+        if status != PASS:
+            return status
+
         sccn = "Xen_ComputerSystem"
         an = "Xen_SettingsDefineState"
         for cn, devid in sorted(in_setting_define_state.items()):
@@ -350,21 +326,23 @@ def verify_CS_values(assoc_info, cs_values, an, qcn):
 @do_main(sup_types)
 def main():
     server = main.options.ip
-    status = setup_env(server)
+    virt   = main.options.virt
+    status, vsxml = setup_env(server, virt)
     if status != PASS:
         return status
 
     cs_enum = computersystem.enumerate(server)
     if len(cs_enum) == 0:
-        test_domain_function(test_dom, server, "destroy")
+        vsxml.destroy(server)
         return status
     cn = cs_enum[0].CreationClassName
     status, cs_dom = get_inst_from_list(server,
+                                         vsxml,
                                             cn,
                                        cs_enum,
                                       test_dom)
     if status != PASS:
-        test_domain_function(test_dom, server, "destroy")
+        vsxml.destroy(server)
         return status
 
 # Creating the cs info list which will be used later for comparison.
@@ -372,41 +350,44 @@ def main():
     if cs_values['EnabledState'] != 2 :
         logger.error("Improper EnabledState value set for domain %s", test_dom)
         logger.error("Should have been 2 instead of %s", cs_values['EnabledState'])
-        test_domain_function(test_dom, server, "destroy")
+        vsxml.destroy(server)
         return FAIL 
     
     cn        = cs_dom.CreationClassName
     an        = 'Xen_SystemDevice'
     qcn       = 'Logical Devices'
     name      = test_dom
-    status, sd_assoc_info = get_associatornames_info(server, cn, an, qcn, name)
+    status, sd_assoc_info = get_associatornames_info(server, vsxml, 
+                                                     cn, an, qcn, name)
     if status != PASS or len(sd_assoc_info) == 0:
         return status
-    status, in_vssdc_list = get_setdefstate_verify_RASD_build_vssdc_input(server, \
-                                                                     sd_assoc_info)
+    status, in_vssdc_list = get_SDS_verify_RASD_build_vssdc_input(server, virt,
+                                                                  vsxml, test_disk,
+                                                                  sd_assoc_info)
     if status != PASS or len(in_vssdc_list) == 0 :
-        test_domain_function(test_dom, server, "destroy")
+        vsxml.destroy(server)
         return status
 # Verifying that the in_vssdc_list contains 4 entries one each for mem rasd,
 # network rasd, processor rasd and disk rasd.
     exp_len = 4
     if check_len(an, in_vssdc_list, qcn, exp_len) != PASS:
-        test_domain_function(test_dom, server, "destroy")
+        vsxml.destroy(server)
         return FAIL 
 # Get the vssd values which will be used for verifying the Xen_VirtualSystemSettingData 
 # output from the Xen_VirtualSystemSettingDataComponent results.
-    vssd_values = vssd_init_list()
+    vssd_values = vssd_init_list(virt)
     an  = 'Xen_VirtualSystemSettingDataComponent'
     qcn = 'Xen_VirtualSystemSettingData'
     for cn, instid in sorted((in_vssdc_list.items())):
-        status, vssd_assoc_info = get_associators_info(server, cn, an, qcn, instid)
+        status, vssd_assoc_info = get_associators_info(server, vsxml, cn, an, qcn,
+                                                       instid)
         if status != PASS or len(vssd_assoc_info) == 0:
             break 
         status = verify_VSSD_values(vssd_assoc_info, vssd_values, an, qcn)    
         if status != PASS:
             break
     if status != PASS:
-        test_domain_function(test_dom, server, "destroy")
+        vsxml.destroy(server)
         return status
 # Since the Xen_VirtualSystemSettingDataComponent returns similar output when queried with 
 # every RASD, we are taking the output of the last associtaion query as inputs for 
@@ -415,13 +396,13 @@ def main():
     an     = 'Xen_SettingsDefineState'
     qcn    = 'Xen_ComputerSystem'
     instid = vssd_assoc_info[0]['InstanceID']
-    status, cs_assoc_info = get_associators_info(server, cn, an, qcn, instid)
+    status, cs_assoc_info = get_associators_info(server, vsxml, cn, an, qcn, instid)
     if status != PASS or len(cs_assoc_info) == 0:
         return status
 # verify the results of Xen_SettingsDefineState with the cs_values list that was 
 # built using the output of the enumeration on Xen_ComputerSystem.
     status = verify_CS_values(cs_assoc_info, cs_values, an, qcn)
-    test_domain_function(test_dom, server, "destroy")
+    vsxml.destroy(server)
     return status
 if __name__ == "__main__":
     sys.exit(main())
