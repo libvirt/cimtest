@@ -57,7 +57,7 @@ from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES, \
 CIM_ERROR_ASSOCIATORS
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.rasd import verify_procrasd_values, verify_netrasd_values, \
-verify_diskrasd_values, verify_memrasd_values
+verify_diskrasd_values, verify_memrasd_values, rasd_init_list
 from XenKvmLib.const import CIM_REV
 
 sup_types = ['Xen', 'KVM', 'XenFV']
@@ -69,47 +69,6 @@ test_mem    = 128
 test_mac    = "00:11:22:33:44:aa"
 rev = 529
 proc_instid_rev = 590
-
-def init_list(vsxml, virt="Xen"):
-    """
-        Creating the lists that will be used for comparisons.
-    """
-    disk_path = vsxml.xml_get_disk_source()
-    proc_cn = get_typed_class(virt, "Processor")
-    mem_cn = get_typed_class(virt, "Memory")
-    net_cn = get_typed_class(virt, "NetworkPort")
-    disk_cn = get_typed_class(virt, "LogicalDisk")
-
-    rasd_values = { 
-                    proc_cn              : {
-                                             "InstanceID" : '%s/%s' %(test_dom, "proc"),
-                                             "ResourceType" : 3,
-                                            }, 
-                    disk_cn              : {
-                                             "InstanceID"  : '%s/%s' %(test_dom, test_disk), 
-                                             "ResourceType" : 17, 
-                                             "Address"      : disk_path, 
-                                            }, 
-                    net_cn               : {
-                                              "InstanceID"  : '%s/%s' %(test_dom,test_mac), 
-                                              "ResourceType" : 10 , 
-                                              "ntype1": "bridge", 
-                                              "ntype2": "ethernet", 
-                                           }, 
-                    mem_cn               : {
-                                              "InstanceID"  : '%s/%s' %(test_dom, "mem"), 
-                                              "ResourceType" : 4, 
-                                              "AllocationUnits" : "KiloBytes",
-                                              "VirtualQuantity" : (test_mem * 1024), 
-                                           }
-                  } 
-    if CIM_REV < rev:
-       rasd_values[mem_cn]['AllocationUnits'] = "MegaBytes"
-
-    if CIM_REV < proc_instid_rev:
-       rasd_values[proc_cn]['InstanceID'] = '%s/%s' %(test_dom, 0)
-
-    return rasd_values
 
 def setup_env(server, virt="Xen"):
     vsxml_info = None
@@ -185,7 +144,13 @@ def verify_RASD_values(server, sd_assoc_info, vsxml, virt="Xen"):
                 classname_keyvalue = sd_assoc_info[i]['CreationClassName']
                 deviceid =  sd_assoc_info[i]['DeviceID']
                 in_setting_define_state[classname_keyvalue] = deviceid
-        rasd_values = init_list(vsxml, virt)
+
+        status, rasd_values, in_list = rasd_init_list(vsxml, virt, 
+                                                      test_disk, test_dom, 
+                                                      test_mac, test_mem)
+        if status != PASS:
+            return status
+
         an = get_typed_class(virt, 'SettingsDefineState')
         sccn = get_typed_class(virt, 'ComputerSystem')
         for cn, devid in sorted(in_setting_define_state.items()):
