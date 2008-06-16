@@ -21,29 +21,104 @@
 #
 
 import sys
-from CimTest import Globals 
 from CimTest.Globals import log_param, logger
 from CimTest.ReturnCodes import FAIL, PASS
+from XenKvmLib.const import CIM_REV
+from XenKvmLib import vxml
+from XenKvmLib.classes import get_typed_class
+
 
 pasd_cn = 'ProcResourceAllocationSettingData'
 nasd_cn = 'NetResourceAllocationSettingData'
 dasd_cn = 'DiskResourceAllocationSettingData'
 masd_cn = 'MemResourceAllocationSettingData'
+proccn =  'Processor'
+memcn  =  'Memory'
+netcn  =  'NetworkPort'
+diskcn =  'LogicalDisk'
+
+
+mem_units_rev = 529
+proc_instid_rev = 590
+
+def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem):
+    """
+        Creating the lists that will be used for comparisons.
+    """
+    rasd_values =  { }
+    proc_cn = get_typed_class(virt, proccn)
+    mem_cn = get_typed_class(virt, memcn)
+    net_cn = get_typed_class(virt, netcn)
+    disk_cn = get_typed_class(virt, diskcn)
+
+    in_list = { 'proc'  :      proc_cn,
+                 'mem'  :      mem_cn,
+                 'net'  :      net_cn,
+                 'disk' :      disk_cn
+               }
+    try:
+
+        disk_path = vsxml.xml_get_disk_source()
+
+        if CIM_REV < mem_units_rev:
+          alloc_units  = "MegaBytes"
+        else:
+          alloc_units  = "KiloBytes"
+
+        if CIM_REV < proc_instid_rev:
+           proc_id = '%s/%s' %(t_dom, 0)
+        else:
+           proc_id = '%s/%s' %(t_dom, "proc")
+       
+
+        rasd_values = { 
+                        proc_cn  : {
+                                     "InstanceID"   : proc_id,
+                                     "ResourceType" : 3,
+                                    }, 
+                        disk_cn  : {
+                                     "InstanceID"   : '%s/%s' %(t_dom, t_disk), 
+                                     "ResourceType" : 17, 
+                                     "Address"      : disk_path, 
+                                    }, 
+                        net_cn   : {
+                                    "InstanceID"   : '%s/%s' %(t_dom, t_mac), 
+                                    "ResourceType" : 10 , 
+                                    "ntype"        : [ 'bridge', 'user',
+                                                         'network', 'ethernet'] 
+                                      }, 
+                        mem_cn   : {
+                                    "InstanceID" : '%s/%s' %(t_dom, "mem"), 
+                                    "ResourceType"    : 4, 
+                                    "AllocationUnits" : alloc_units,
+                                    "VirtualQuantity" : (t_mem * 1024),
+                                  }
+                      } 
+    except Exception, details:
+        logger.error("Exception: In fn rasd_init_list %s", details)
+        return FAIL, rasd_values, in_list
+
+    nettype   = vsxml.xml_get_net_type()
+    if not nettype in rasd_values[net_cn]['ntype']:
+        logger.info("Adding the %s net type", nettype)
+        rasd_values[net_cn]['ntype'].append(nettype)
+
+    return PASS, rasd_values, in_list
 
 def CCN_err(assoc_info, list):
-    Globals.logger.error("%s Mismatch", 'CreationClassName')
-    Globals.logger.error("Returned %s instead of %s", \
-         assoc_info['CreationClassName'], list['CreationClassName'])
+    logger.error("%s Mismatch", 'CreationClassName')
+    logger.error("Returned %s instead of %s", 
+                  assoc_info['CreationClassName'], list['CreationClassName'])
     
 def RType_err(assoc_info, list):
-    Globals.logger.error("%s Mismatch", 'ResourceType')
-    Globals.logger.error("Returned %s instead of %s", \
-         assoc_info['ResourceType'], list['ResourceType'])
+    logger.error("%s Mismatch", 'ResourceType')
+    logger.error("Returned %s instead of %s", 
+                  assoc_info['ResourceType'], list['ResourceType'])
 
 def InstId_err(assoc_info, list):
-    Globals.logger.error("%s Mismatch", 'InstanceID')
-    Globals.logger.error("Returned %s instead of %s", \
-         assoc_info['InstanceID'], list['InstanceID'])
+    logger.error("%s Mismatch", 'InstanceID')
+    logger.error("Returned %s instead of %s", 
+                  assoc_info['InstanceID'], list['InstanceID'])
 
 def verify_procrasd_values(assoc_info, procrasd_list):
     status = PASS
@@ -63,12 +138,10 @@ def verify_netrasd_values(assoc_info, netrasd_list):
     if assoc_info['ResourceType'] != netrasd_list['ResourceType']:
         RType_err(assoc_info, netrasd_list)
         status = FAIL
-    if assoc_info['NetworkType'] != netrasd_list['ntype1'] and \
-       assoc_info['NetworkType'] != netrasd_list['ntype2']:
-        Globals.logger.error("%s Mismatch", 'NetworkType')
-        Globals.logger.error("Returned %s instead of %s or %s", \
-                             assoc_info['NetworkType'], netrasd_list['ntype1'],
-                             netrasd_list['ntype2'])
+    if not assoc_info['NetworkType'] in netrasd_list['ntype']:
+        logger.error("%s Mismatch", 'NetworkType')
+        logger.error("Returned '%s' instead of returning one of %s types",
+                      assoc_info['NetworkType'], netrasd_list['ntype'])
         status = FAIL
     return status
 
@@ -81,9 +154,9 @@ def verify_diskrasd_values(assoc_info, diskrasd_list):
         RType_err(assoc_info, diskrasd_list)
         status = FAIL
     if assoc_info['Address'] != diskrasd_list['Address']:
-        Globals.logger.error("%s Mismatch", 'Address')
-        Globals.logger.error("Returned %s instead of %s ", \
-              assoc_info['Address'], diskrasd_list['Address'])
+        logger.error("%s Mismatch", 'Address')
+        logger.error("Returned %s instead of %s ", 
+                      assoc_info['Address'], diskrasd_list['Address'])
         status = FAIL
     return status
 
@@ -96,13 +169,15 @@ def verify_memrasd_values(assoc_info, memrasd_list):
         RType_err(assoc_info, memrasd_list)
         status = FAIL
     if assoc_info['AllocationUnits'] != memrasd_list['AllocationUnits']:
-        Globals.logger.error("%s Mismatch", 'AllocationUnits')
-        Globals.logger.error("Returned %s instead of %s ", \
-              assoc_info['AllocationUnits'],  memrasd_list['AllocationUnits'])
+        logger.error("%s Mismatch", 'AllocationUnits')
+        logger.error("Returned %s instead of %s ", 
+                     assoc_info['AllocationUnits'], 
+                     memrasd_list['AllocationUnits'])
         status = FAIL 
     if assoc_info['VirtualQuantity'] != memrasd_list['VirtualQuantity']:
-        Globals.logger.error("%s mismatch", 'VirtualQuantity')
-        Globals.logger.error("Returned %s instead of %s ", \
-              assoc_info['VirtualQuantity'], memrasd_list['VirtualQuantity'])
+        logger.error("%s mismatch", 'VirtualQuantity')
+        logger.error("Returned %s instead of %s ", 
+                      assoc_info['VirtualQuantity'], 
+                      memrasd_list['VirtualQuantity'])
         status = FAIL 
     return status
