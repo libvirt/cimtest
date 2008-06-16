@@ -35,6 +35,8 @@ from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from CimTest.Globals import do_main, platform_sup
 from XenKvmLib.classes import get_typed_class
 
+platform_sup = ['Xen', 'KVM', 'XenFV', 'LXC']
+
 expr_values = {
    "invalid_instid_keyname"  : { 'rc'   : pywbem.CIM_ERR_FAILED, 
                                  'desc' : 'Missing InstanceID'},
