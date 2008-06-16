@@ -37,6 +37,10 @@ from XenKvmLib import rasd
 from XenKvmLib.const import CIM_REV
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL
+from XenKvmLib import rasd
+from XenKvmLib.rasd import verify_procrasd_values, verify_netrasd_values, \
+verify_diskrasd_values, verify_memrasd_values, rasd_init_list
+
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
@@ -44,41 +48,6 @@ test_dom    = "VSSDC_dom"
 test_vcpus  = 1
 test_mem    = 128
 test_mac    = "00:11:22:33:44:aa"
-prev = 531
-mrev = 529
-
-def init_list(virt):
-    """
-        Creating the lists that will be used for comparisons.
-    """
-    proc = {
-            "InstanceID" : '%s/%s' % (test_dom, "proc"),
-            "ResourceType" : 3,
-            "CreationClassName" : get_typed_class(virt, rasd.pasd_cn)}
-    net = {
-            "InstanceID" : '%s/%s' % (test_dom,test_mac),
-            "ResourceType" : 10 ,
-            "ntype1" : "bridge",
-            "ntype2" : "ethernet",
-            "CreationClassName" : get_typed_class(virt, rasd.nasd_cn)}
-    address = vsxml.xml_get_disk_source()
-    disk = {
-            "InstanceID"  : '%s/%s' % (test_dom, test_disk),
-            "ResourceType" : 17,
-            "Address" : address,
-            "CreationClassName" : get_typed_class(virt, rasd.dasd_cn)}
-    mem = {
-            "InstanceID" : '%s/%s' % (test_dom, "mem"),
-            "ResourceType" : 4,
-            "AllocationUnits" : "KiloBytes",
-            "VirtualQuantity" : (test_mem * 1024),
-            "CreationClassName" : get_typed_class(virt, rasd.masd_cn)}
-    if CIM_REV < prev:
-        proc['InstanceID'] = '%s/0' % test_dom
-    if CIM_REV < mrev:
-        mem['AllocationUnits'] = 'MegaBytes'
-
-    return proc, net, disk, mem
 
 def get_inst_from_list(server, classname, rasd_list, filter_name, exp_val):
     status = PASS
@@ -125,7 +94,7 @@ def verify_rasd_values(rasd_values_info):
         for rasd_instance in rasd_values_info:
             CCName = rasd_instance.classname
             if rasd.pasd_cn in CCName :
-                status = rasd.verify_procrasd_values(rasd_instance, procrasd,)
+                status = rasd.verify_procrasd_values(rasd_instance, procrasd)
             elif rasd.nasd_cn in CCName :
                 status = rasd.verify_netrasd_values(rasd_instance, netrasd)
             elif rasd.dasd_cn in CCName:
@@ -159,7 +128,7 @@ def main():
         class_list = [get_typed_class(virt, rasd.masd_cn)]
     else:
         vsxml = virtxml(test_dom, mem=test_mem, vcpus = test_vcpus,
-                    mac = test_mac, disk = test_disk)
+                        mac = test_mac, disk = test_disk)
         vsxml.set_vbridge(server)
         class_list = [ get_typed_class(virt, rasd.dasd_cn),
                        get_typed_class(virt, rasd.masd_cn),
@@ -176,8 +145,17 @@ def main():
         logger.error("Exception : %s", details)
         return FAIL
     
-    status = PASS 
-    procrasd, netrasd, diskrasd, memrasd = init_list(virt)
+    status, rasd_values_list, in_list = rasd_init_list(vsxml, virt, test_disk, 
+                                                       test_dom, test_mac, 
+                                                       test_mem)
+    if status != PASS:
+        return status
+
+    procrasd =  rasd_values_list['%s'  %in_list['proc']]
+    netrasd  =  rasd_values_list['%s'  %in_list['net']]
+    diskrasd =  rasd_values_list['%s'  %in_list['disk']]
+    memrasd  =  rasd_values_list['%s'  %in_list['mem']]
+
     
     # For each loop
     # 1) Enumerate one RASD type
