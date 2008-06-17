@@ -29,7 +29,7 @@ from CimTest import Globals
 from CimTest.Globals import logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
 
-sup_types = ['Xen', 'XenFV', 'KVM']
+sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
 exp_rc = 6 #CIM_ERR_NOT_FOUND
 exp_desc = "No such instance"
@@ -42,7 +42,9 @@ def main():
 
 
     dataset = {get_typed_class(options.virt, "MemResourceAllocationSettingData") : "wrong", 
-               get_typed_class(options.virt, "ProcResourceAllocationSettingData") : "wrong"}
+               get_typed_class(options.virt, "ProcResourceAllocationSettingData") : "wrong",
+               get_typed_class(options.virt, "DiskResourceAllocationSettingData") : "wrong",
+               get_typed_class(options.virt, "NetResourceAllocationSettingData") : "wrong"}
     conn = assoc.myWBEMConnection('http://%s' % options.ip,                                        
                                   (Globals.CIM_USER, Globals.CIM_PASS),
                                   Globals.CIM_NS)

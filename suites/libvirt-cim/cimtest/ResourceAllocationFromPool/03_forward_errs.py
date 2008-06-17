@@ -29,7 +29,7 @@ from CimTest import Globals
 from CimTest.Globals import logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
 
-sup_types = ['Xen', 'XenFV', 'KVM']
+sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
 
 @do_main(sup_types)
@@ -40,7 +40,9 @@ def main():
 
 
     poollist = {get_typed_class(options.virt, "MemoryPool") : "wrong", 
-                get_typed_class(options.virt, "ProcessorPool") : "wrong"}
+                get_typed_class(options.virt, "ProcessorPool") : "wrong",
+                get_typed_class(options.virt, "DiskPool") : "wrong",
+                get_typed_class(options.virt, "NetworkPool") : "wrong"}
     conn = assoc.myWBEMConnection('http://%s' % options.ip,                                        
                                   (Globals.CIM_USER, Globals.CIM_PASS),
                                   Globals.CIM_NS)
