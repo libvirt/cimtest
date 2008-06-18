@@ -53,48 +53,68 @@ from CimTest import Globals
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import do_main, platform_sup
-from XenKvmLib.vxml import get_class
+from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class
 
 test_dom   = "RAPF_domain"
 test_mac   = "00:11:22:33:44:aa"
 test_vcpus = 1
 
-def get_unique_bridge():
-    bridge = "invalid-bridge"
-    bridge_list = live.available_bridges(server) 
-    while bridge in bridge_list:
-        bridge = bridge + str(random.randint(1, 100))
-  
-    return bridge
+def get_unique_interface(server, virt, nettype='network'):
+    interface = "wrong-int"
+    if nettype == 'bridge':
+        int_list = live.available_bridges(server) 
+    else:
+        int_list = live.net_list(server, virt)
 
-def setup_env():
+    while interface in int_list:
+        interface = interface + str(random.randint(1, 100))
+  
+    return interface
+
+def modify_net_name(server, virt, nettype, vsxml):
+    if nettype == 'bridge':
+        int_name = vsxml.xml_get_net_bridge()
+    else:
+        int_name = vsxml.xml_get_net_network()
+
+    if int_name == None:
+        devices = vsxml.get_node('/domain/devices')
+        vsxml.set_interface_details(devices, test_mac, nettype, virt)
+
+    int_name = get_unique_interface(server, virt, nettype)
+
+    if nettype == 'bridge':
+        vsxml.set_bridge_name(int_name)
+    else:
+        vsxml.set_net_name(int_name)
+
+    return vsxml
+
+def setup_env(server, virt, nettype='network'):
     vsxml_info = None
     if virt == "Xen":
         test_disk = "xvda"
     else:    
         test_disk = "hda"
 
-    virt_xml =  get_class(virt)
-    vsxml_info = virt_xml(test_dom, vcpus = test_vcpus, mac = test_mac, disk = test_disk)
+    virt_xml =  vxml.get_class(virt)
+    vsxml_info = virt_xml(test_dom, vcpus = test_vcpus, 
+                          mac = test_mac, disk = test_disk, 
+                          ntype = nettype)
 
-    bridge = vsxml_info.xml_get_net_bridge()
-    if bridge == None:
-        bridge = vsxml_info.set_vbridge(server)
+    vsxml_info = modify_net_name(server, virt, nettype, vsxml_info)
 
-# Get a bridge name that is not used by any of the virtual network pool on the machine. 
-    bridge_name = get_unique_bridge()
-
-# Assigning the bridge that does not belong to any networkpool.
-    vsxml_info.set_bridge_name(bridge_name)
     ret = vsxml_info.define(server)
     if not ret:
-        Globals.logger.error("Failed to define the dom: %s", test_dom)
+        Globals.logger.error("Failed to define the dom '%s' for '%s' type"
+                             " interface", test_dom, nettype)
         return FAIL, vsxml_info
 
     return PASS, vsxml_info
 
-def get_inst_from_list(vsxml, classname, rasd_list, filter_name, exp_val):
+def get_inst_from_list(server, vsxml, classname, rasd_list, filter_name, 
+                       exp_val):
     status = PASS
     ret = FAIL
     inst = []
@@ -112,14 +132,14 @@ def get_inst_from_list(vsxml, classname, rasd_list, filter_name, exp_val):
 
     return status, inst
 
-def get_netrasd_instid(vsxml, classname):
+def get_netrasd_instid(server, virt, vsxml, classname):
     rasd_list = []
     status = PASS
     try:
         rasd_list = enumclass.enumerate_inst(server, classname, virt)
         if len(rasd_list) < 1:
-            logger.error("%s returned %i instances, excepted atleast 1 instance", classname,
-                                                                              len(rasd_list))
+            logger.error("%s returned %i instances, excepted atleast 1 "
+                         "instance", classname, len(rasd_list))
             status = FAIL
     except Exception, detail:
         logger.error(CIM_ERROR_ENUMERATE, classname)
@@ -132,21 +152,22 @@ def get_netrasd_instid(vsxml, classname):
     # Get the RASD info related to the domain "ONLY". 
     # We should get ONLY one record.
     rasd_info = []
-    status, rasd_info = get_inst_from_list(vsxml, classname, rasd_list, "InstanceID", test_dom)
+    status, rasd_info = get_inst_from_list(server, vsxml, classname, 
+                                           rasd_list, "InstanceID", test_dom)
 
     return status, rasd_info
 
-def verify_rapf_err(vsxml):
+def verify_rapf_err(server, virt, vsxml):
     status = PASS
     try:
 
         classname  = get_typed_class(virt, 'NetResourceAllocationSettingData')
-        status, net_rasd_list = get_netrasd_instid(vsxml, classname)
+        status, net_rasd_list = get_netrasd_instid(server, virt, vsxml, classname)
         if status != PASS or len(net_rasd_list) == 0:
             return status 
         if len(net_rasd_list) != 1:
-            logger.error("%s returned %i instances, excepted atleast 1 instance", classname,
-                                                                          len(net_rasd_list))
+            logger.error("%s returned %i instances, excepted atleast 1 "
+                         "instance", classname, len(net_rasd_list))
             return FAIL
 
     
@@ -160,12 +181,14 @@ def verify_rapf_err(vsxml):
         keys = { "InstanceID" : instid }
         expr_values = { 
                         'rapf_err' : {
-                                       'desc' : "Unable to determine pool of `%s'" %instid, 
+                                       'desc' : "Unable to determine pool of " \
+                                                 "`%s'" %instid, 
                                          'rc' : pywbem.CIM_ERR_FAILED
                                      }
                       } 
-        status = try_assoc(conn, classname, assoc_classname, keys, field_name="InstanceID", 
-                                            expr_values=expr_values['rapf_err'], bug_no="")
+        status = try_assoc(conn, classname, assoc_classname, keys,
+                           field_name="InstanceID", 
+                           expr_values=expr_values['rapf_err'], bug_no="")
 
     except Exception, detail:
         logger.error("Exception: %s", detail)
@@ -175,21 +198,29 @@ def verify_rapf_err(vsxml):
 
 @do_main(platform_sup)
 def main():
-    global virt, server 
     options = main.options
     server = options.ip
     virt = options.virt
     destroy_and_undefine_all(server)
+    in_list = [ 'bridge', 'network' ]
 
-    status, vsxml = setup_env()
-    if status != PASS:
-        logger.error("Failed to setup the domain")
-        return status
+    for interface in in_list:
+        # This is req bcs virsh does not support the defining a guest 
+        # when an invalid network poolname is passed.
+        if interface == 'network' and virt != 'KVM':
+            continue
 
-    ret = verify_rapf_err(vsxml)
-    if ret: 
-        logger.error("------FAILED: to verify the RAFP.------")
-        status = ret
+        status, vsxml = setup_env(server, virt, interface)
+        if status != PASS:
+            logger.error("Failed to setup the domain")
+            vsxml.undefine(server)
+            return status
+
+        ret = verify_rapf_err(server, virt, vsxml)
+        if ret: 
+            logger.error("------FAILED: to verify the RAFP.------")
+            vsxml.undefine(server)
+            return ret
 
     vsxml.undefine(server)
     return status
