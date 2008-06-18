@@ -310,8 +310,12 @@ class VirtXML(Virsh, XMLClass):
                             bridge=bridgename)
 
     def set_nettype(self, nettype):
-        self.set_attributes('/domain/devices/interface/type', 
+        self.set_attributes('/domain/devices/interface', 
                             type=nettype)
+
+    def set_net_name(self, netname):
+        self.set_attributes('/domain/devices/interface/source',
+                            network=netname)
 
     def set_diskimg(self, diskimg):
         self.set_attributes('/domain/devices/disk/source', file=diskimg)
@@ -403,6 +407,12 @@ class VirtXML(Virsh, XMLClass):
         bridgeStr = self.get_value_xpath(
                 '/domain/devices/interface/source/@bridge')
         return bridgeStr
+
+    def xml_get_net_network(self):
+        networkStr = self.get_value_xpath(
+                '/domain/devices/interface/source/@network')
+        return networkStr
+
  
     def dumpxml(self, ip):
         cmd = 'virsh -c %s dumpxml %s' % (self.vuri, self.dname)
@@ -542,7 +552,8 @@ class XenXML(VirtXML, VirtCIM):
                        vcpus=const.default_vcpus,
                        mac=const.Xen_default_mac,
                        disk_file_path=const.Xen_disk_path,
-                       disk=const.Xen_default_disk_dev): 
+                       disk=const.Xen_default_disk_dev, 
+                       ntype=const.default_net_type): 
         if not (os.path.exists(const.Xen_kernel_path) \
                 and os.path.exists(const.Xen_init_path)):
             logger.error('ERROR: Either the kernel image '
@@ -550,10 +561,10 @@ class XenXML(VirtXML, VirtCIM):
             sys.exit(1)
         VirtXML.__init__(self, 'xen', test_dom, set_uuid(), mem, vcpus)
         self._os(const.Xen_kernel_path, const.Xen_init_path)
-        self._devices(disk_file_path, disk, const.default_net_type, mac)
+        self._devices(disk_file_path, disk, ntype, mac)
 
         VirtCIM.__init__(self, 'Xen', test_dom, disk, disk_file_path, 
-                         const.default_net_type, mac, vcpus, mem)
+                         ntype, mac, vcpus, mem)
 
     def _os(self, os_kernel, os_initrd):
         os = self.get_node('/domain/os')
@@ -595,13 +606,14 @@ class KVMXML(VirtXML):
                        vcpus=const.default_vcpus,
                        mac=const.KVM_default_mac,
                        disk_file_path=const.KVM_disk_path,
-                       disk=const.KVM_default_disk_dev):
+                       disk=const.KVM_default_disk_dev, 
+                       ntype=const.default_net_type):
         if not os.path.exists(disk_file_path):
             logger.error('Error: Disk image does not exist')
             sys.exit(1)
         VirtXML.__init__(self, 'kvm', test_dom, set_uuid(), mem, vcpus)
         self._os()
-        self._devices(const.KVM_default_emulator, const.default_net_type,
+        self._devices(const.KVM_default_emulator, ntype,
                       disk_file_path, disk, mac)
 
     def _os(self):
@@ -636,7 +648,8 @@ class XenFVXML(VirtXML):
                        vcpus=const.default_vcpus,
                        mac=const.XenFV_default_mac,
                        disk_file_path=const.XenFV_disk_path,
-                       disk=const.XenFV_default_disk_dev):
+                       disk=const.XenFV_default_disk_dev, 
+                       ntype=const.default_net_type):
         if not os.path.exists(disk_file_path):
             logger.error('Error: Disk image does not exist')
             sys.exit(1)
@@ -644,7 +657,7 @@ class XenFVXML(VirtXML):
         self._features()
         self._os(const.XenFV_default_loader)
         self._devices(const.XenFV_default_emulator,
-                      const.default_net_type, mac, disk_file_path, disk) 
+                      ntype, mac, disk_file_path, disk) 
 
     def _features(self):
         features = self.get_node('/domain/features')
