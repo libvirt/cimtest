@@ -45,7 +45,7 @@ from XenKvmLib.test_doms import undefine_test_domain
 from XenKvmLib.common_util import get_cs_instance
 from XenKvmLib.common_util import create_using_definesystem
 
-sup_types = ['Xen', 'XenFV']
+sup_types = ['Xen', 'XenFV', 'LXC']
 
 SUSPEND_STATE = 9 
 default_dom   = 'test_domain'
