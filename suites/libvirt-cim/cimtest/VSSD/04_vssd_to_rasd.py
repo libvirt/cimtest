@@ -51,8 +51,9 @@ from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib import assoc
 from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
+from XenKvmLib import rasd
 from XenKvmLib.rasd import verify_procrasd_values, verify_netrasd_values, \
-verify_diskrasd_values, verify_memrasd_values 
+verify_diskrasd_values, verify_memrasd_values, rasd_init_list
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
@@ -84,41 +85,6 @@ def setup_env(virt):
         logger.error("Exception : %s", details)
         return FAIL, vsxml_info
     return PASS, vsxml_info
-
-def init_list(virt):
-    """
-        Creating the lists that will be used for comparisons.
-    """
-    procrasd = {
-                 "InstanceID" : '%s/%s' %(test_dom, "proc"),
-                 "ResourceType" : 3,
-                 "CreationClassName": get_typed_class(virt, 'ProcResourceAllocationSettingData')
-                }
-
-    netrasd = {
-                "InstanceID"  : '%s/%s' %(test_dom,test_mac), 
-                "ResourceType" : 10 , 
-                "ntype1": "bridge", 
-                "ntype2": "ethernet", 
-                "CreationClassName": get_typed_class(virt, 'NetResourceAllocationSettingData')
-               }
-
-    address = vsxml.xml_get_disk_source()
-    diskrasd = {
-                "InstanceID"  : '%s/%s' %(test_dom, test_disk), 
-                "ResourceType" : 17, 
-                "Address"      : address, 
-                "CreationClassName": get_typed_class(virt, 'DiskResourceAllocationSettingData')
-               }
-    memrasd = {
-               "InstanceID"  : '%s/%s' %(test_dom, "mem"), 
-               "ResourceType" : 4, 
-               "AllocationUnits" : "KiloBytes",
-               "VirtualQuantity" : (test_mem * 1024), 
-               "CreationClassName": get_typed_class(virt, 'MemResourceAllocationSettingData')
-              }
-
-    return procrasd, netrasd, diskrasd, memrasd
 
 def get_inst_from_list(classname, vssd_list, filter_name, exp_val):
     status = PASS
@@ -193,7 +159,17 @@ def get_rasd_values_from_vssdc_assoc(vssd_values):
     return status, vssdc_assoc_info
 
 def verify_rasd_values(rasd_values_info):
-    procrasd, netrasd, diskrasd, memrasd = init_list(virt)
+    status, rasd_values_list, in_list = rasd_init_list(vsxml, virt, test_disk,
+                                                       test_dom, test_mac,
+                                                       test_mem)
+    if status != PASS:
+        return status
+
+    procrasd =  rasd_values_list['%s'  %in_list['proc']]
+    netrasd  =  rasd_values_list['%s'  %in_list['net']]
+    diskrasd =  rasd_values_list['%s'  %in_list['disk']]
+    memrasd  =  rasd_values_list['%s'  %in_list['mem']]
+
     try:
         for rasd_instance in rasd_values_info:
             CCName = rasd_instance.classname
