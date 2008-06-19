@@ -32,18 +32,18 @@ from XenKvmLib import devices
 from XenKvmLib.vxml import KVMXML
 from CimTest.Globals import logger
 from CimTest.Globals import do_main
-from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 
 sup_types = ['KVM']
 
 test_dom = "test_domain"
 test_mac = "00:11:22:33:44:55"
+bug = '00004'
 
 @do_main(sup_types)
 def main():
     options = main.options
-    const.KVM_default_net_type = 'user'
-    cxml = KVMXML(test_dom, mac = test_mac)
+    cxml = KVMXML(test_dom, mac = test_mac, ntype='user')
     ret = cxml.define(options.ip)
     if not ret:
         logger.error('Unable to define domain %s' % test_dom)
@@ -62,10 +62,11 @@ def main():
     except Exception, detail:
         logger.error("Exception: %s" % detail)
         cxml.undefine(options.ip)
-        return FAIL
+        return XFAIL_RC(bug)
 
-    if dev == None:
-        logger.error("Error retrieving instance for devid %s" % devid)
+    if dev.DeviceID != devid:
+        logger.error("DeviceID reported incorrectly (%s instead of %s)",
+                      dev.DeviceID, devid)
         cxml.undefine(options.ip)
         return FAIL
 
