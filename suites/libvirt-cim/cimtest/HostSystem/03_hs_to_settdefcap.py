@@ -50,14 +50,17 @@ from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.test_xml import testxml
 from XenKvmLib.test_doms import destroy_and_undefine_all
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 test_dom = "domgst"
 test_vcpus = 1
 
 def setup_env(server, virt="Xen"):
     status = PASS
     destroy_and_undefine_all(server)
-    vsxml = get_class(virt)(test_dom, vcpus=test_vcpus)
+    if virt == 'LXC':
+        vsxml = get_class(virt)(test_dom)
+    else:
+        vsxml = get_class(virt)(test_dom, vcpus=test_vcpus)
 
     ret = vsxml.define(server)
     if not ret:
@@ -113,10 +116,13 @@ def get_hostrespool(server, hostsys, clsname, virt="Xen"):
     status = PASS
     devpool = []
     
-    ccnlist = { '%s_ProcessorPool' % virt : 'Processors',
-                '%s_MemoryPool' % virt : 'KiloBytes',
-                '%s_DiskPool' % virt : 'Megabytes' ,
-                '%s_NetworkPool' % virt : None }
+    if virt == 'LXC':
+        ccnlist = { '%s_MemoryPool' % virt : 'KiloBytes'}
+    else: 
+        ccnlist = { '%s_ProcessorPool' % virt : 'Processors',
+                    '%s_MemoryPool' % virt : 'KiloBytes',
+                    '%s_DiskPool' % virt : 'Megabytes' ,
+                    '%s_NetworkPool' % virt : None }
     try:
         assoc_info = Associators(server,
                                  an1,
@@ -149,11 +155,13 @@ def get_alloccap(server, devpool, virt="Xen"):
     alloccap = []
     filter =  {"key" : "ResourceType"}
 
-
-    ccnlist = { '%s_ProcessorPool' % virt: 3,
-                '%s_MemoryPool' % virt : 4, 
-                '%s_DiskPool' % virt : 17 ,
-                '%s_NetworkPool' % virt : 10 }
+    if virt == 'LXC':
+        ccnlist = { '%s_MemoryPool' % virt : 4 }
+    else:
+        ccnlist = { '%s_ProcessorPool' % virt: 3,
+                    '%s_MemoryPool' % virt : 4, 
+                    '%s_DiskPool' % virt : 17 ,
+                    '%s_NetworkPool' % virt : 10 }
    
     for inst in devpool:
         try:
@@ -190,13 +198,16 @@ def get_rasddetails(server, alloccap, virt="Xen"):
     status = PASS
     ccn = '%s_AllocationCapabilities' % virt
     an = '%s_SettingsDefineCapabilities' % virt
-
-    rtype = {
-              "%s_DiskResourceAllocationSettingData" % virt : 17, \
-              "%s_MemResourceAllocationSettingData" % virt :  4, \
-              "%s_NetResourceAllocationSettingData" % virt : 10, \
-              "%s_ProcResourceAllocationSettingData" % virt :  3
-             }
+   
+    if virt == 'LXC':
+        rtype = { "%s_MemResourceAllocationSettingData" % virt :  4 }
+    else:
+        rtype = {
+                  "%s_DiskResourceAllocationSettingData" % virt : 17, \
+                  "%s_MemResourceAllocationSettingData" % virt :  4, \
+                  "%s_NetResourceAllocationSettingData" % virt : 10, \
+                  "%s_ProcResourceAllocationSettingData" % virt :  3
+                 }
     rangelist = {
                   "Default"   : 0, \
                   "Minimum"   : 1, \
