@@ -59,7 +59,7 @@ from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.rasd import verify_procrasd_values, verify_netrasd_values, \
 verify_diskrasd_values, verify_memrasd_values, rasd_init_list
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 
 test_dom    = "CrossClass_GuestDom"
@@ -77,10 +77,13 @@ def setup_env(server, virt="Xen"):
     else: 
         test_disk = "hda"
     virt_xml =  get_class(virt)
-    vsxml_info = virt_xml(test_dom, mem = test_mem,
-                            vcpus=test_vcpus,
-                            mac = test_mac,
-                            disk = test_disk)
+    if virt == 'LXC':
+        vsxml_info = virt_xml(test_dom)
+    else:
+        vsxml_info = virt_xml(test_dom, mem = test_mem,
+                              vcpus=test_vcpus,
+                              mac = test_mac,
+                              disk = test_disk)
     
     ret = vsxml_info.define(server)
     if not ret:
