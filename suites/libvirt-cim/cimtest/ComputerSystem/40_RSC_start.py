@@ -44,6 +44,7 @@ from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 bug = "00001"
+bug_req_state = "00002"
 
 default_dom = 'test_domain'
 REQUESTED_STATE = 2
@@ -52,7 +53,7 @@ TIME = "00000000000000.000000:000"
 def check_attributes(domain_name, ip, virt):
     rc, cs = get_cs_instance(domain_name, ip, virt)
     if rc != 0:
-        return rc 
+        return rc
 
     if cs.RequestedState != REQUESTED_STATE:
         logger.error("RequestedState should be %d not %d",
@@ -69,30 +70,33 @@ def check_attributes(domain_name, ip, virt):
 @do_main(sup_types)
 def main():
     options = main.options
-    status = PASS 
+    status = FAIL
 
     try:
         rc = create_using_definesystem(default_dom, options.ip, 
                                        virt=options.virt)
         if rc != 0:
-            raise Exception("Unable create domain %s using DefineSystem()", 
+            raise Exception("DefineSystem() failed to create domain: %s" % 
                             default_dom)
 
         rc = call_request_state_change(default_dom, options.ip, 
                                        REQUESTED_STATE, TIME, options.virt)
         if rc != 0:
-            rc = XFAIL_RC(bug)
-            raise Exception("Unable start dom %s using RequestedStateChange()", 
-                            default_dom)
+            status = XFAIL_RC(bug)
+            raise Exception("RequestedStateChange() could not be used to start"
+                            " domain: '%s'" % default_dom)
+
 
         rc = check_attributes(default_dom, options.ip, options.virt)
         if rc != 0:
-            raise Exception("Attributes for %s not set as expected.",
-                            default_dom)
+            status = XFAIL_RC(bug_req_state)
+            raise Exception("Attributes were not set as expected for "
+                            "domain: '%s'" % default_dom)
+        else:
+            status = PASS
 
     except Exception, detail:
         logger.error("Exception: %s", detail)
-        status = FAIL
 
     undefine_test_domain(default_dom, options.ip, options.virt)
 
