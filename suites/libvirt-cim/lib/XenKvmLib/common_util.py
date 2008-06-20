@@ -47,18 +47,19 @@ def print_field_error(fieldname, ret_value, exp_value):
     logger.error("Returned %s instead of %s", ret_value, exp_value)
 
 def get_cs_instance(domain_name, ip, virt='Xen'):
+    cs = None
     try:
         cs = computersystem.get_cs_class(virt)(ip, domain_name)
 
         if cs.Name != domain_name:
             logger.error("VS %s is not found" % domain_name)
-            return 1 
+            return (1, cs)
 
     except Exception, detail:
         logger.error(Globals.CIM_ERROR_GETINSTANCE, 
                      get_typed_class(virt, 'ComputerSystem'))
         logger.error("Exception: %s", detail)
-        return 1 
+        return (1, cs) 
 
     return (0, cs) 
 
