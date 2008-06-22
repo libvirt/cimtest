@@ -23,6 +23,7 @@
 import os
 import pywbem
 import random
+from time import sleep
 from distutils.file_util import move_file
 from XenKvmLib.test_xml import * 
 from XenKvmLib.test_doms import * 
@@ -135,6 +136,32 @@ def call_request_state_change(domain_name, ip, rs, time, virt='Xen'):
         return 1
 
     return 0 
+
+def poll_for_state_change(server, virt, dom, exp_state, timeout=30):
+    cs = computersystem.get_cs_class(virt)
+
+    try:
+        for i in range(1, (timeout + 1)):
+            sleep(1)
+            dom_cs = cs(server, name=dom)
+            if dom_cs is None or dom_cs.Name != dom:
+                logger.error("CS instance not returned for %s." % dom)
+                return FAIL
+
+            if dom_cs.EnabledState == exp_state:
+                break
+
+    except Exception, detail:
+        logger.error("Exception: %s" % detail)
+        return FAIL
+
+    if dom_cs.EnabledState != exp_state:
+        logger.error("EnabledState is %i instead of %i." % (dom_cs.EnabledState,
+                     exp_state))
+        logger.error("Try to increase the timeout and run the test again")
+        return FAIL
+
+    return PASS 
 
 def get_host_info(server, virt="Xen"):
     status = PASS
