@@ -24,7 +24,8 @@ import pywbem
 from CimTest import Globals
 from CimTest.ReturnCodes import FAIL, PASS
 from CimTest.Globals import logger
-from VirtLib.live import network_by_bridge, virsh_vcpuinfo
+from VirtLib.live import network_by_bridge, virsh_vcpuinfo, \
+                         get_bridge_from_network_xml
 
 def print_mod_err_msg(func_str, details):
         logger.error('Error invoking ModifyRS: %s' % func_str)
@@ -100,6 +101,66 @@ def mod_vcpu_res(server, service, cxml, pasd, ncpu, virt):
         logger.info('good status for vcpu')
     except Exception, details:
         print_mod_err_msg("mod_vcpu_res", details)
+        return FAIL
+
+    return PASS
+
+def print_add_err_msg(func_str, details):
+        logger.error('Error invoking AddRS: %s' % func_str)
+        logger.error(details)
+
+def add_disk_res(server, service, cxml, vssd_ref, dasd, attr):
+    try:
+        service.AddResourceSettings(AffectedConfiguration=vssd_ref,
+                                    ResourceSettings=[str(dasd)])
+        cxml.dumpxml(server)
+        disk_dev = cxml.get_value_xpath(
+                   '/domain/devices/disk/target/@dev[. = "%s"]' % attr['nddev'])
+        dpath = cxml.get_value_xpath(
+               '/domain/devices/disk/source/@file[. = "%s"]' % attr['src_path'])
+        if disk_dev != attr['nddev'] or dpath != attr['src_path']:
+            logger.error("Got %s, exp %s.  Got %s, exp %s" % (disk_dev, 
+                         attr['nddev'], dpath, attr['src_path']))
+            raise Exception('Error adding rs for disk_dev')
+        logger.info('good status for disk path')
+    except Exception, details:
+        print_add_err_msg("add_disk_res", details)
+        return FAIL
+
+    return PASS
+
+def add_net_res(server, service, virt, cxml, vssd_ref, nasd, attr):
+    try:
+        service.AddResourceSettings(AffectedConfiguration=vssd_ref,
+                                    ResourceSettings=[str(nasd)])
+        cxml.dumpxml(server)
+    
+        mac = cxml.get_value_xpath(
+                              '/domain/devices/interface/mac/@address[. = "%s"]'
+                              % attr['nmac'])
+
+        if virt == "KVM":
+            name = cxml.get_value_xpath(
+                           '/domain/devices/interface/source/@network[. = "%s"]'
+                           % attr['net_name'])
+            
+        else:
+            # For Xen, network interfaces are converted to bridge interfaces.
+            br = get_bridge_from_network_xml(attr['net_name'], server, virt)
+            name = cxml.get_value_xpath(
+                           '/domain/devices/interface/source/@bridge[. = "%s"]'
+                           % br)
+            if name != None:
+                name = attr['net_name']
+
+        if mac != attr['nmac'] or name != attr['net_name']:
+            logger.error("Got %s, exp %s. Got %s, exp %s." % (mac, 
+                         attr['nmac'], name, attr['net_name']))
+            raise Exception('Error adding rs for net mac')
+
+        logger.info('good status for net_mac')
+    except Exception, details:
+        print_add_err_msg("add_net_res", details)
         return FAIL
 
     return PASS
