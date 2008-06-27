@@ -26,66 +26,133 @@ import sys
 from VirtLib import utils
 from XenKvmLib import assoc
 from XenKvmLib import enumclass
-from XenKvmLib.classes import get_typed_class 
+from XenKvmLib.classes import get_typed_class
+from XenKvmLib.test_doms import destroy_and_undefine_all
+from XenKvmLib.vxml import get_class 
 from CimTest import Globals
 from CimTest.Globals import logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
+from XenKvmLib.common_util import cleanup_restore, create_diskpool_conf, \
+create_netpool_conf
 
-sup_types = ['Xen', 'XenFV', 'KVM']
+sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
+test_dom    = "RAFP_dom"
+test_vcpus  = 1
+test_mem    = 128
+test_mac    = "00:11:22:33:44:aa"
+
+def setup_env(server, virt):
+    destroy_and_undefine_all(server)
+    vsxml = None
+    if virt == "Xen":
+        test_disk = "xvda"
+    elif virt == "XenFV" or virt=="KVM":
+        test_disk = "hda"
+    else:
+        test_disk = None
+
+    virtxml = get_class(virt)
+    if virt == 'LXC':
+        vsxml = virtxml(test_dom)
+    else:
+        vsxml = virtxml(test_dom, mem=test_mem, vcpus = test_vcpus,
+                        mac = test_mac, disk = test_disk)
+    try:
+        ret = vsxml.define(server)
+        if not ret:
+            logger.error("Failed to Define the domain: %s", test_dom)
+            return FAIL, vsxml, test_disk
+
+    except Exception, details:
+        logger.error("Exception : %s", details)
+        return FAIL, vsxml, test_disk
+
+    return PASS, vsxml, test_disk
+
+def get_instance(server, pool, list, virt='Xen'):
+    try:
+        inst = enumclass.getInstance(server,
+                                     pool,
+                                     list,
+                                     virt)
+    except Exception:
+        logger.error(Globals.CIM_ERROR_GETINSTANCE  % pool)
+        return FAIL, inst
+  
+    return PASS, inst
+
+def verify_rasd(server, assoc_cn, cn, virt, list, rasd):
+    try:
+        data = assoc.AssociatorNames(server,
+                                     assoc_cn,
+                                     cn,
+                                     virt,
+                                     InstanceID=list)
+    except Exception:
+        logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % cn)
+        return FAIL
+
+    if len(data) < 1:
+        logger.error("Return NULL, expect at least one instance")
+        return FAIL
+   
+    for item in data:
+        if item['InstanceID'] == rasd[cn]:
+            logger.info("%s InstanceID match - expect %s, got %s" \
+                        % (cn, rasd[cn], item['InstanceID']))
+            return PASS 
+    logger.error("RASD instance with InstanceID %s not found" % rasd[cn])
+    return FAIL
+               
 @do_main(sup_types)
 def main():
     options = main.options
     status = PASS
 
-    try:
-        key_list = { 'InstanceID' : "MemoryPool/0" }
-        mempool = enumclass.getInstance(options.ip,
-                                        "MemoryPool",
-                                        key_list,
-                                        options.virt)
-    except Exception:
-        logger.error(Globals.CIM_ERROR_GETINSTANCE  % "MemoryPool")
-        return FAIL
+   
+    status, vsxml, test_disk = setup_env(options.ip, options.virt)
+    if status != PASS:
+        return status
+    
+    status, diskid = create_diskpool_conf(options.ip, options.virt)
+    if status != PASS:
+        cleanup_restore(options.ip, options.virt)
+        vsxml.undefine(options.ip)
+        return status
 
-    try:
-        key_list = { 'InstanceID' : "ProcessorPool/0" }
-        procpool = enumclass.getInstance(options.ip,
-                                         "ProcessorPool",
-                                         key_list,
-                                         options.virt)
-    except Exception:
-        logger.error(Globals.CIM_ERROR_GETINSTANCE % "ProcessorPool")  
-        return FAIL
-     
-    try:
-        memdata = assoc.AssociatorNames(options.ip, "ResourceAllocationFromPool",
-                                        "MemoryPool",
-                                        options.virt,
-                                        InstanceID = mempool.InstanceID)
-    except Exception:
-        logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % mempool.InstanceID)
-        status = FAIL
-     
-    for i in range(len(memdata)):
-        if memdata[i].classname != get_typed_class(options.virt, "MemResourceAllocationSettingData"):
-            logger.error("ERROR: Association result error")
-            status = FAIL
-                
-    try:
-        procdata = assoc.AssociatorNames(options.ip, "ResourceAllocationFromPool",
-                                         "ProcessorPool",
-                                         options.virt,
-                                         InstanceID = procpool.InstanceID)
-    except Exception:
-        logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % procpool.InstanceID)
-        status = FAIL
-      
-    for j in range(len(procdata)):
-        if procdata[j].classname != get_typed_class(options.virt, "ProcResourceAllocationSettingData"):
-	    logger.error("ERROR: Association result error")
-            status = FAIL
+    status, test_network = create_netpool_conf(options.ip, options.virt)
+    if status != PASS:
+        cleanup_restore(options.ip, options.virt)
+        vsxml.undefine(options.ip)
+        return status
+ 
+    if options.virt == 'LXC':
+        pool = { "MemoryPool" : {'InstanceID' : "MemoryPool/0"} }
+        rasd = { "MemoryPool" :  "%s/mem" % test_dom }
+    else:
+        pool = { "MemoryPool"    : {'InstanceID' : "MemoryPool/0"},
+                 "ProcessorPool" : {'InstanceID' : "ProcessorPool/0"},
+                 "DiskPool"      : {'InstanceID' : diskid},
+                 "NetworkPool"   : {'InstanceID' : "NetworkPool/%s" \
+                                     % test_network }}
+        rasd = { "MemoryPool"    : "%s/mem" % test_dom, 
+                 "ProcessorPool" : "%s/proc" % test_dom, 
+                 "DiskPool"      : "%s/%s" %(test_dom, test_disk), 
+                 "NetworkPool"   : "%s/%s" % (test_dom, test_mac) }
 
+    for k, v in pool.iteritems():
+        status, inst = get_instance(options.ip, k, v, options.virt) 
+        if status != PASS:
+            break 
+        status = verify_rasd(options.ip, "ResourceAllocationFromPool", 
+                             k, options.virt, inst.InstanceID,
+                             rasd)
+        if status != PASS:
+            break
+
+    cleanup_restore(options.ip, options.virt)
+    vsxml.undefine(options.ip)
     return status 
         
         
