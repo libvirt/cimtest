@@ -58,6 +58,7 @@ from XenKvmLib.test_xml import xml_get_dom_bootloader
 from CimTest import Globals 
 from XenKvmLib import assoc
 from CimTest.Globals import logger, do_main
+from CimTest.ReturnCodes import FAIL, PASS
 
 sup_types = ['Xen']
 
@@ -67,64 +68,49 @@ test_mac    = "00:11:22:33:44:aa"
 test_disk   = 'xvda'
 status      = 0
 VSType      = "Xen"
-vssd_names  = []
-vssd_values = []
 
-RASD_cllist = [
-          'Xen_DiskResourceAllocationSettingData', \
-          'Xen_MemResourceAllocationSettingData',  \
-          'Xen_NetResourceAllocationSettingData',  \
-          'Xen_ProcResourceAllocationSettingData'
-         ]
-          
 def init_list():
     """
         Creating the lists that will be used for comparisons.
     """
-    prop_list = [] 
-    prop_list = ["%s/%s"  % (test_dom, test_disk), \
-                 "%s/%s" % (test_dom, "mem"), \
-                 "%s/%s" % (test_dom, test_mac)
-                ]
-    proc_list = []
-    for i in range(test_vcpus):
-        proc_list.append("%s/%s" % (test_dom, i))
-    return prop_list, proc_list
+
+    rlist = ['Xen_DiskResourceAllocationSettingData',
+             'Xen_MemResourceAllocationSettingData',
+             'Xen_NetResourceAllocationSettingData',
+             'Xen_ProcResourceAllocationSettingData'
+            ]
+
+    prop_list = {rlist[0] : "%s/%s"  % (test_dom, test_disk),
+                 rlist[1] : "%s/%s" % (test_dom, "mem"),
+                 rlist[2] : "%s/%s" % (test_dom, test_mac),
+                 rlist[3] : "%s/%s" % (test_dom, "proc")
+                }
+
+    return prop_list
 
 def build_vssd_info(ip, vssd):
     """
         Creating the vssd fileds lists that will be used for comparisons.
     """
-    global vssd_names, vssd_values
 
     if vssd.Bootloader == "" or vssd.Caption == "" or \
       vssd.InstanceID == "" or vssd.ElementName == "" or \
       vssd.VirtualSystemIdentifier == "" or vssd.VirtualSystemType == "":
         logger.error("One of the required VSSD details seems to be empty")
-        status = 1
         test_domain_function(test_dom, ip, "undefine")
-        sys.exit(status)
+        return FAIL
  
-    vssd_names = [
-                  'Bootloader',    \
-                  'Caption',       \
-                  'InstanceID',    \
-                  'ElementName',   \
-        'VirtualSystemIdentifier', \
-              'VirtualSystemType', \
-    ]
-       
-    vssd_values = [
-                    vssd.Bootloader,  \
-                       vssd.Caption,  \
-                     vssd.InstanceID, \
-                    vssd.ElementName, \
-        vssd.VirtualSystemIdentifier, \
-              vssd.VirtualSystemType, \
-       ]
+    vssd_vals = {'Bootloader'			: vssd.Bootloader,
+                 'Caption'			: vssd.Caption,
+                 'InstanceID'			: vssd.InstanceID,
+                 'ElementName'			: vssd.ElementName,
+                 'VirtualSystemIdentifier'	: vssd.VirtualSystemIdentifier,
+                 'VirtualSystemType'		: vssd.VirtualSystemType
+                }
 
+    return vssd_vals
 
-def assoc_values(ip, assoc_info, cn):
+def assoc_values(ip, assoc_info, cn, an, vals):
     """
         The association info of 
         Xen_VirtualSystemSettingDataComponent with every RASDclass is
@@ -132,36 +118,29 @@ def assoc_values(ip, assoc_info, cn):
         Caption, InstanceID, ElementName, VirtualSystemIdentifier,
         VirtualSystemType, Bootloader
     """
-    global status
-    global vssd_names, vssd_values
 
     try: 
         if len(assoc_info) != 1:
-            Globals.logger.error("Xen_VirtualSystemSettingDataComponent \
-returned %i Resource objects for class '%s'", len(assoc_info),cn)
-            status = 1
-            return status
+            Globals.logger.error("%s returned %i resource objects for '%s'" % \
+                                 (an, len(assoc_info), cn))
+            return FAIL 
 
-        for idx in range(len(vssd_names)):
-            if assoc_info[0][vssd_names[idx]] != vssd_values[idx]:
-                Globals.logger.error("%s Mismatch", vssd_names[idx])
-                Globals.logger.error("Returned %s instead of %s", \
-                               assoc_info[0][vssd_names[idx]], \
-                                                vssd_fields[idx])
-                status = 1
-            if status != 0:
-                break
+        for prop, val in vals.iteritems():
+            if assoc_info[0][prop] != val:
+                Globals.logger.error("%s mismatch: returned %s instead of %s" %\
+                                     (prop, assoc_info[0][prop], val))
+                return FAIL
+
+        return PASS
+
     except  Exception, detail :
         logger.error("Exception in assoc_values function: %s" % detail)
-        status = 1
-        test_domain_function(test_dom, ip, "undefine")
-        return status
-
+        return FAIL 
 
 @do_main(sup_types)
 def main():
     options = main.options
-    global  status 
+    status = FAIL
 
     destroy_and_undefine_all(options.ip)
     test_xml = testxml_bl(test_dom, vcpus = test_vcpus, \
@@ -171,9 +150,7 @@ def main():
     ret = test_domain_function(test_xml, options.ip, cmd = "define")
     if not ret:
         logger.error("Failed to define the dom: %s", test_dom)
-        status = 1
-        return status
-
+        return FAIL 
 
     instIdval = "%s:%s" % (VSType, test_dom)
     keyname = "InstanceID"
@@ -183,48 +160,39 @@ def main():
         vssd = enumclass.getInstance(options.ip, \
                                     enumclass.Xen_VirtualSystemSettingData, \
                                     key_list)
-        build_vssd_info(options.ip, vssd)
+        if vssd is None:
+            logger.error("VSSD instance for %s not found" % test_dom)
+            test_domain_function(test_dom, options.ip, "undefine")
+            return FAIL
+
+        vssd_vals = build_vssd_info(options.ip, vssd)
 
     except  Exception, detail :
         logger.error(Globals.CIM_ERROR_GETINSTANCE, \
-                                            'Xen_VirtualSystemSettingData')
+                     'Xen_VirtualSystemSettingData')
         logger.error("Exception : %s" % detail)
         test_domain_function(test_dom, options.ip, "undefine")
-        status = 1
-        return status
+        return FAIL 
 
-    prop_list, proc_list = init_list() 
+    prop_list = init_list()
 
     try:
-        idx = 0
-    # Looping through the RASD_cllist, call association 
-    # Xen_VirtualSystemSettingDataComponent with each class in RASD_cllist
-        for rasd_cname in RASD_cllist:
-            if rasd_cname != 'Xen_ProcResourceAllocationSettingData':
-                assoc_info = assoc.Associators(options.ip, \
-                                     'Xen_VirtualSystemSettingDataComponent', \
-                                                                  rasd_cname, \
-                                                   InstanceID = prop_list[idx])
-             # Verify the association fields returned for particular rasd_cname.
-                assoc_values(options.ip, assoc_info, rasd_cname)
-                idx = idx + 1
-            else:
-            # Xen_ProcResourceAllocationSettingData, we need to find 
-            # association information for all the proc InstanceID and hence 
-            # we loop from 0 to (test_vcpus - 1 )
-                for index in range(len(proc_list)):  
-                    assoc_info = assoc.Associators(options.ip, \
-                                    'Xen_VirtualSystemSettingDataComponent', \
-                                                                  rasd_cname, \
-                                                  InstanceID = prop_list[index])
+        # Looping through the RASD_cllist, call association 
+        # Xen_VirtualSystemSettingDataComponent with each class in RASD_cllist
+        an = 'Xen_VirtualSystemSettingDataComponent'
+        for rasd_cname, prop in prop_list.iteritems():
+            assoc_info = assoc.Associators(options.ip, an, rasd_cname,
+                                           InstanceID = prop)
             # Verify the association fields returned for particular rasd_cname.
-                    assoc_values(options.ip, assoc_info, rasd_cname)
+            status = assoc_values(options.ip, assoc_info, rasd_cname, an, 
+                                  vssd_vals)
+            if status != PASS:
+                break
  
     except  Exception, detail :
-        logger.error(Globals.CIM_ERROR_ASSOCIATORS, \
-                                      'Xen_VirtualSystemSettingDataComponent')
+        logger.error(Globals.CIM_ERROR_ASSOCIATORS, an)
         logger.error("Exception : %s" % detail)
-        status = 1 
+        status = FAIL
 
     test_domain_function(test_dom, options.ip, "undefine")
     return status
