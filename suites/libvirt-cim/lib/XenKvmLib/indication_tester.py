@@ -81,7 +81,7 @@ def handler_xml(name, port, sysname):
                   <VALUE>%sHandler</VALUE> 
                 </PROPERTY> 
                 <PROPERTY NAME="Destination" TYPE="string"> 
-                  <VALUE>localhost:%i</VALUE> 
+                  <VALUE>http://localhost:%i</VALUE> 
                 </PROPERTY> 
               </INSTANCE> 
             </IPARAMVALUE> 
