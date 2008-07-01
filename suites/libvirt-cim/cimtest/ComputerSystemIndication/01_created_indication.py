@@ -43,10 +43,13 @@ def main():
     status = FAIL
 
     dict = set_default(options.ip)
-    indication_name = get_typed_class(options.virt, 'ComputerSystemCreatedIndication')
+    indication_name = get_typed_class(options.virt, 
+                                      'ComputerSystemCreatedIndication')
     
-    sub = CIMIndicationSubscription(dict['default_name'], indication_name, dict['default_ns'],
-                                    dict['default_print_ind'], dict['default_sysname'])
+    sub = CIMIndicationSubscription(dict['default_name'], indication_name, 
+                                    dict['default_ns'],
+                                    dict['default_print_ind'], 
+                                    dict['default_sysname'])
     sub.subscribe(dict['default_url'], dict['default_auth'])
     logger.info("Watching for %s" % indication_name)
      
@@ -56,39 +59,55 @@ def main():
             sub.server.handle_request() 
             if len(sub.server.indications) == 0:
                 logger.error("No valid indications received")
-                sys.exit(1)
+                os._exit(1)
             elif str(sub.server.indications[0]) != indication_name:
-                logger.error("Received indication %s instead of %s" % (indication_name, str(sub.server.indications[0])))
-                sys.exit(2)
+                logger.error("Received indication %s instead of %s" % \
+                             (indication_name, str(sub.server.indications[0])))
+                os._exit(2)
             else:
-                sys.exit(0)
+                os._exit(0)
         else:
-            status = create_using_definesystem(test_dom, options.ip, None, None,                     options.virt)
+            status = create_using_definesystem(test_dom, options.ip, None, None,
+                                               options.virt)
             if status != PASS:
                 sub.unsubscribe(dict['default_auth'])
                 logger.info("Cancelling subscription for %s" % indication_name)
                 os.kill(pid, signal.SIGKILL)
                 return status
 
+            status = FAIL
             for i in range(0,100):
-                pw = os.waitpid(pid, os.WNOHANG)[1]
-                if pw == 0:
+                pw = os.waitpid(pid, os.WNOHANG)
+
+                # If pid exits, waitpid returns [pid, return_code] 
+                # If pid is still running, waitpid returns [0, 0]
+                # Only return a success if waitpid returns the expected pid
+                # and the return code is 0.
+                if pw[0] == pid and pw[1] == 0:
                     logger.info("Great, got indication successfuly")
                     status = PASS
                     break
-                elif pw == 1 and i < 99:
-                    logger.info("still in child process, waiting for indication")
+                elif pw[1] == 0 and i < 99:
+                    if i % 10 == 0:
+                        logger.info("In child process, waiting for indication")
                     time.sleep(1)
                 else:
-                    logger.error("Received indication error or wait too long")
+                    status = FAIL
+           
+                    # Time is up and waitpid never returned the expected pid
+                    if pw[0] != pid:
+                        logger.error("Waited too long for indication")
+                        os.kill(pid, signal.SIGKILL)
+                    else:
+                        logger.error("Received indication error: %d" % pw[1])
                     break 
+
     except Exception, details:
             logger.error("Unknown exception happened")
             logger.error(details)
 
     sub.unsubscribe(dict['default_auth'])
     logger.info("Cancelling subscription for %s" % indication_name)
-    os.kill(pid, signal.SIGKILL)
     undefine_test_domain(test_dom, options.ip, options.virt)
 
     return status
