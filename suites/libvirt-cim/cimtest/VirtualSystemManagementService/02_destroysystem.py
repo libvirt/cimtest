@@ -35,47 +35,53 @@ from CimTest.ReturnCodes import PASS, FAIL
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 default_dom = 'test_domain'
 
+def cleanup_env(ip, cxml):
+    cxml.destroy(ip)
+    cxml.undefine(ip)
+
 @do_main(sup_types)
 def main():
     options = main.options
     
     service = vsms.get_vsms_class(options.virt)(options.ip)
     cxml = vxml.get_class(options.virt)(default_dom)
-    cxml.define(options.ip)
-    cxml.start(options.ip)
+    ret = cxml.define(options.ip)
+    if not ret:
+        logger.error("Failed to define the dom: %s", default_dom)
+        return FAIL
+    ret = cxml.start(options.ip)
+    if not ret:
+        logger.error("Failed to start the dom: %s", default_dom)
+        cleanup_env(options.ip, cxml)
+        return FAIL
 
     classname = get_typed_class(options.virt, 'ComputerSystem')
     cs_ref = CIMInstanceName(classname, keybindings = {
                                         'Name':default_dom,
                                         'CreationClassName':classname})
     list_before = domain_list(options.ip, options.virt)
-    status = PASS
-    rc = -1
+    if default_dom not in list_before:
+        logger.error("Domain not in domain list")
+        cleanup_env(options.ip, cxml)
+        return FAIL
     
     try:
         service.DestroySystem(AffectedSystem=cs_ref)
-        rc = 0
     except Exception, details:
         logger.error('Unknow exception happened')
         logger.error(details)
-        status = FAIL
+        cleanup_env(options.ip, cxml)
+        return FAIL
 
     list_after = domain_list(options.ip, options.virt)
 
-    status = PASS
-    if default_dom not in list_before:
-        logger.error("Domain not started, check config")
+    if default_dom in list_after:
+        logger.error("Domain %s not destroyed: provider didn't return error" % \
+                     default_dom)
+        cleanup_env(options.ip, cxml)
         status = FAIL
     else:
-        destroyed = set(list_before) - set(list_after)
-        if len(destroyed) != 1:
-            logger.error("Destroyed multiple domains")
-            status = FAIL
-        elif default_dom not in destroyed:
-            logger.error("Wrong domain destroyed")
-            status = FAIL
-
-    cxml.undefine(options.ip)
+        status = PASS
 
     return status
      
