@@ -42,19 +42,26 @@ dom_name = 'dom_migrate'
 def start_guest_get_ref(ip, guest_name):
     try:
         xmlfile = testxml(guest_name)   
-        define_test_domain(xmlfile, ip)
+        ret = define_test_domain(xmlfile, ip)
+        if not ret:
+            return FAIL, None
 
-        start_test_domain(guest_name, ip)
+        ret = start_test_domain(guest_name, ip)
+        if not ret:
+            return FAIL, None
+
         time.sleep(10)
     except Exception:
         logger.error("Error creating domain %s" % guest_name)
-        destroy_and_undefine_domain(guest_name, options.ip)
         return FAIL, None
 
     classname = 'Xen_ComputerSystem'
     cs_ref = CIMInstanceName(classname, keybindings = {
                                         'Name':guest_name,
                                         'CreationClassName':classname})
+
+    if cs_ref is None:
+        return FAIL, None
 
     return PASS, cs_ref
 
@@ -80,6 +87,7 @@ def main():
 
     status, cs_ref = start_guest_get_ref(options.ip, dom_name)
     if status != PASS:
+        destroy_and_undefine_domain(guest_name, options.ip)
         return FAIL
 
     guest_name = cs_ref['Name']
@@ -90,10 +98,10 @@ def main():
         return FAIL
 
     status, ret = migrate_guest_to_host(service, cs_ref, target_ip)
-
     if status == FAIL:
         logger.error("MigrateVirtualSystemToHost: unexpected list length %s"
                      % len(ret))
+        destroy_and_undefine_domain(dom_name, options.ip)
         return status 
     elif len(ret) == 2:
         id = ret[1]['Job'].keybindings['InstanceID']
@@ -102,7 +110,7 @@ def main():
                                   guest_name, local_migrate)
 
 
-    destroy_and_undefine_domain(dom_name, options.ip)   
+    destroy_and_undefine_domain(dom_name, options.ip)
 
     return status
 

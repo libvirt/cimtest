@@ -145,12 +145,11 @@ def main():
 
         logger.info("Migrating guest with the following options:")
         logger.info("%s" % item)
-        status, ret = migrate_guest_to_host(service, cs_ref, target_ip,
-                                            item)
-
+        status, ret = migrate_guest_to_host(service, cs_ref, target_ip, item)
         if status == FAIL:
             logger.error("MigrateVirtualSystemToHost: unexpected list length %s"
                          % len(ret))
+            destroy_and_undefine_domain(dom_name, options.ip)   
             return status 
         elif len(ret) == 2:
             id = ret[1]['Job'].keybindings['InstanceID']

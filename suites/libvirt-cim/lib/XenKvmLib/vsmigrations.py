@@ -95,10 +95,10 @@ def migrate_guest_to_host(service, ref, ip, msd=None):
     except Exception, details:
         logger.error("Error invoke method 'MigrateVirtualSystemToHost\'.")
         logger.error("%s", details)
+        return FAIL, ret
 
     if len(ret) == 0:
         logger.error("MigrateVirtualSystemToHost returns an empty list")
-        destroy_and_undefine_domain(test_dom, ip)
         return FAIL, ret
 
     return PASS, ret
