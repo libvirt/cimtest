@@ -51,7 +51,7 @@ sup_types = ['Xen', 'XenFV']
 ACTIVE_STATE = 2
 REBOOT_STATE = 10
 
-bug         = "00001"
+bug_req_state     = "00002"
 default_dom = 'test_domain'
 TIME        = "00000000000000.000000:000"
 
@@ -60,13 +60,15 @@ def check_attributes(domain_name, ip, en_state, rq_state, virt):
     if rc != 0:
         return rc
     if cs.RequestedState != rq_state:
-        logger.error("RequestedState should be %d not %d", \
+        logger.error("RequestedState should be %d not %d", 
                      rq_state, cs.RequestedState)
-        return FAIL
+        return XFAIL_RC(bug_req_state)
+
     if cs.EnabledState != en_state:
-        logger.error("EnabledState should be %d not %d", \
+        logger.error("EnabledState should be %d not %d", 
                      en_state, cs.EnabledState)
         return FAIL
+
     return PASS
 
 @do_main(sup_types)
@@ -96,7 +98,6 @@ def main():
             if status != PASS:
                 logger.error("Unable to %s dom %s using \
 RequestedStateChange()", action, default_dom)
-                status = XFAIL_RC(bug)
                 break
 
             # FIX ME
@@ -105,8 +106,8 @@ RequestedStateChange()", action, default_dom)
             status = check_attributes(default_dom, options.ip,
                                       en_state, rq_state, options.virt)
             if status != PASS:
-                logger.error("Attributes for dom %s not set as expected.", \
-                                                                default_dom)
+                logger.error("Attributes for dom %s not set as expected.", 
+                              default_dom)
                 break
 
     except Exception, detail:
