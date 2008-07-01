@@ -76,8 +76,9 @@ procid = "%s/%s" % ("ProcessorPool", 0)
 
 def setup_env(server):
     destroy_and_undefine_all(server)
-    test_xml, bridge = testxml_bridge(test_dom, mem = test_mem, vcpus = test_vcpus, \
-                                   mac = test_mac, disk = test_disk, server = server)
+    test_xml, bridge = testxml_bridge(test_dom, mem = test_mem, 
+                                      vcpus = test_vcpus, mac = test_mac, 
+                                      disk = test_disk, server = server)
     if bridge == None:
         logger.error("Unable to find virtual bridge")
         return SKIP
@@ -100,14 +101,6 @@ def setup_env(server):
 def print_err(err, detail, cn):
     logger.error(err % cn)
     logger.error("Exception: %s", detail)
-
-def field_err(assoc_info, field_list, fieldname):
-    logger.error("%s Mismatch", fieldname)
-    logger.error("Returned %s instead of %s", assoc_info[fieldname], field_list[fieldname])
-
-def spec_err(fieldvalue, field_list, fieldname):
-    logger.error("%s Mismatch", fieldname)
-    logger.error("Returned %s instead of %s", fieldvalue, field_list[fieldname])
 
 def pool_init_list(pool_assoc):
     """
@@ -142,14 +135,13 @@ def eapf_list():
               'SystemName'        : test_dom, 
               'CreationClassName' : "Xen_Memory", 
               'DeviceID'          : "%s/%s" % (test_dom, "mem"), 
-              'NumberOfBlocks'    : test_mem 
+              'NumberOfBlocks'    : test_mem * 1024
            }
     eaf_values = {  "Xen_Processor"   : proc, 
                     "Xen_LogicalDisk" : disk, 
                     "Xen_NetworkPort" : net, 
                     "Xen_Memory"      : mem
                   }
-    print eaf_values
     return eaf_values 
 
 def get_inst_for_dom(assoc_val):
@@ -171,7 +163,8 @@ def get_assocname_info(server, cn, an, qcn, hostname):
                        CreationClassName=cn,
                             Name = hostname)
         if len(assoc_info) < 1:
-            logger.error("%s returned %i %s objects" % (an, len(assoc_info), qcn))
+            logger.error("%s returned %i %s objects" % (an, 
+                         len(assoc_info), qcn))
             status = FAIL
 
     except Exception, detail:
@@ -186,7 +179,8 @@ def get_assocname_info(server, cn, an, qcn, hostname):
 
 def check_len(an, assoc_list_info, qcn, exp_len):
     if len(assoc_list_info) != exp_len:
-        logger.error("%s returned %i %s objects" % (an, len(assoc_list_info), qcn))
+        logger.error("%s returned %i %s objects" % (an, 
+                     len(assoc_list_info), qcn))
         return FAIL
     return PASS
 
