@@ -485,7 +485,7 @@ class VirtXML(Virsh, XMLClass):
         else:
             logger.info('No virutal network found')
             logger.info('Trying to create one ......')
-            netxml = NetXML(CIM_IP, virt_type)
+            netxml = NetXML(CIM_IP, virt=virt_type)
             ret = netxml.create_vnet()
             if not ret:
                 logger.error('Failed to create the virtual network "%s"',
