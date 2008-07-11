@@ -33,7 +33,7 @@ from CimTest import Globals
 from CimTest.Globals import do_main, logger
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen', 'KVM', 'LXC']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 @do_main(sup_types)
 def main():
