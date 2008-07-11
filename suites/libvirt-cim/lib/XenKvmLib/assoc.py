@@ -27,6 +27,8 @@ from VirtLib import utils
 import pywbem
 from pywbem.cim_obj import CIMInstanceName
 from XenKvmLib.classes import get_typed_class
+from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.Globals import logger
 
 def AssociatorNames(host, basetype, baseobj, virt="Xen", **keys):
     '''Resolve the association specified by @type, given the
@@ -138,4 +140,18 @@ def filter_by_result_class(result_list, result_class):
             new_list.append(item)
 
     return new_list
+
+def compare_all_prop(inst, exp_inst):
+    prop_vals = inst.items()
+
+    for i in range(0, len(prop_vals)):
+        key = prop_vals[i][0]
+        val = eval('exp_inst.' + key)
+
+        if prop_vals[i][1] != val:
+            logger.error("%s val mismatch: got %s, expected %s" % (key,
+                         prop_vals[i][1], val))
+            return FAIL
+
+    return PASS
 
