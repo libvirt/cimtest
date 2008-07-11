@@ -57,7 +57,7 @@ from CimTest.ReturnCodes import PASS, FAIL
 from CimTest import Globals
 from CimTest.Globals import do_main
 
-sup_types = ['Xen', 'LXC']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 expr_values = {
                 "invalid_instid_keyvalue" :  { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
