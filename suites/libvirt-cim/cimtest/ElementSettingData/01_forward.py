@@ -49,82 +49,114 @@
 
 import sys
 from VirtLib import utils
-from XenKvmLib import enumclass
-from XenKvmLib import assoc
-from XenKvmLib.classes import get_class_basename
-from CimTest import Globals
-from CimTest.Globals import do_main
+from XenKvmLib.enumclass import getInstance 
+from XenKvmLib.assoc import Associators, compare_all_prop
+from XenKvmLib.classes import get_typed_class
+from CimTest.Globals import do_main, logger, CIM_ERROR_ASSOCIATORS
+from CimTest.ReturnCodes import PASS, FAIL
+from XenKvmLib.vxml import get_class
+from XenKvmLib import const 
 
-sup_types = ['Xen', 'KVM', 'LXC']
-esd_cn = 'ElementSettingData'
-vssd_cn = 'VirtualSystemSettingData'
-vssdc_cn = 'VirtualSystemSettingDataComponent'
-rasd_cn = 'ResourceAllocationSettingData'
+sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
-def test_assoc(host, class_name, id, virt):
+test_dom = "esd_dom"
+vmac = "00:11:22:33:44:aa"
+
+def get_inst(ip, virt, cn, key):
+    inst = None 
+
     try:
-        ret_inst = assoc.AssociatorNames(host,esd_cn, class_name, virt,
-                                         InstanceID = id)
+        key_list = {"InstanceID" : key }
+
+        inst = getInstance(ip, cn, key_list, virt)
+
+    except Exception, details:
+        logger.error("Exception %s" % details)
+        return None 
+
+    if inst is None:
+        logger.error("Expected at least one %s instance" % cn)
+        return None 
+
+    return inst 
+
+
+def test_assoc(host, acn, cn, virt, inst):
+    id = inst.InstanceID
+
+    try:
+        ret_inst = Associators(host, acn, cn, virt, InstanceID=id)
+
     except Exception:
-        Globals.logger.error(Globals.CIM_ERROR_ASSOCIATORS, esd_cn)
-        return 1
+        logger.error(CIM_ERROR_ASSOCIATORS, acn)
+        return FAIL
 
     if len(ret_inst) != 1:
-        Globals.logger.error("%s returned %i %s instances", esd_cn,
-                             len(ret_inst), class_name)
-        return 1
+        logger.error("%s returned %i %s instances" % (an, len(ret_inst), cn))
+        return FAIL
 
-    ret_id = ret_inst[0].keybindings["InstanceID"]
+    ret_id = ret_inst[0]['InstanceID']
     if ret_id != id:
-        Globals.logger.error("%s returned %s instance with wrong id %s",
-                             esd_cn, class_name, ret_id) 
-        return 1
+        logger.error("%s returned %s inst with wrong id %s" % (acn, cn, ret_id))
+        return FAIL
 
-    return 0;
+    status = compare_all_prop(ret_inst[0], inst)
+
+    return status
 
 @do_main(sup_types)
 def main():
     options = main.options
 
-    try:
-        key_list = ["InstanceID"]
-        vssd_lst = enumclass.enumerate(options.ip, vssd_cn, key_list,
-                                       options.virt)
+    esd_cn = 'ElementSettingData'
 
-    except Exception, details:
-        Globals.logger.error("Exception %s", details)
-        return 1
+    if options.virt == 'XenFV':
+        virt_type = 'Xen'
+    else:
+        virt_type = options.virt
 
-    for vssd in vssd_lst:
+    keys = { 'VirtualSystemSettingData' : "%s:%s" % (virt_type, test_dom),
+             'MemResourceAllocationSettingData' : "%s/mem" % test_dom,
+           }
+               
 
-        rc = test_assoc(options.ip, vssd_cn, vssd.InstanceID, options.virt)
-        if rc != 0:
-            Globals.logger.error("Unable to get associated %s from %s",
-                                 vssd_cn, esd_cn)
-            return 1
+    if options.virt == "Xen":
+        vdisk = "xvda"
+    else:
+        vdisk = "hda"
+
+    virt_class = get_class(options.virt)
+    if options.virt == 'LXC':
+        cxml = virt_class(test_dom)
+    else:
+        cxml = virt_class(test_dom, mac = vmac, disk = vdisk)
+        keys['ProcResourceAllocationSettingData'] = "%s/proc" % test_dom
+        keys['DiskResourceAllocationSettingData'] = "%s/%s" % (test_dom, vdisk)
+        keys['NetResourceAllocationSettingData'] = "%s/%s" % (test_dom, vmac)
+               
+    ret = cxml.define(options.ip)
+    if not ret:
+        logger.error("Failed to define the dom: %s", test_dom)
+        return FAIL
+
+    inst_list = {}
+
+    for cn, k in keys.iteritems():
+        inst_list[cn] = get_inst(options.ip, options.virt, cn, k)
+        if inst_list[cn] is None:
+            cxml.undefine(options.ip)
+            return FAIL 
+
+    status = FAIL
+    for cn, inst in inst_list.iteritems():
+        status = test_assoc(options.ip, esd_cn, cn, options.virt, inst)
+        if status != PASS:
+            logger.error("Unable to get %s insts from %s" % (cn, esd_cn))
+            break
         
-        try:
-            rasd_list = assoc.Associators(options.ip, vssdc_cn, vssd_cn,
-                                          options.virt, 
-                                          InstanceID = vssd.InstanceID)
-        except Exception:
-            Globals.logger.error(Globals.CIM_ERROR_ASSOCIATORS, vssdc_cn)
-            return 1
-
-        if len(rasd_list) == 0:
-            Globals.logger.error("%s returned %i %s instances", esd_cn,
-                                 len(rasd_list), vssd_cn)
-            return 1
-
-        for rasd in rasd_list:
-            rc = test_assoc(options.ip, get_class_basename(rasd.classname),
-                            rasd["InstanceID"], options.virt)
-            if rc != 0:
-                Globals.logger.error("Unable to get associated %s from %s",
-                                     rasd_cn, esd_cn)
-                return 1
+    cxml.undefine(options.ip)
         
-    return 0
+    return status
                     
 if __name__ == "__main__":
     sys.exit(main())
