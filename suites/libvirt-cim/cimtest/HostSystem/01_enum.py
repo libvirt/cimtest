@@ -26,13 +26,11 @@
 # and verifies the hostname returned by the provider
 
 import sys
-from CimTest.Globals import do_main
 from XenKvmLib import hostsystem
 from XenKvmLib.classes import get_typed_class
 from VirtLib import live
 from VirtLib import utils
-from CimTest import Globals
-from CimTest.Globals import logger
+from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
 SUPPORTED_TYPES = ['Xen', 'KVM', 'XenFV', 'LXC']
@@ -40,22 +38,29 @@ SUPPORTED_TYPES = ['Xen', 'KVM', 'XenFV', 'LXC']
 @do_main(SUPPORTED_TYPES)
 def main():
     options = main.options
-    status = PASS
     host = live.hostname(options.ip) 
    
+    status = FAIL
     try:
         hs = hostsystem.enumerate(options.ip, options.virt)
         name = get_typed_class(options.virt, 'HostSystem')
         
-        for system in hs:
-            if system.CreationClassName != name and system.Name != host:
-                logger.error("%s Enumerate Instance error" % name)
-                status = FAIL
-            else:
-                logger.info("%s is %s" % (name, host))
+        if len(hs) != 1:
+            logger.error("Expected 1 %s instance returned" % name)
+            return FAIL
+   
+        system = hs[0]
 
-    except BaseException:
-        logger.error(Globals.CIM_ERROR_ENUMERATE % hostsystem.CIM_System)
+        if system.CreationClassName != name or system.Name != host:
+            logger.error("Exp %s, got %s" % (name, system.CreationClassName))
+            logger.error("Exp %s, got %s" % (host, system.Name))
+            status = FAIL
+        else:
+            logger.info("%s is %s" % (name, host))
+            status = PASS
+
+    except Exception, details:
+        logger.error("%s %s: %s" % (CIM_ERROR_ENUMERATE, name, details))
         status = FAIL
 
     return status
