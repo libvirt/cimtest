@@ -85,6 +85,9 @@ class Xen_LogicalDisk(CIM_LogicalDisk):
 class KVM_LogicalDisk(CIM_LogicalDisk):
     pass
 
+class LXC_LogicalDisk(CIM_LogicalDisk):
+    pass
+
 class Xen_NetworkPort(CIM_NetworkPort):
     pass
 
@@ -123,7 +126,7 @@ def enumerate(server, basetype, keys, virt='Xen'):
     try:
         names = conn.EnumerateInstanceNames(devtype.__name__)
     except pywbem.CIMError, arg:
-        print arg[1]
+        raise Exception("%s" % arg[1])
         return list
 
     for name in names:

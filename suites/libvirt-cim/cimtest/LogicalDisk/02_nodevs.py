@@ -25,21 +25,23 @@
 
 import sys
 import pywbem
-from VirtLib import utils
 from VirtLib import live
 from XenKvmLib import devices
-from XenKvmLib.classes import get_typed_class
-from XenKvmLib.vxml import XenXML, KVMXML, get_class
-from XenKvmLib.test_doms import define_test_domain, undefine_test_domain
-from XenKvmLib.test_xml import testxml
-from CimTest.Globals import logger, do_main
+from CimTest.Globals import logger, do_main, CIM_ERROR_ENUMERATE
+from CimTest.ReturnCodes import PASS, FAIL, SKIP
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom = "test_domain"
 def clean_system(host, virt='Xen'):
     l = live.domain_list(host, virt)
-    if len(l) > 1:
+
+    if virt == "XenFV" or virt == "Xen":
+        if len(l) > 1:
+            return False 
+        else:
+            return True
+    elif len(l) > 0:
         return False
     else:
         return True
@@ -49,31 +51,27 @@ def main():
     options = main.options
     if not clean_system(options.ip, options.virt):
         logger.error("System has defined domains; unable to run")
-        return 2
+        return SKIP
 
-    if options.virt == 'Xen':
-        test_dev = 'xvda'
-    else:
-        test_dev = 'hda'
+    key_list = ["DeviceID", "CreationClassName", "SystemName", 
+                "SystemCreationClassName"]
 
-    vsxml = get_class(options.virt)(test_dom, disk=test_dev)
-    ret = vsxml.define(options.ip)
-    if not ret:
-        logger.error("Failed to Define the dom: %s", test_dom)
+    cn = "LogicalDisk"
+
+    try:
+        devs = devices.enumerate(options.ip, cn, key_list, options.virt)
+
+    except Exception, details:
+        logger.error(CIM_ERROR_ENUMERATE, cn)
+        logger.error(details)
         return FAIL
 
-    devid = "%s/%s" % (test_dom, test_dev)
+    if len(devs) != 0:
+        logger.error("%s returned %d instead of empty list" % (cn, len(devs)))
+        status = FAIL
+    else:
+        status = PASS 
 
-    status = 0
-    key_list = ["DeviceID", "CreationClassName", "SystemName", "SystemCreationClassName"]
-
-    devs = devices.enumerate(options.ip, 'LogicalDisk', key_list)
-    if devs.__class__ == str:
-        logger.error("Got error instead of empty list: %s" % devs)
-        status = 1    
-
-    vsxml.undefine(options.ip)
-    
     return status
 
 if __name__ == "__main__":
