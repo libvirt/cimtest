@@ -119,6 +119,30 @@ class Xen_LogicalDisk(CIM_LogicalDevice):
 class KVM_LogicalDisk(CIM_LogicalDevice):
     pass
 
+class Xen_Memory(CIM_LogicalDevice):
+    pass 
+
+class KVM_Memory(CIM_LogicalDevice):
+    pass
+
+class LXC_Memory(CIM_LogicalDevice):
+    pass 
+
+class LXC_Memory(CIM_LogicalDevice):
+    pass
+
+class Xen_Processor(CIM_LogicalDevice):
+    pass 
+
+class KVM_Processor(CIM_LogicalDevice):
+    pass
+
+class Xen_NetworkPort(CIM_LogicalDevice):
+    pass 
+
+class KVM_NetworkPort(CIM_LogicalDevice):
+    pass
+
 class Xen_MemoryPool(CIM_ResourcePool):
     pass
 

@@ -42,165 +42,150 @@
 
 import sys
 import pywbem
-from XenKvmLib.test_xml import testxml, testxml_bridge
-from VirtLib import utils
-from XenKvmLib import assoc
-from XenKvmLib.test_doms import test_domain_function, destroy_and_undefine_all 
+from XenKvmLib.assoc import Associators
+from XenKvmLib.test_doms import destroy_and_undefine_all 
 from XenKvmLib import devices
-from CimTest import Globals
-from CimTest.Globals import do_main
-from VirtLib.live import network_by_bridge
-from CimTest.ReturnCodes import PASS, FAIL, SKIP
+from XenKvmLib.enumclass import getInstance 
+from CimTest.Globals import CIM_ERROR_ASSOCIATORS, CIM_ERROR_GETINSTANCE
+from XenKvmLib.vxml import get_class
+from XenKvmLib.common_util import create_diskpool_conf, cleanup_restore
+from XenKvmLib.classes import get_typed_class
+from XenKvmLib.logicaldevices import field_err
+from CimTest.Globals import do_main, logger
+from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom = "hd_domain"
 test_mac = "00:11:22:33:44:aa"
 test_vcpus = 1 
-test_disk = 'xvda'
 
+def get_inst(server, virt, cn, key_list):
+    inst = None 
+    try:
+        inst = getInstance(server, cn, key_list, virt)
 
-def print_error(cn, detail):
-    Globals.logger.error(Globals.CIM_ERROR_GETINSTANCE, cn)
-    Globals.logger.error("Exception: %s", detail)
+    except Exception, details:
+        logger.error("Exception %s" % details)
+        return None 
 
-def get_keys(cn, device_id):
-    id = "%s/%s" % (test_dom, device_id)
+    if inst is None:
+        logger.error("Expected at least one %s instance" % cn)
+        return None 
 
-    key_list = { 'DeviceID' : id,
-                 'CreationClassName' : cn,
-                 'SystemName' : test_dom,
-                 'SystemCreationClassName' : "Xen_ComputerSystem"
-               }
+    return inst 
 
-    return key_list
+def get_pool_details(server, virt, vsxml, diskid):
+    gi_inst_list = {}
+    inst = None
+    if virt != 'LXC':
+        virt_network = vsxml.xml_get_net_network()
+        keys  = {
+                    'DiskPool'      : diskid,
+                    'ProcessorPool' : 'ProcessorPool/0' ,
+                    'MemoryPool'    : 'MemoryPool/0',
+                    'NetworkPool'   : 'NetworkPool/%s' %virt_network
+                }
+    else:
+        keys  = {
+                    'MemoryPool'    : 'MemoryPool/0',
+                }
+
+    for cn, k in keys.iteritems():
+        key_list = {"InstanceID" : k}
+        inst = get_inst(server, virt, cn, key_list)
+        if inst is None:
+            cleanup_restore(server, virt)
+            vsxml.destroy(server)
+            return FAIL, gi_inst_list 
+        cn = get_typed_class(virt, cn)
+        gi_inst_list[cn] = { 'InstanceID' : inst.InstanceID, 
+                             'PoolID'     : inst.PoolID
+                           }
+    return PASS, gi_inst_list 
+
+def verify_eafp_values(server, virt, in_pllist, gi_inst_list):
+    # Looping through the in_pllist to get association for devices.
+    an = get_typed_class(virt, "ElementAllocatedFromPool")
+    sccn = get_typed_class(virt, "ComputerSystem")
+    for cn,  devid in sorted(in_pllist.iteritems()):
+        try:
+            assoc_info = Associators(server, an, cn, 
+                                     DeviceID = devid, 
+                                     CreationClassName = cn, 
+                                     SystemName = test_dom,
+                                     SystemCreationClassName = sccn, 
+                                     virt=virt)
+            if len(assoc_info) != 1:
+                logger.error("%s returned %i ResourcePool objects for "
+                             "domain '%s'", an, len(assoc_info), 
+                             test_dom)
+                return FAIL
+            assoc_eafp_info = assoc_info[0] 
+            CCName = assoc_eafp_info.classname
+            gi_inst = gi_inst_list[CCName]
+            if assoc_eafp_info['InstanceID'] != gi_inst['InstanceID']:
+                field_err(assoc_eafp_info, gi_inst, 'InstanceID')
+                return FAIL
+            if assoc_eafp_info['PoolID'] != gi_inst['PoolID']:
+                field_err(assoc_eafp_info, gi_inst, 'PoolID')
+                return FAIL
+        except Exception, detail:
+            logger.error(CIM_ERROR_ASSOCIATORS, an)
+            logger.error("Exception: %s", detail)
+            cleanup_restore(server, virt)
+            return FAIL
+    return PASS
+
 
 @do_main(sup_types)
 def main():
     options = main.options
-    status = PASS
-    idx = 0
+    server = options.ip
+    virt = options.virt 
+    if virt == 'Xen':
+        test_disk = 'xvda'
+    else:
+        test_disk = 'hda'
 
-# Getting the VS list and deleting the test_dom if it already exists.
-    destroy_and_undefine_all(options.ip)
+    # Getting the VS list and deleting the test_dom if it already exists.
+    destroy_and_undefine_all(server)
+    virt_type = get_class(virt)
+    if virt == 'LXC':
+        vsxml = virt_type(test_dom)
+    else:
+        vsxml = virt_type(test_dom, vcpus = test_vcpus, mac = test_mac,
+                       disk = test_disk)
 
-    test_xml, bridge = testxml_bridge(test_dom, vcpus = test_vcpus, \
-                                      mac = test_mac, disk = test_disk, \
-                                      server = options.ip)
-    if bridge == None:
-        Globals.logger.error("Unable to find virtual bridge")
-        return SKIP 
-
-    if test_xml == None:
-        Globals.logger.error("Guest xml not created properly")
-        return FAIL 
-
-    virt_network = network_by_bridge(bridge, options.ip)
-    if virt_network == None:
-        Globals.logger.error("No virtual network found for bridge %s", bridge)
-        return SKIP 
-
-    ret = test_domain_function(test_xml, options.ip, cmd = "create")
+    # Verify DiskPool on machine
+    status, diskid = create_diskpool_conf(server, virt)
+    if status != PASS:
+        return status
+    ret = vsxml.create(server)
     if not ret:
-        Globals.logger.error("Failed to Create the dom: %s", test_dom)
+        logger.error("Failed to Create the dom: '%s'", test_dom)
         return FAIL
-
-    try: 
-        cn = "Xen_LogicalDisk"
-        key_list = get_keys(cn, test_disk)
-        disk = devices.Xen_LogicalDisk(options.ip, key_list)
-    except Exception,detail:
-        print_error(cn, detail)
-        return FAIL
-
-    try: 
-        cn = "Xen_Memory"
-        key_list = get_keys(cn, "mem")
-        mem = devices.Xen_Memory(options.ip, key_list)
-    except Exception,detail:
-        print_error(cn, detail)
-        return FAIL
-
-    try:
-        cn = "Xen_NetworkPort"
-        key_list = get_keys(cn, test_mac)
-        net = devices.Xen_NetworkPort(options.ip, key_list)
-    except Exception,detail:
-        print_error(cn, detail)
-        return FAIL
-
-    try: 
-        cn = "Xen_Processor"
-        key_list = get_keys(cn, "0")
-        proc = devices.Xen_Processor(options.ip, key_list)
-    except Exception,detail:
-        print_error(cn, detail)
-        return FAIL
-
-    netpool_id = "NetworkPool/%s" % virt_network
-
-    lelist = {
-              "Xen_LogicalDisk" : disk.DeviceID, \
-              "Xen_Memory"      : mem.DeviceID, \
-              "Xen_NetworkPort" : net.DeviceID, \
-              "Xen_Processor"   : proc.DeviceID 
+    
+    mem_cn  = get_typed_class(virt, "Memory")
+    ldlist = {
+                 mem_cn      : "%s/%s" % (test_dom, "mem"),
              }
-    poollist = [  
-              "Xen_DiskPool", \
-              "Xen_MemoryPool", \
-              "Xen_NetworkPool", \
-              "Xen_ProcessorPool"
-             ]
-    poolval = [ 
-               "DiskPool/foo", \
-               "MemoryPool/0", \
-               netpool_id, \
-               "ProcessorPool/0"
-             ]
 
-    sccn = "Xen_ComputerSystem"
-    for cn, devid in sorted(lelist.items()):
-        try:
-            assoc_info = assoc.Associators(options.ip, \
-                                           "Xen_ElementAllocatedFromPool",
-                                           cn,
-                                           DeviceID = devid,
-                                           CreationClassName = cn,
-                                           SystemName = test_dom,
-                                           SystemCreationClassName = sccn)
-            if len(assoc_info) != 1:
-                Globals.logger.error("Xen_ElementAllocatedFromPool returned %i\
- ResourcePool objects for domain '%s'", len(assoc_info), test_dom)
-                status = FAIL
-                break
+    if virt != 'LXC':
+        disk_cn = get_typed_class(virt, "LogicalDisk") 
+        net_cn  = get_typed_class(virt, "NetworkPort")
+        proc_cn =  get_typed_class(virt, "Processor")
+        ldlist[disk_cn] = "%s/%s" % (test_dom, test_disk)
+        ldlist[net_cn]  = "%s/%s" % (test_dom, test_mac)
+        ldlist[proc_cn] = "%s/%s" % (test_dom, "0")
 
-            if assoc_info[0].classname != poollist[idx]:
-                Globals.logger.error("Classname Mismatch")
-                Globals.logger.error("Returned %s instead of %s", \
-                                      assoc_info[0].classname, \
-                                       poollist[idx])
-                status = FAIL
-                
-            if assoc_info[0]['InstanceID'] !=  poolval[idx]: 
-                Globals.logger.error("InstanceID Mismatch")
-                Globals.logger.error("Returned %s instead of %s", \
-                                      assoc_info[0]['InstanceID'], \
-                                      poolval[idx])
-                status = FAIL
-
-            if status != PASS:
-                break
-            else:
-               idx = idx + 1
-
-        except Exception, detail:
-            Globals.logger.error(Globals.CIM_ERROR_ASSOCIATORS, \
-                                  'Xen_ElementAllocatedFromPool')
-            Globals.logger.error("Exception: %s", detail)
-            status = FAIL
-
-    ret = test_domain_function(test_dom, options.ip, \
-                                                   cmd = "destroy")
+    status, gi_inst_list = get_pool_details(server, virt, vsxml, diskid)
+    if status != PASS:
+        return status
+     
+    status = verify_eafp_values(server, virt, ldlist, gi_inst_list)
+    cleanup_restore(server, virt)
+    vsxml.destroy(server)
     return status
     
 if __name__ == "__main__":
