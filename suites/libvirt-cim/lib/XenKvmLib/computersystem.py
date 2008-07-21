@@ -85,7 +85,7 @@ def enumerate(server, virt='Xen'):
     try:
         instances = conn.EnumerateInstances(classname)
     except pywbem.CIMError, arg:
-        print arg[1]
+        raise Exception(arg[1])
         return []
 
     list = []

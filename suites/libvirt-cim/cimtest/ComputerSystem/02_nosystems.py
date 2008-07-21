@@ -27,15 +27,15 @@ import pywbem
 from XenKvmLib import computersystem
 from VirtLib import live
 from VirtLib import utils
-from CimTest.Globals import logger
+from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 
-sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
+sup_types = ['KVM', 'LXC']
 
 def clean_system(host, virt):
     l = live.domain_list(host, virt)
-    if len(l) > 1:
+    if len(l) > 0:
         return False
     else:
         return True
@@ -43,19 +43,28 @@ def clean_system(host, virt):
 @do_main(sup_types)
 def main():
     options = main.options
+
     if not clean_system(options.ip, options.virt):
         logger.error("System has defined domains; unable to run")
         return SKIP 
 
-    status = PASS
+    cn = "%s_ComputerSystem" % options.virt
 
-    cs = computersystem.enumerate(options.ip, options.virt)
+    try:
+        cs = computersystem.enumerate(options.ip, options.virt)
 
-    if cs.__class__ == str:
-        logger.error("Got error instead of empty list: %s" % cs)
+    except Exception, details:
+        logger.error(CIM_ERROR_ENUMERATE, cn)
+        logger.error(details)
+        return FAIL
+    
+    if len(cs) != 0:
+        logger.error("%s returned %d instead of empty list" % (cn, len(cs)))
         status = FAIL
+    else:
+        status = PASS
 
-    return status
+    return status 
 
 if __name__ == "__main__":
     sys.exit(main())
