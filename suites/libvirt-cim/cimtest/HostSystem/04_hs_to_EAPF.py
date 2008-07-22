@@ -58,8 +58,7 @@ from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from XenKvmLib.test_xml import testxml_bridge
 from XenKvmLib.test_doms import test_domain_function, destroy_and_undefine_all
 from VirtLib.live import network_by_bridge
-from XenKvmLib.logicaldevices import verify_proc_values, verify_mem_values, \
-verify_net_values, verify_disk_values
+from XenKvmLib.logicaldevices import verify_device_values
 from XenKvmLib.common_util import cleanup_restore, test_dpath, \
 create_diskpool_file
 
@@ -185,12 +184,12 @@ def check_len(an, assoc_list_info, qcn, exp_len):
     return PASS
 
 def verify_eafp_values(server, in_pllist):
-# Looping through the in_pllist to get association for various pools.
+    # Looping through the in_pllist to get association for various pools.
     status = PASS
     an = "Xen_ElementAllocatedFromPool"
     exp_len = 1
     qcn = "Logical Devices"
-    eapf_values = eapf_list()
+    eafp_values = eapf_list()
     for cn,  instid in sorted(in_pllist.items()):
         try:
             assoc_info = Associators(server, an, cn, InstanceID = instid)  
@@ -200,18 +199,12 @@ def verify_eafp_values(server, in_pllist):
                 break
             assoc_eafp_info = inst_list[0] 
             CCName = assoc_eafp_info['CreationClassName']
-            if  CCName == 'Xen_Processor':
-                status = verify_proc_values(assoc_eafp_info, eapf_values)
-            elif CCName == 'Xen_NetworkPort':
-                status  = verify_net_values(assoc_eafp_info, eapf_values)
-            elif CCName == 'Xen_LogicalDisk':
-                status = verify_disk_values(assoc_eafp_info, eapf_values)
-            elif CCName == 'Xen_Memory':
-                status  = verify_mem_values(assoc_eafp_info, eapf_values)
-            else:
-                status = FAIL
+            status = verify_device_values(assoc_eafp_info, CCName, 
+                                          eafp_values, virt='Xen')
+
             if status != PASS:
-                break
+                return status
+
         except Exception, detail:
             logger.error(CIM_ERROR_ASSOCIATORS, an)
             logger.error("Exception: %s", detail)
