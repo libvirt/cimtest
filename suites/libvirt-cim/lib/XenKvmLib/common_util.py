@@ -66,8 +66,8 @@ def get_cs_instance(domain_name, ip, virt='Xen'):
 
     return (0, cs) 
 
-def create_using_definesystem(domain_name, ip, 
-                              params=None, exp_err=None, virt='Xen'):
+def create_using_definesystem(domain_name, ip, params=None, ref_config=' ', 
+                              exp_err=None, virt='Xen'):
     bug = "85673"
     try:
         class_vsms = eval('vsms.' + \
@@ -91,7 +91,7 @@ def create_using_definesystem(domain_name, ip,
 
         service.DefineSystem(SystemSettings=vssd,
                              ResourceSettings=rasd,
-                             ReferenceConfiguration=' ')
+                             ReferenceConfiguration=ref_config)
     except pywbem.CIMError, (rc, desc):
         if rc == exp_rc and desc.find(exp_desc) >= 0:
             logger.info('Got expected rc code and error string.')

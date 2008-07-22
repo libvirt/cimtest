@@ -268,10 +268,14 @@ def default_vssd_rasd_str(dom_name='test_domain',
         return vssd.mof(), [d.mof(), m.mof()]
     
     class_nasd = get_nasd_class(virt)
-    if virt == 'KVM':
+    if net_mac != const.Xen_default_mac:
+        pass
+    elif virt == 'KVM':
         net_mac= const.KVM_default_mac
     elif virt == 'XenFV':
         net_mac = const.XenFV_default_mac
+    elif virt == 'LXC':
+        net_mac = const.LXC_default_mac
     n = class_nasd(
                 type=net_type, 
                 mac=net_mac,
