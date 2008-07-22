@@ -20,63 +20,98 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 #
+# This test verifies the enum of AC returns the same number of instances as 
+# the number of instances returned by enum of:
+#                          MemoryPool + ProcessorPool + DiskPool + NetworkPool. 
+#
 
 import sys
+from VirtLib.live import virsh_version
 from XenKvmLib import enumclass
 from CimTest.Globals import do_main
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, platform_sup
 from CimTest.ReturnCodes import PASS, FAIL
+from XenKvmLib.common_util import cleanup_restore, create_diskpool_conf, \
+                                  create_netpool_conf, destroy_netpool
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
+
+def enum_pools_and_ac(ip, virt, cn):
+    pools = {}
+    ac = []
+
+    pt = ['MemoryPool', 'ProcessorPool', 'DiskPool', 'NetworkPool']
+
+    try:
+        key = ["InstanceID"]
+        ac = enumclass.enumerate(ip, cn, key, virt)
+
+        for p in pt:
+            enum_list = enumclass.enumerate(ip, p, key, virt)
+
+            if len(enum_list) < 1:
+                logger.error("%s did not return any instances" % p)
+                return pools, ac 
+
+            for pool in enum_list:
+                pools[pool.InstanceID] = pool 
+
+    except Exception, details:
+        logger.error(CIM_ERROR_ENUMERATE, cn)
+        logger.error(details)
+        return pools, ac 
+
+    if len(ac) != len(pools):
+        logger.error("%s returned %s instances, expected %s" % (cn, len(ac), 
+                     len(pools)))
+    return pools, ac 
+
+def compare_pool_to_ac(ac, pools, cn):
+    try:
+        for inst in ac:
+            id = inst.InstanceID
+            if pools[id].ResourceType != inst.ResourceType:
+                logger.error("%s ResourceType %s, Pool ResourceType %s" % (cn,
+                             inst.ResourceType, pools[id].ResourceType))
+                return FAIL
+
+    except Exception, details:
+        logger.error("%s returned instance with unexpected InstanceID %s" % (cn,
+                     details))
+        return FAIL
+
+    return PASS
+
 @do_main(sup_types)
 def main():
     options = main.options
 
-    pools = {}
-    pt = ['MemoryPool', 'ProcessorPool', 'DiskPool', 'NetworkPool']
-    try:
-        key_list = ["InstanceID"]
-        ac = enumclass.enumerate(options.ip,
-                                 "AllocationCapabilities",
-                                 key_list,
-                                 options.virt)
-        pools['MemoryPool'] = enumclass.enumerate(options.ip,
-                                                  "MemoryPool",
-                                                  key_list,
-                                                  options.virt)
-        pools['ProcessorPool'] = enumclass.enumerate(options.ip,
-                                                     "ProcessorPool",
-                                                     key_list,
-                                                     options.virt)
-        pools['DiskPool'] = enumclass.enumerate(options.ip,
-                                                "DiskPool",
-                                                key_list,
-                                                options.virt)
-        pools['NetworkPool'] = enumclass.enumerate(options.ip,
-                                                   "NetworkPool",
-                                                   key_list,
-                                                   options.virt)
-    except Exception:
-        logger.error(CIM_ERROR_ENUMERATE, '%s_AllocationCapabilities' % options.virt)
-        return FAIL
-     
-    acset = set([(x.InstanceID, x.ResourceType) for x in ac])
-    poolset = set()
-    for pl in pools.values():
-        for x in pl:
-            poolset.add((x.InstanceID, x.ResourceType))
+    cn = 'AllocationCapabilities'
 
-    if len(acset) != len(poolset):
-        logger.error(
-                'AllocationCapabilities return %i instances, excepted %i'
-                % (ac_size, pool_size))
-        return FAIL
-    zeroset = acset - poolset
-    if len(zeroset) != 0:
-        logger.error('AC is inconsistent with pools')
+    status, diskid = create_diskpool_conf(options.ip, options.virt)
+    if status != PASS:
+        cleanup_restore(options.ip, options.virt)
+        return FAIL 
+
+    status, test_network = create_netpool_conf(options.ip, options.virt)
+    if status != PASS:
+        cleanup_restore(options.ip, options.virt)
+        destroy_netpool(options.ip, options.virt, test_network)
+        return FAIL 
+   
+    pools, ac = enum_pools_and_ac(options.ip, options.virt, cn)
+    if len(pools) < 4:
+        logger.error("Only %d pools returned, expected at least 4" % len(pools))
+        cleanup_restore(options.ip, options.virt)
+        destroy_netpool(options.ip, options.virt, test_network)
         return FAIL
 
-    return PASS
+    status = compare_pool_to_ac(ac, pools, cn)
+
+    cleanup_restore(options.ip, options.virt)
+    destroy_netpool(options.ip, options.virt, test_network)
+
+    return status 
 
 if __name__ == "__main__":
     sys.exit(main())
