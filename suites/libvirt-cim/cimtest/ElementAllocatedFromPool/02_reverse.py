@@ -20,9 +20,8 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 #
-
 # This tc is used to verify the classname, InstanceID and certian prop are 
-# are appropriately set for the domains when verified using the 
+# appropriately set for the domains when verified using the 
 # Xen_ElementAllocatedFromPool asscoiation.
 #
 # Example command for LogicalDisk w.r.t to Xen_ElementAllocatedFromPool \
@@ -47,111 +46,79 @@
 
 import sys
 import os
-from distutils.file_util import move_file
 import pywbem
-from VirtLib import utils
-from VirtLib import live 
-from XenKvmLib import assoc
-from XenKvmLib import enumclass
-from CimTest import Globals
-from CimTest.Globals import do_main
-from CimTest.ReturnCodes import PASS, FAIL, SKIP
-from XenKvmLib.test_xml import testxml_bridge
-from XenKvmLib.test_doms import test_domain_function, destroy_and_undefine_all
-from VirtLib.live import network_by_bridge
+from XenKvmLib.assoc import Associators
+from XenKvmLib.vxml import get_class
+from CimTest.Globals import do_main, logger, CIM_ERROR_ASSOCIATORS
+from CimTest.ReturnCodes import PASS, FAIL
+from XenKvmLib.test_doms import destroy_and_undefine_all
+from XenKvmLib.classes import get_typed_class
+from XenKvmLib.common_util import create_diskpool_conf, cleanup_restore
+from XenKvmLib.logicaldevices import verify_device_values
 
-sup_types = ['Xen']
+sup_types = ['Xen' , 'KVM', 'XenFV', 'LXC']
 
-status = PASS
-test_dom   = "hd_domain"
+test_dom   = "eafp_domain"
 test_mac   = "00:11:22:33:44:aa"
 test_mem   = 128 
 test_vcpus = 4 
-test_disk  = "xvdb"
-test_dpath = "foo"
-disk_file = '/tmp/diskpool.conf'
-back_disk_file = disk_file + "." + "02_reverse" 
-diskid = "%s/%s" % ("DiskPool", test_dpath)
-memid = "%s/%s" % ("MemoryPool", 0)
-procid = "%s/%s" % ("ProcessorPool", 0)
 
-def conf_file():
-   """
-       Creating diskpool.conf file.
-   """
-   try:
-         f = open(disk_file, 'w')
-         f.write('%s %s' % (test_dpath, '/'))
-         f.close()
-   except Exception,detail:
-      Globals.logger.error("Exception: %s", detail)
-      status = SKIP
-      sys.exit(status)
+def init_pllist(virt, vsxml, diskid):
+    keys  = {
+                'MemoryPool'    : 'MemoryPool/0',
+            }
+    if virt != 'LXC':
+        virt_network = vsxml.xml_get_net_network()
+        keys['DiskPool']      = diskid
+        keys['ProcessorPool'] = 'ProcessorPool/0'
+        keys['NetworkPool']   = 'NetworkPool/%s' %virt_network
 
-def clean_up_restore(ip):
-    """
-        Restoring back the original diskpool.conf 
-        file.
-    """
-    try: 
-        if os.path.exists(back_disk_file):
-            os.remove(disk_file)
-            move_file(back_disk_file, disk_file)
-    except Exception, detail:
-        Globals.logger.error("Exception: %s", detail)
-        status = SKIP
-        ret = test_domain_function(test_dom, ip, \
-                                                   cmd = "destroy")
-        sys.exit(status)
-         
+    pllist = { }
+    for cn, k in keys.iteritems():
+        cn = get_typed_class(virt, cn)
+        pllist[cn] =  k 
 
-def get_or_bail(ip, id, pool_class):
-    """
-        Getinstance for the CLass and return instance on success, otherwise
-        exit after cleanup_restore and destroying the guest.
-    """
-    key_list = { 'InstanceID' : id }
-    try:
-        instance = enumclass.getInstance(ip, pool_class, key_list)
-    except Exception, detail:
-        Globals.logger.error(Globals.CIM_ERROR_GETINSTANCE, '%s', pool_class)
-        Globals.logger.error("Exception: %s", detail)
-        clean_up_restore(ip)
-        status = FAIL
-        ret = test_domain_function(test_dom, ip, \
-                                                   cmd = "destroy")
-        sys.exit(status)
-    return instance
+    return pllist
 
-def print_error(field, ret_val, req_val):
-    Globals.logger.error("%s Mismatch", field)
-    Globals.logger.error("Returned %s instead of %s", ret_val, req_val)
+def eafp_list(virt, test_disk):
+    mcn = get_typed_class(virt, "Memory")
+    mem =  {
+              'SystemName'        : test_dom,
+              'CreationClassName' : mcn,
+              'DeviceID'          : "%s/%s" % (test_dom, "mem"),
+              'NumberOfBlocks'    : test_mem * 1024
+           }
 
-def init_list(ip, disk, mem, net, proc):
-    """
-        Creating the lists that will be used for comparisons.
-    """
+    eaf_values = { mcn :  mem }
 
-    pllist = {
-              "Xen_DiskPool"     : disk.InstanceID, \
-              "Xen_MemoryPool"   : mem.InstanceID, \
-              "Xen_NetworkPool"  : net.InstanceID, \
-              "Xen_ProcessorPool": proc.InstanceID
-             }
-    cllist = [
-              "Xen_LogicalDisk", \
-              "Xen_Memory", \
-              "Xen_NetworkPort", \
-              "Xen_Processor"
-             ]
-    prop_list = ["%s/%s"  % (test_dom, test_disk), test_disk, \
-                 "%s/%s" % (test_dom, "mem"), test_mem, \
-                 "%s/%s" % (test_dom, test_mac), test_mac
-                ]
-    proc_prop = []
-    for i in range(test_vcpus):
-        proc_prop.append("%s/%s" % (test_dom, i))
-    return pllist, cllist, prop_list, proc_prop
+    if virt != 'LXC':
+        dcn = get_typed_class(virt, "LogicalDisk")
+        pcn = get_typed_class(virt, "Processor")
+        ncn = get_typed_class(virt, "NetworkPort")
+
+        disk  = {
+                  'SystemName'        : test_dom,
+                  'CreationClassName' : dcn,
+                  'DeviceID'          : "%s/%s" % (test_dom, test_disk),
+                  'Name'              : test_disk
+                }
+        proc = {
+                  'SystemName'        : test_dom,
+                  'CreationClassName' : pcn, 
+                  'DeviceID'          : None
+               }
+        net =  {
+                  'SystemName'        : test_dom,
+                  'CreationClassName' : ncn,
+                  'DeviceID'          : "%s/%s" % (test_dom, test_mac),
+                  'NetworkAddresses'  : test_mac
+               }
+
+        eaf_values[pcn] = proc
+        eaf_values[dcn] = disk
+        eaf_values[ncn] = net
+
+    return eaf_values
 
 def get_inst_for_dom(assoc_val):
      list = []
@@ -162,196 +129,85 @@ def get_inst_for_dom(assoc_val):
 
      return list
 
-def get_spec_fields_list(inst_list, field_name):
-    global status
-    specific_fields = { }
-    if (len(inst_list)) != 1:
-        Globals.logger.error("Got %s record for Memory/Network/LogicalDisk instead of \
-1", len(inst_list))
-        status = FAIL
-        return 
-# verifying the Name field for LogicalDisk 
-    try:
-        if inst_list[0]['CreationClassName'] != 'Xen_Memory':
-            field_value = inst_list[0][field_name]
-            if field_name == 'NetworkAddresses':
-# For network we NetworkAddresses is a list of addresses, since we 
-# are assigning only one address we are taking field_value[0]
-                field_value = field_value[0] 
-        else:
-            field_value = ((int(inst_list[0]['NumberOfBlocks'])*4096)/1024)
-        specific_fields = {
-                            "field_name"  : field_name,\
-                            "field_value" : field_value
-                          }
-    except Exception, detail:
-        Globals.logger.error("Exception in get_spec_fields_list(): %s", detail)
-        status = FAIL
 
-    return specific_fields
+def verify_eafp_values(server, virt, in_pllist, test_disk):
+    # Looping through the in_pllist to get association for various pools.
+    eafp_values = eafp_list(virt, test_disk)
+    an = get_typed_class(virt, "ElementAllocatedFromPool")
+    for cn, instid in sorted(in_pllist.iteritems()):
+        try:
+            assoc_info = Associators(server, an, cn, virt, InstanceID = instid)
+            assoc_inst_list = get_inst_for_dom(assoc_info)
+            if len(assoc_inst_list) < 1 :
+                logger.error("'%s' with '%s' did not return any records for"
+                             " domain: '%s'", an, cn, test_dom)
+                return FAIL
 
-def  assoc_values(assoc_list, field , list, index, specific_fields_list=""):
-    """
-        Verifying the records retruned by the associations.
-    """
-    global status
-    if field  == "CreationClassName":
-        for i in range(len(assoc_list)):
-            if assoc_list[i][field] != list[index]:
-                print_error(field,  assoc_list[i][field], list[index])
-                status = FAIL
+            assoc_eafp_info = assoc_inst_list[0]
+            CCName = assoc_eafp_info['CreationClassName']
+            if  CCName == get_typed_class(virt, 'Processor'):
+                if len(assoc_inst_list) != test_vcpus:
+                    logger.error("'%s' should have returned '%i' Processor"
+                                 " details, got '%i'", an, test_vcpus, 
+                                 len(assoc_inst_list))
+                    return FAIL
+            
+                for i in range(test_vcpus):
+                    eafp_values[CCName]['DeviceID'] = "%s/%s" % (test_dom,i)
+                    status = verify_device_values(assoc_inst_list[i], 
+                                                  eafp_values, virt)
+            else:
+                status = verify_device_values(assoc_eafp_info, 
+                                              eafp_values, virt)
+
             if status != PASS:
-                break
-    elif field == "DeviceID":
-        if assoc_list[0]['CreationClassName'] == 'Xen_Processor':
-# Verifying  the list of DeviceId returned by the association 
-# against the list created intially .
-            for i in range(len(list)):
-                if assoc_list[i]['DeviceID'] != list[i]: 
-                    print_error(field, assoc_list[i]['DeviceID'], list[i])
-                    status = FAIL
-        else:
-# Except for Xen_Processor, we get only once record for a domain for 
-# other classes.
-            if  assoc_list[0]['DeviceID'] != list[index]: 
-                print_error(field, assoc_list[0]['DeviceID'] , list[index])
-                status = FAIL
-    else: 
- # other specific fields verification
-        if assoc_list[0]['CreationClassName'] != 'Xen_Processor':
-               spec_field_name  = specific_fields_list['field_name']
-               spec_field_value =  specific_fields_list['field_value']
-               if spec_field_value != list[index]:
-                   print_error(field, spec_field_value, list[index])
-                   status = FAIL
-
+                return status 
+        except Exception, detail:
+            logger.error(CIM_ERROR_ASSOCIATORS, an)
+            logger.error("Exception: %s", detail)
+            status = FAIL
+    return status
 
 @do_main(sup_types)
 def main():
     options = main.options
 
-    global status 
     loop = 0 
     server = options.ip
-    destroy_and_undefine_all(options.ip)
-    test_xml, bridge = testxml_bridge(test_dom, mem = test_mem, vcpus = test_vcpus, \
-                               mac = test_mac, disk = test_disk, server = options.ip)
-    if bridge == None:
-        Globals.logger.error("Unable to find virtual bridge")
-        return SKIP
-
-    if test_xml == None:
-        Globals.logger.error("Guest xml was not created properly")
-        return FAIL
-
-    virt_network = network_by_bridge(bridge, server)
-    if virt_network == None:
-        Globals.logger.error("No virtual network found for bridge %s", bridge)
-        return SKIP
-
-    ret = test_domain_function(test_xml, server, cmd = "create")
-    if not ret:
-        Globals.logger.error("Failed to Create the dom: %s", test_dom)
-        return FAIL
-
-    # Taking care of already existing diskconf file
-    # Creating diskpool.conf if it does not exist
-    # Otherwise backing up the prev file and create new one.
-    os.system("rm -f %s" % back_disk_file )
-    if not (os.path.exists(disk_file)):
-        conf_file()
+    virt = options.virt
+    if virt == 'Xen':
+        test_disk = 'xvdb'
     else:
-        move_file(disk_file, back_disk_file)
-        conf_file()
-    try :
-        disk = get_or_bail(server, id=diskid, \
-                                          pool_class=enumclass.Xen_DiskPool)
-        mem = get_or_bail(server, id = memid, \
-                                        pool_class=enumclass.Xen_MemoryPool)
-        netid = "%s/%s" % ("NetworkPool", virt_network)
-        net = get_or_bail(server, id = netid, \
-                                        pool_class=enumclass.Xen_NetworkPool) 
-        proc = get_or_bail(server, id = procid, \
-                                      pool_class=enumclass.Xen_ProcessorPool) 
-    
-    except Exception, detail:
-        Globals.logger.error("Exception: %s", detail)
-        clean_up_restore(server)
-        status = FAIL
-        ret = test_domain_function(test_dom, server, \
-                                                   cmd = "destroy")
+        test_disk = 'hda'
+
+    # Getting the VS list and deleting the test_dom if it already exists.
+    destroy_and_undefine_all(server)
+    virt_type = get_class(virt)
+    if virt == 'LXC':
+        vsxml = virt_type(test_dom, vcpus = test_vcpus)
+    else:
+        vsxml = virt_type(test_dom,  mem = test_mem, vcpus = test_vcpus, 
+                          mac = test_mac, disk = test_disk)
+
+    # Verify DiskPool on machine
+    status, diskid = create_diskpool_conf(server, virt)
+    if status != PASS:
         return status
 
-    pllist, cllist, prop_list, proc_prop = init_list(server, disk, mem, net, proc)
+    ret = vsxml.create(server)
+    if not ret:
+        logger.error("Failed to Create the dom: '%s'", test_dom)
+        cleanup_restore(server, virt)
+        return FAIL
 
-# Looping through the pllist to get association for various pools.
-    for cn,  instid in sorted(pllist.items()):
-        try:
-            assoc_info = assoc.Associators(server, \
-                                               "Xen_ElementAllocatedFromPool", \
-                                                                           cn, \
-                                                            InstanceID = instid)  
-# Verifying the Creation Class name for all the records returned for each 
-# pool class queried
-            inst_list = get_inst_for_dom(assoc_info)
-            if (len(inst_list)) == 0:
-                Globals.logger.error("Association did not return any records for \
-the specified domain: %s", test_dom)
-                status = FAIL
-                break
+    # Get pool list against which the EAFP should be queried
+    pllist = init_pllist(virt, vsxml, diskid)
 
-            assoc_values(assoc_list=inst_list, field="CreationClassName", \
-                                                             list=cllist, \
-                                                                index=loop)
-# verifying the DeviceID
-            if inst_list[0]['CreationClassName'] == 'Xen_Processor':
-# The DeviceID for the processor varies from 0 to (vcpu - 1 )
-                list_index = 0
-                assoc_values(assoc_list=inst_list, field="DeviceID", \
-                                                     list=proc_prop, \
-                                                     index=list_index)
-            else:
-# For LogicalDisk, Memory and NetworkPort
-                if  inst_list[0]['CreationClassName'] == 'Xen_LogicalDisk':
-                    list_index = 0                
-                elif inst_list[0]['CreationClassName'] == 'Xen_Memory':
-                    list_index = 2                
-                else:
-                    list_index = 4 # NetworkPort
-                assoc_values(assoc_list=inst_list, field="DeviceID", \
-                                                     list=prop_list, \
-                                                     index=list_index)
-                if  inst_list[0]['CreationClassName'] == 'Xen_LogicalDisk':
-# verifying the Name field for LogicalDisk 
-                    specific_fields = get_spec_fields_list(inst_list,field_name="Name")
-                    list_index = 1        
-                elif inst_list[0]['CreationClassName'] == 'Xen_Memory':
-# verifying the NumberOfBlocks allocated for Memory
-                    specific_fields = get_spec_fields_list(inst_list,field_name="NumberOfBlocks")
-                    list_index = 3                
-                else:
-# verifying the NetworkAddresses for the NetworkPort
-                    specific_fields = get_spec_fields_list(inst_list,field_name="NetworkAddresses")
-                    list_index = 5 # NetworkPort
-                    assoc_values(assoc_list=inst_list, field="Other", \
-                                                      list=prop_list, \
-                                                    index=list_index, \
-                                  specific_fields_list=specific_fields)
-            if status != PASS:
-                break
-            else:
-# The loop variable is used to index the cllist to verify the creationclassname 
-               loop = loop + 1
-        except Exception, detail:
-            Globals.logger.error(Globals.CIM_ERROR_ASSOCIATORS, \
-                                  'Xen_ElementAllocatedFromPool')
-            Globals.logger.error("Exception: %s", detail)
-            clean_up_restore(server)
-            status = FAIL
-
-    ret = test_domain_function(test_dom, server, \
-                                                   cmd = "destroy")
-    clean_up_restore(server)
+    
+    status = verify_eafp_values(server, virt, pllist, test_disk)
+    vsxml.destroy(server)
+    cleanup_restore(server, virt)
     return status
+
 if __name__ == "__main__":
     sys.exit(main())
