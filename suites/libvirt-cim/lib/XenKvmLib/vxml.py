@@ -710,10 +710,10 @@ class LXCXML(VirtXML):
         os = self.get_node('/domain/os')
         self.add_sub_node(os, 'init', os_init)
 
-    def _devices(self, tty):
+    def _devices(self, tty_set):
         devices = self.get_node('/domain/devices')
 
-        interface = self.add_sub_node(devices, 'console', tty)
+        interface = self.add_sub_node(devices, 'console', tty = tty_set)
 
     def create_lxc_file(self, ip, lxc_file):
         try:
