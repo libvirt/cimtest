@@ -27,8 +27,8 @@ import time
 import pywbem
 from pywbem.cim_obj import CIMInstanceName
 from VirtLib import utils
-from XenKvmLib.test_doms import define_test_domain, start_test_domain, destroy_and_undefine_domain
-from XenKvmLib.test_xml import *
+from XenKvmLib import vxml
+from XenKvmLib.common_util import poll_for_state_change
 from XenKvmLib import computersystem
 from XenKvmLib import vsmigrations
 from XenKvmLib.vsmigrations import check_possible_host_migration, migrate_guest_to_host, check_migration_job
@@ -36,24 +36,24 @@ from XenKvmLib import enumclass
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'XenFV']
 dom_name = 'dom_migrate'
 
-def start_guest_get_ref(ip, guest_name):
-    try:
-        xmlfile = testxml(guest_name)   
-        ret = define_test_domain(xmlfile, ip)
-        if not ret:
-            return FAIL, None
+REQUESTED_STATE = 2
 
-        ret = start_test_domain(guest_name, ip)
-        if not ret:
-            return FAIL, None
+def start_guest_get_ref(ip, guest_name, virt):
+    virt_xml = vxml.get_class(virt)
+    cxml = virt_xml(guest_name)
+    ret = cxml.create(ip)
+    if not ret:
+        logger.error("Error create domain %s" % guest_name)
+        return FAIL
 
-        time.sleep(10)
-    except Exception:
-        logger.error("Error creating domain %s" % guest_name)
-        return FAIL, None
+    status = poll_for_state_change(ip, virt, guest_name,
+                                   REQUESTED_STATE)
+    if status != PASS:
+        raise Exception("%s didn't change state as expected" % guest_name)
+        return FAIL
 
     classname = 'Xen_ComputerSystem'
     cs_ref = CIMInstanceName(classname, keybindings = {
@@ -61,9 +61,9 @@ def start_guest_get_ref(ip, guest_name):
                                         'CreationClassName':classname})
 
     if cs_ref is None:
-        return FAIL, None
+        return FAIL, None, cxml
 
-    return PASS, cs_ref
+    return PASS, cs_ref, cxml
 
 @do_main(sup_types)
 def main():
@@ -85,23 +85,26 @@ def main():
     else:
         local_migrate = 0
 
-    status, cs_ref = start_guest_get_ref(options.ip, dom_name)
+    status, cs_ref, cxml = start_guest_get_ref(options.ip, dom_name, options.virt)
     if status != PASS:
-        destroy_and_undefine_domain(guest_name, options.ip)
+        cxml.destroy(options.ip)
+        cxml.undefine(options.ip)
         return FAIL
 
     guest_name = cs_ref['Name']
 
     status = check_possible_host_migration(service, cs_ref, target_ip) 
     if status != PASS:
-        destroy_and_undefine_domain(dom_name, options.ip)   
+        cxml.destroy(options.ip)
+        cxml.undefine(options.ip)
         return FAIL
 
     status, ret = migrate_guest_to_host(service, cs_ref, target_ip)
     if status == FAIL:
         logger.error("MigrateVirtualSystemToHost: unexpected list length %s"
                      % len(ret))
-        destroy_and_undefine_domain(dom_name, options.ip)
+        cxml.destroy(options.ip)
+        cxml.undefine(options.ip)
         return status 
     elif len(ret) == 2:
         id = ret[1]['Job'].keybindings['InstanceID']
@@ -109,8 +112,8 @@ def main():
     status =  check_migration_job(options.ip, id, target_ip, 
                                   guest_name, local_migrate)
 
-
-    destroy_and_undefine_domain(dom_name, options.ip)
+    cxml.destroy(options.ip)
+    cxml.undefine(options.ip)
 
     return status
 
