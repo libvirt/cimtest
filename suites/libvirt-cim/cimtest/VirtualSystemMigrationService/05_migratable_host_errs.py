@@ -24,14 +24,13 @@ import sys
 import pywbem
 from pywbem.cim_obj import CIMInstanceName
 from VirtLib import utils
-from XenKvmLib.test_doms import define_test_domain, start_test_domain, destroy_and_undefine_domain
-from XenKvmLib.test_xml import *
+from XenKvmLib import vxml
 from XenKvmLib import computersystem
 from XenKvmLib import vsmigrations
 from CimTest.Globals import logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'XenFV']
 
 test_dom = 'dom_migration'
 exp_rc = 1 #CIM_ERR_FAILED
@@ -40,23 +39,17 @@ exp_desc = 'Missing key (Name) in ComputerSystem'
 @do_main(sup_types)
 def main():
     options = main.options
-    xmlfile = testxml(test_dom)
+
+    virt_xml = vxml.get_class(options.virt)
+    cxml = virt_xml(test_dom)
+    ret = cxml.create(options.ip)
+    if not ret:
+        logger.error("Error create domain %s" % test_dom )
+        return FAIL
 
     status = FAIL 
     rc = -1
     
-    try:
-        define_test_domain(xmlfile, options.ip)
-    except Exception:
-        logger.error("Error define domain %s" % test_dom)
-        return FAIL
-
-    try:
-        start_test_domain(test_dom, options.ip)
-    except Exception:
-        logger.error("Error start domain %s" % test_dom)
-        return FAIL
-
     try:
         service = vsmigrations.Xen_VirtualSystemMigrationService(options.ip)
     except Exception:
@@ -87,7 +80,9 @@ def main():
     if rc == 0:
         logger.error('Migrate to host method should NOT return OK with a wrong key input')
 
-    destroy_and_undefine_domain(test_dom, options.ip)
+    cxml.destroy(options.ip)
+    cxml.undefine(options.ip)
+
     return status
 
 if __name__ == "__main__":
