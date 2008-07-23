@@ -25,8 +25,8 @@ import time
 import pywbem
 from pywbem.cim_obj import CIMInstanceName
 from VirtLib import utils
-from XenKvmLib.test_doms import define_test_domain, start_test_domain, destroy_and_undefine_domain
-from XenKvmLib.test_xml import *
+from XenKvmLib import vxml
+from XenKvmLib.common_util import poll_for_state_change
 from XenKvmLib import computersystem
 from XenKvmLib import vsmigrations
 from XenKvmLib.vsmigrations import check_possible_host_migration, migrate_guest_to_host, check_migration_job
@@ -34,17 +34,19 @@ from XenKvmLib import enumclass
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'XenFV']
 
 dom_name = 'dom_migrate'
+REQUESTED_STATE = 2
 
-def define_guest_get_ref(ip, guest_name):
+def define_guest_get_ref(ip, guest_name, virt):
     try:
-        xmlfile = testxml(guest_name)   
-        define_test_domain(xmlfile, ip)
+        virt_xml = vxml.get_class(virt)
+        cxml = virt_xml(guest_name)
+        cxml.define(ip)
     except Exception:
         logger.error("Error define domain %s" % guest_name)
-        destroy_and_undefine_domain(guest_name, options.ip)
+        cxml.undefine(ip)
         return FAIL, None
 
     classname = 'Xen_ComputerSystem'
@@ -54,18 +56,18 @@ def define_guest_get_ref(ip, guest_name):
 
     return PASS, cs_ref
 
-def setup_env(ip, migration_list, local_migrate):
+def setup_env(ip, migration_list, local_migrate, virt):
     ref_list = []
 
     if local_migrate == 1:
         for i in range(0, len(migration_list)):
             guest_name = "%s-%i" % (dom_name, i)
-            status, ref = define_guest_get_ref(ip, guest_name)
+            status, ref = define_guest_get_ref(ip, guest_name, virt)
             if status != PASS:
                 return FAIL, None
             ref_list.append(ref)
     else:
-        status, ref = define_guest_get_ref(ip, dom_name)
+        status, ref = define_guest_get_ref(ip, dom_name, virt)
         if status != PASS:
             return FAIL, None
         ref_list.append(ref)
@@ -90,16 +92,24 @@ def get_msd_list(local_migrate):
 
     return migration_list
 
-def start_guest(ip, guest_name, type):
+def start_guest(ip, guest_name, type, virt):
     if type != "Offline":
         try:
-            start_test_domain(guest_name, ip)
-            time.sleep(10)
+            virt_xml = vxml.get_class(virt)
+            cxml = virt_xml(guest_name)
+            cxml.start(ip)
+
+            status = poll_for_state_change(ip, virt, guest_name,
+                                           REQUESTED_STATE)
+            if status != PASS:
+                raise Exception("%s didn't change state as expected" % guest_name)
+                return FAIL, None
+        
         except Exception:
             logger.error("Error start domain %s" % guest_name)
-            return FAIL
+            return FAIL, None
 
-    return PASS
+    return PASS, cxml
 
 @do_main(sup_types)
 def main():
@@ -126,7 +136,7 @@ def main():
     ref_list = []
     cs_ref = None
 
-    status, ref_list = setup_env(options.ip, mlist, local_migrate)
+    status, ref_list = setup_env(options.ip, mlist, local_migrate, options.virt)
     if status != PASS or len(ref_list) < 1:
         return FAIL
 
@@ -135,7 +145,7 @@ def main():
     for type, item in mlist.iteritems():
         guest_name = cs_ref['Name']
 
-        status = start_guest(options.ip, guest_name, type)
+        status, cxml = start_guest(options.ip, guest_name, type, options.virt)
         if status != PASS:
             break
 
@@ -149,7 +159,8 @@ def main():
         if status == FAIL:
             logger.error("MigrateVirtualSystemToHost: unexpected list length %s"
                          % len(ret))
-            destroy_and_undefine_domain(dom_name, options.ip)   
+            cxml.destroy(options.ip)
+            cxml.undefine(options.ip)
             return status 
         elif len(ret) == 2:
             id = ret[1]['Job'].keybindings['InstanceID']
@@ -161,13 +172,15 @@ def main():
 
         #Get new ref
         if local_migrate == 1:
-            destroy_and_undefine_domain(guest_name, options.ip)
+            cxml.destroy(options.ip)
+            cxml.undefine(options.ip)
             ref_list.remove(cs_ref)
             if len(ref_list) > 0:
                 cs_ref = ref_list[0]
 
     if local_migrate == 0:
-        destroy_and_undefine_domain(dom_name, options.ip)   
+        cxml.destroy(options.ip)
+        cxml.undefine(options.ip)
 
     return status
 
