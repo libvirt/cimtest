@@ -32,54 +32,71 @@ import sys
 from XenKvmLib import computersystem
 from VirtLib import utils
 from XenKvmLib import vxml
-from XenKvmLib.test_doms import destroy_and_undefine_all
-from CimTest.Globals import do_main
-from CimTest import Globals
+from XenKvmLib.test_doms import destroy_and_undefine_domain
+from CimTest.Globals import do_main, logger
 from CimTest.ReturnCodes import PASS, FAIL
+from XenKvmLib.common_util import create_using_definesystem, \
+                                  call_request_state_change, get_cs_instance, \
+                                  create_netpool_conf, destroy_netpool
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 test_dom = "domgst"
 
+DEFINE_STATE = 3
+SUSPND_STATE = 9
+TIME        = "00000000000000.000000:000"
+
+def chk_state(domain_name, ip, en_state, virt):
+    rc, cs = get_cs_instance(domain_name, ip, virt)
+    if rc != 0:
+        return rc
+
+    if cs.EnabledState != en_state:
+        logger.error("EnabledState should be %d not %d",
+                     en_state, cs.EnabledState)
+        return FAIL
+
+    return PASS
+
 @do_main(sup_types)
 def main():
     options = main.options
-    status = FAIL
-    
-    cxml = vxml.get_class(options.virt)(test_dom)
 
-#define VS
+    status, test_network = create_netpool_conf(options.ip, options.virt)
+    if status != PASS:
+        return FAIL
+
     try:
-        ret = cxml.define(options.ip)
-        if not ret:
-            Globals.logger.error(Globals.VIRSH_ERROR_DEFINE % test_dom)
-            return status
-        
-        cs = computersystem.get_cs_class(options.virt)(options.ip, test_dom)
-        if not (cs.Name == test_dom) :
-            Globals.logger.error("Error: VS %s not found" % test_dom)
-            cxml.undefine(options.ip)
+        # define the vs
+        status = create_using_definesystem(test_dom, options.ip,
+                                           virt=options.virt)
+        if status != PASS:
+            logger.error("Unable to define %s using DefineSystem()" % test_dom)
+            destroy_netpool(options.ip, options.virt, test_network)
             return status
 
-    except Exception, detail:
-        Globals.logger.error("Errors: %s" % detail)
-
-#Suspend the defined VS
-    
-    try:
-        ret = cxml.run_virsh_cmd(options.ip, "suspend")
-        if not ret :
-            Globals.logger.info("Suspending defined VS %s failed, as expected" \
-% test_dom)
+        # suspend the vs
+        status = call_request_state_change(test_dom, options.ip, SUSPND_STATE,
+                                           TIME, virt=options.virt)
+        if status != PASS:
+            logger.info("Suspending defined %s failed, as expected" % test_dom)
             status = PASS
+
+            status = chk_state(test_dom, options.ip, DEFINE_STATE, options.virt)
+            if status != PASS:
+                logger.error("%s should have been in defined state" % test_dom)
+                status = FAIL 
+            
         else :
-            Globals.logger.info("Error: Suspending defined VS %s should not \
-have been allowed" % test_dom)
+            logger.error("Suspending defined %s should have failed" % test_dom)
             status = FAIL 
 
     except Exception, detail:
-        Globals.logger.error("Error: %s" % detail)
+        logger.error("Error: %s" % detail)
+        status = FAIL 
 
-    ret = cxml.undefine(options.ip)
+    destroy_netpool(options.ip, options.virt, test_network)
+    destroy_and_undefine_domain(test_dom, options.ip, options.virt)
     return status
 
 if __name__ == "__main__":
