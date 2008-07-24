@@ -55,7 +55,7 @@ from CimTest import Globals
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen', 'KVM', 'LXC']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom = "hd_domain"
 test_mac = "00:11:22:33:44:55"

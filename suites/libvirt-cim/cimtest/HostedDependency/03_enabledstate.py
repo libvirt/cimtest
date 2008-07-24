@@ -44,7 +44,7 @@ from CimTest.Globals import do_main
 from XenKvmLib.devices import CIM_Instance
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen', 'KVM']
+sup_types = ['Xen', 'KVM', 'XenFV']
 
 test_dom = "hd_domain1"
 test_mac = "00:11:22:33:44:55"
