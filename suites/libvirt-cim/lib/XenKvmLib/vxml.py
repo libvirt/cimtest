@@ -700,19 +700,21 @@ class LXCXML(VirtXML):
     def __init__(self, test_dom=const.default_domname,
                        mem=const.default_memory,
                        vcpus=const.default_vcpus,
+                       mac=const.LXC_default_mac,
+                       ntype=const.default_net_type,
                        tty=const.LXC_default_tty):
         VirtXML.__init__(self, 'lxc', test_dom, set_uuid(), mem, vcpus)
         self._os(const.LXC_init_path)
-        self._devices(const.LXC_default_tty)
+        self._devices(mac, ntype, const.LXC_default_tty)
         self.create_lxc_file(CIM_IP, const.LXC_init_path)
 
     def _os(self, os_init):
         os = self.get_node('/domain/os')
         self.add_sub_node(os, 'init', os_init)
 
-    def _devices(self, tty_set):
+    def _devices(self, net_mac, net_type, tty_set):
         devices = self.get_node('/domain/devices')
-
+        self.set_interface_details(devices, net_mac, net_type, virt_type='LXC')
         interface = self.add_sub_node(devices, 'console', tty = tty_set)
 
     def create_lxc_file(self, ip, lxc_file):
