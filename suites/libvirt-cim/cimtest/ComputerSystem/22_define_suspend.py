@@ -62,7 +62,7 @@ def chk_state(domain_name, ip, en_state, virt):
 def main():
     options = main.options
 
-    status, test_network = create_netpool_conf(options.ip, options.virt)
+    status, test_network = create_netpool_conf(options.ip, options.virt, False)
     if status != PASS:
         return FAIL
 
