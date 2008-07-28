@@ -25,6 +25,7 @@
 import os
 import logging
 from optparse import OptionParser
+import traceback
 
 global CIM_USER
 global CIM_PASS
@@ -143,6 +144,7 @@ def do_main(types=['Xen'], p=parser):
                     rc = f()
                 except Exception, e:
                     logger.error('%s : %s' % (e.__class__.__name__, e))
+                    logger.error("%s" % traceback.print_exc())
                     rc = FAIL
                 return rc
             setattr(do_try, 'options', options)
