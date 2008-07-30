@@ -89,11 +89,14 @@ def verify_fields(pool_list, poolname, cn):
         logger.error("%s return %i instances, expected atleast 1 instance" \
                      % (cn, len(poolname)))
         return FAIL
-    ret_value = poolname[0].InstanceID
     exp_value = pool_list[cn][0]
-    if ret_value != exp_value:
-        print_error('InstanceID', ret_value, exp_value)
-        status = FAIL
+    for i in range(0, len(poolname)):
+        ret_value = poolname[i].InstanceID
+        if ret_value == exp_value:
+            break
+        elif ret_value != exp_value and i == len(poolname)-1:
+            print_error('InstanceID', ret_value, exp_value)
+            status = FAIL
     ret_value = poolname[0].ResourceType
     exp_value = pool_list[cn][1]
     if ret_value != exp_value:
