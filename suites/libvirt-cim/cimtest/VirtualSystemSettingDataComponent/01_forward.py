@@ -66,7 +66,6 @@ sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 test_dom    = "VSSDC_dom"
 test_vcpus  = 2
 test_mac    = "00:11:22:33:44:aa"
-test_disk   = 'xvda'
 
 def init_list(test_disk, test_mac, virt='Xen'):
     """
@@ -118,6 +117,12 @@ def main():
     status = FAIL
 
     destroy_and_undefine_all(options.ip)
+
+    if options.virt == "Xen":
+        test_disk = "xvdb"
+    else:
+        test_disk = "hdb"
+
     prop_list = init_list(test_disk, test_mac, options.virt)
     virt_xml = vxml.get_class(options.virt)
     if options.virt == 'LXC':
