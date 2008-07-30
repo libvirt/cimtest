@@ -60,7 +60,7 @@ from XenKvmLib.common_util import try_assoc
 from XenKvmLib.classes import get_typed_class
 from CimTest.ReturnCodes import PASS, FAIL
 
-sup_types = ['Xen', 'KVM', 'LXC']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom = "hd_domain1"
 test_mac = "00:11:22:33:44:55"
@@ -91,6 +91,8 @@ def main():
         logger.error("Failed to Create the dom: %s" % test_dom)
         status = FAIL
         return status
+    if options.virt == "XenFV":
+        options.virt = "Xen"
     try:
         instid = '%s:%s' % (options.virt, test_dom)
         rasd_list = assoc.Associators(options.ip, vssdc_cn, vssd_cn,
