@@ -347,3 +347,10 @@ def virsh_vcpuinfo(server, dom, virt="Xen"):
         return out
     return None
 
+def get_hv_ver(server, virt="Xen"):
+    cmd = "virsh -c %s version | grep ^Running | cut -d ' ' -f 3,4" % utils.virt2uri(virt)
+    ret, out = utils.run_remote(server, cmd)
+    if ret == 0:
+        return out
+    else:
+        return None
