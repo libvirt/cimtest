@@ -40,7 +40,7 @@ from CimTest.Globals import do_main
 from XenKvmLib.common_util import cleanup_restore, test_dpath, \
 create_diskpool_file
 
-sup_types = ['Xen', 'KVM', 'LXC']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 expr_values = {
         "invalid_keyname"  : { 'rc'   : pywbem.CIM_ERR_FAILED,
@@ -88,7 +88,10 @@ def err_invalid_instid_keyvalue(conn, classname):
 @do_main(sup_types)
 def main():
     ip = main.options.ip
-    virt = main.options.virt
+    if main.options.virt == "XenFV":
+        virt = "Xen"
+    else:
+        virt = main.options.virt
     conn = assoc.myWBEMConnection('http://%s' % ip, (CIM_USER, CIM_PASS),
                                   CIM_NS)
 

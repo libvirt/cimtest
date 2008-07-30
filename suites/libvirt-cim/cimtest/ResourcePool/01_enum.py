@@ -39,7 +39,7 @@ RASD_TYPE_DISK
 from XenKvmLib.common_util import cleanup_restore, test_dpath, \
 create_diskpool_file
 
-sup_types = ['Xen', 'KVM', 'LXC']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 diskid = "%s/%s" % ("DiskPool", test_dpath)
 dp_cn = 'DiskPool'
@@ -108,7 +108,10 @@ def verify_fields(pool_list, poolname, cn):
 @do_main(sup_types)
 def main():
     ip = main.options.ip
-    virt = main.options.virt
+    if main.options.virt == "XenFV":
+        virt = "Xen"
+    else:
+        virt = main.options.virt
     status, pool_list = init_list(ip, virt)
     if status != PASS: 
         logger.error("Failed to initialise the list")
