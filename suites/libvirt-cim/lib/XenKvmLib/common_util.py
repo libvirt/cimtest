@@ -360,7 +360,7 @@ def create_diskpool_conf(server, virt):
     return status, diskid
 
 
-def create_netpool_conf(server, virt, use_existing=True):
+def create_netpool_conf(server, virt, use_existing=False):
     status = PASS
     test_network = None
     try:

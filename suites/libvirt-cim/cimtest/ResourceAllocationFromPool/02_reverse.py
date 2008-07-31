@@ -34,7 +34,7 @@ from CimTest.Globals import logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib import enumclass
 from XenKvmLib.common_util import cleanup_restore, create_diskpool_conf, \
-create_netpool_conf
+create_netpool_conf, destroy_netpool
 
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
@@ -184,6 +184,7 @@ def main():
             return status
 
     cleanup_restore(server, virt)
+    destroy_netpool(server, virt, test_network)
     vsxml.undefine(server)    
     return status
 
