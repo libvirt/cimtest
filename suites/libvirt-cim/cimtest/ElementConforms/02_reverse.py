@@ -52,6 +52,7 @@ from XenKvmLib import enumclass
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from XenKvmLib.classes import get_typed_class
 from CimTest.ReturnCodes import PASS, FAIL
+from XenKvmLib.common_util import libvirt_cached_data_poll, get_cs_instance 
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
@@ -96,51 +97,42 @@ def main():
 
     inst_list = []
 
+    rc, cs = get_cs_instance(test_dom, options.ip, options.virt)
+    if rc != 0:
+        sys = libvirt_cached_data_poll(options.ip, options.virt, test_dom)
+        if sys is None:
+            logger.error("Instance for %s not created" % test_dom)
+            return FAIL 
+
+        inst_list.append(sys)
+
     try:
-        cs_list = computersystem.enumerate(options.ip, options.virt)
-        # The len should be atleast two, as the CS returns info
-        # one regarding VS and the other one for Domain-0. 
-        if len(cs_list) < 1:
-            logger.error("ERROR: Wrong number of instances returned")
-            return status
-        for item in cs_list:
-            if item.Name == test_dom:
-                inst_list.append(item)
-                break
-
-        if len(inst_list) != 1:
-            logger.error("ERROR: Instance for %s not created" % test_dom)
-            return status
-
         #Getting the hostname, to verify with the value returned by the assoc.
         host_sys = hostsystem.enumerate(options.ip, options.virt)
 
         if len(host_sys) < 1:
             logger.error("ERROR: Enumerate returned 0 host instances")
-            return status
-        elif host_sys[0].Name == "":
-            logger.error("ERROR: HostName seems to be empty")
-            return status
-        else:
-            # Instance of the HostSystem
-            inst_list.append(host_sys[0])
-    except Exception , detail:
-        logger.error("Exception: %s" % detail)
-        return status
+            return FAIL 
+
+        inst_list.append(host_sys[0])
+
+    except Exception, details:
+        logger.error("Exception: %s" % details)
+        return FAIL 
 
     prev_namespace = Globals.CIM_NS
     Globals.CIM_NS = 'root/interop'
 
     try:
         key_list = ["InstanceID"]
-        proflist = enumclass.enumerate(options.ip, \
-                                       "RegisteredProfile", \
+        proflist = enumclass.enumerate(options.ip,
+                                       "RegisteredProfile",
                                         key_list,
                                         options.virt)
-    except Exception, detail:
-        logger.error(CIM_ERROR_ENUMERATE, \
-                             'RegisteredProfile')
-        logger.error("Exception: %s", detail)
+    except Exception, details:
+        logger.error(CIM_ERROR_ENUMERATE, 
+                     get_typed_class(options.virt, 'RegisteredProfile')) 
+        logger.error("Exception: %s", details)
         return status
 
     Globals.CIM_NS = prev_namespace
@@ -160,14 +152,16 @@ def main():
                                       Name=name)
             if len(profs) != 1:
                 logger.error("ElementConformsToProfile assoc failed")
-                return status 
+                return FAIL
 
             status = verify_profile(profs[0], exp_list[cn])
             if status != PASS:
                 logger.error("Verification of profile instance failed")
+                return FAIL
 
     except Exception, detail:
-        logger.error(CIM_ERROR_ASSOCIATORS, 'RegisteredProfile')
+        logger.error(CIM_ERROR_ASSOCIATORS, 
+                     get_typed_class(options.virt, 'RegisteredProfile'))
         logger.error("Exception: %s", detail)
         status = FAIL
 
