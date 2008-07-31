@@ -34,10 +34,11 @@ from pywbem.cim_obj import CIMInstanceName
 from XenKvmLib.devices import CIM_Instance
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, log_param, CIM_ERROR_ENUMERATE, \
-CIM_ERROR_GETINSTANCE
+                            CIM_ERROR_GETINSTANCE
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
-from VirtLib.live import diskpool_list, virsh_version, net_list
+from VirtLib.live import diskpool_list, virsh_version, net_list, domain_list
 from XenKvmLib.vxml import PoolXML, NetXML
+from XenKvmLib.enumclass import getInstance
 
 test_dpath = "foo"
 disk_file = '/etc/libvirt/diskpool.conf'
@@ -409,3 +410,18 @@ def destroy_netpool(server, virt, net_name):
 
     return PASS 
 
+def libvirt_cached_data_poll(ip, virt, dom_name):
+    cs = None
+
+    dom_list = domain_list(ip, virt)
+    if dom_name in dom_list:
+        timeout = 10 
+
+        for i in range(0, timeout):
+            rc, cs = get_cs_instance(dom_name, ip, virt)
+            if rc == 0:
+                return cs 
+
+            sleep(1)
+            
+    return cs 
