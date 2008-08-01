@@ -169,7 +169,7 @@ def subscription_xml(name, sysname):
       </CIM>
       """ % (sysname, name, sysname, name)
 
-def delete_inst_xml(name, type, sysname):
+def delete_inst_xml(name, type, sysname, inst_name):
     return """
     <?xml version="1.0" encoding="utf-8"?> 
     <CIM CIMVERSION="2.0" DTDVERSION="2.0"> 
@@ -192,7 +192,7 @@ def delete_inst_xml(name, type, sysname):
                   <KEYVALUE>CIM_Indication%s</KEYVALUE> 
                 </KEYBINDING> 
                 <KEYBINDING NAME="Name"> 
-                  <KEYVALUE>%s%s</KEYVALUE> 
+                  <KEYVALUE>%s</KEYVALUE> 
                 </KEYBINDING> 
               </INSTANCENAME> 
             </IPARAMVALUE> 
@@ -200,7 +200,7 @@ def delete_inst_xml(name, type, sysname):
         </SIMPLEREQ> 
       </MESSAGE> 
     </CIM>;
-    """ % (type, sysname, type, name, type);
+    """ % (type, sysname, type, inst_name);
 
 def delete_sub_xml(name, sysname):
     return """
@@ -298,15 +298,16 @@ class CIMSocketHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.server.indications.append(indication)
 
 class CIMIndicationSubscription:
-    def __init__(self, name, typ, ns, print_ind, sysname):
+    def __init__(self, name, typ, ns, print_ind, sysname, port=0):
         self.name = name
         self.type = typ
         self.ns = ns
         self.sysname = sysname
 
-        self.server = BaseHTTPServer.HTTPServer(('', 8000), CIMSocketHandler)
+        self.port = 8000 + port 
+        self.server = BaseHTTPServer.HTTPServer(('', self.port), 
+                                                 CIMSocketHandler)
         self.server.print_ind = print_ind
-        self.port = 8000
         self.server.indications = []
 
         self.filter_xml = filter_xml(name, typ, ns, sysname)
@@ -325,7 +326,7 @@ class CIMIndicationSubscription:
         conn.request("POST", "/cimom", body, headers)
         resp = conn.getresponse()
         if not resp.getheader("content-length"):
-            raise Exception("Request Failed: %d %s" %
+            raise Exception("Request Failed: %d %s" % 
                             (resp.status, resp.reason))
 
         resp.read()
@@ -355,10 +356,12 @@ class CIMIndicationSubscription:
         xml = delete_sub_xml(self.name, self.sysname)
         self.__do_cimpost(self.conn, xml,
                           "DeleteInstance", auth_hdr)
-        xml = delete_inst_xml(self.name, "Handler", self.sysname)
+        xml = delete_inst_xml(self.name, "HandlerCIMXML", self.sysname,
+                              "%sHandler" % self.name)
         self.__do_cimpost(self.conn, xml,
                           "DeleteInstance", auth_hdr)
-        xml = delete_inst_xml(self.name, "Filter", self.sysname)
+        xml = delete_inst_xml(self.name, "Filter", self.sysname,
+                              "%sFilter" % self.name)
         self.__do_cimpost(self.conn, xml,
                           "DeleteInstance", auth_hdr)
 
@@ -366,8 +369,9 @@ def dump_xml(name, typ, ns, sysname):
     filter_str = filter_xml(name, typ, ns, sysname)
     handler_str = handler_xml(name, 8000, sysname)
     subscript_str = subscription_xml(name, sysname)
-    del_filter_str = delete_inst_xml(name, "Filter", sysname)
-    del_handler_str = delete_inst_xml(name, "Handler", sysname)
+    del_filter_str = delete_inst_xml(name, "Filter", sysname, "%sFilter" % name)
+    del_handler_str = delete_inst_xml(name, "HandlerCIMXML", sysname,
+                                      "%sHandler" % name)
     del_subscript_str = delete_sub_xml(name, sysname)
 
     print "CreateFilter:\n%s\n" % filter_str
@@ -398,6 +402,8 @@ def main():
                       help="HTTP Auth username")
     parser.add_option("-P", "--pass", dest="password", default=None,
                       help="HTTP Auth password")
+    parser.add_option("--port", dest="port", default=0, type=int,
+                      help="Port increment value (server default: 8000)")
 
     (options, args) = parser.parse_args()
 
@@ -413,14 +419,14 @@ def main():
     if ":" in options.url:
         (sysname, port) = options.url.split(":")
     else:
-        sysname = url
+        sysname = options.url
     
     if options.dump:
         dump_xml(options.name, args[0], options.ns, sysname)
         sys.exit(0)
 
     sub = CIMIndicationSubscription(options.name, args[0], options.ns,
-                                    options.print_ind, sysname)
+                                    options.print_ind, sysname, options.port)
     sub.subscribe(options.url, auth)
     print "Watching for %s" % args[0]
 
