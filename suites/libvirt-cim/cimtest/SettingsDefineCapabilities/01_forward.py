@@ -63,7 +63,7 @@ from CimTest.Globals import do_main, platform_sup, logger, \
 CIM_ERROR_GETINSTANCE, CIM_ERROR_ASSOCIATORS
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import cleanup_restore, create_diskpool_conf, \
-create_netpool_conf
+create_netpool_conf, destroy_netpool
 from XenKvmLib.common_util import print_field_error
 
 platform_sup = ['Xen', 'KVM', 'XenFV', 'LXC']
@@ -87,21 +87,21 @@ def get_or_bail(virt, ip, id, pool_class):
     return instance
 
 
-def init_list(virt, dpool, npool, mpool, ppool):
+def init_list(virt, pool):
     """
         Creating the lists that will be used for comparisons.
     """
-
+    
     if virt == 'LXC':
-        instlist = [ mpool.InstanceID ]
+        instlist = [ pool[1].InstanceID ]
         cllist = [ get_typed_class(virt, "MemResourceAllocationSettingData") ]
         rtype = { get_typed_class(virt, "MemResourceAllocationSettingData")  :  4 }
     else:    
         instlist = [ 
-                    dpool.InstanceID,
-                    mpool.InstanceID, 
-                    npool.InstanceID, 
-                    ppool.InstanceID
+                    pool[0].InstanceID,
+                    pool[1].InstanceID, 
+                    pool[2].InstanceID, 
+                    pool[3].InstanceID
                    ]
         cllist = [ 
                   get_typed_class(virt, "DiskResourceAllocationSettingData"),
@@ -130,10 +130,11 @@ def get_pool_info(virt, server, devid, poolname=""):
 
 def get_pool_details(virt, server):  
     dpool = npool  = mpool  = ppool = None
+    pool_set = []
     try :
         status, diskid = create_diskpool_conf(server, virt)
         if status != PASS:
-            return status,  dpool, npool, mpool, ppool
+            return status, pool_set, None
 
         dpool = get_pool_info(virt, server, diskid, poolname="DiskPool")
         mpool = get_pool_info(virt, server, memid, poolname= "MemoryPool")
@@ -141,16 +142,23 @@ def get_pool_details(virt, server):
 
         status, test_network = create_netpool_conf(server, virt)
         if status != PASS:
-            return status,  dpool, npool, mpool, ppool
+            return status, pool_set, test_network
 
         netid = "%s/%s" % ("NetworkPool", test_network)
         npool = get_pool_info(virt, server, netid, poolname= "NetworkPool")
-    
+        if dpool.InstanceID == None or mpool.InstanceID == None \
+           or npool.InstanceID == None or ppool.InstanceID == None:
+           logger.error("Get pool None") 
+           cleanup_restore(server, virt)
+           destroy_netpool(server, virt, test_network)
+           return FAIL
+        else:
+           pool_set = [dpool, mpool, ppool, npool]      
     except Exception, detail:
         logger.error("Exception: %s", detail)
-        return FAIL, dpool, npool, mpool, ppool
+        return FAIL, pool_set, test_network
 
-    return PASS, dpool, npool, mpool, ppool
+    return PASS, pool_set, test_network
 
 def verify_rasd_fields(loop, assoc_info, cllist, rtype, rangelist):
     for inst in assoc_info:
@@ -164,10 +172,9 @@ def verify_rasd_fields(loop, assoc_info, cllist, rtype, rangelist):
 
     return PASS
 
-def verify_sdc_with_ac(virt, server, dpool, npool, mpool, ppool):
+def verify_sdc_with_ac(virt, server, pool):
     loop = 0 
-    instlist, cllist, rtype, rangelist = init_list(virt, dpool, npool, mpool, 
-                                                   ppool)
+    instlist, cllist, rtype, rangelist = init_list(virt, pool)
     assoc_cname = get_typed_class(virt, "SettingsDefineCapabilities")
     cn =  get_typed_class(virt, "AllocationCapabilities")
     for instid in sorted(instlist):
@@ -200,14 +207,15 @@ def main():
     server = options.ip
     virt = options.virt
 
-    status, dpool, npool, mpool, ppool = get_pool_details(virt, server)
-    if status != PASS or dpool.InstanceID == None or mpool.InstanceID == None \
-       or npool.InstanceID == None or ppool.InstanceID == None:
+    status, pool, test_network = get_pool_details(virt, server)
+    if status != PASS:
         cleanup_restore(server, virt)
+        destroy_netpool(server, virt, test_network)
         return FAIL
 
-    status = verify_sdc_with_ac(virt, server, dpool, npool, mpool, ppool)
+    status = verify_sdc_with_ac(virt, server, pool)
     cleanup_restore(server, virt)
+    destroy_netpool(server, virt, test_network)
     return status
     
 if __name__ == "__main__":
