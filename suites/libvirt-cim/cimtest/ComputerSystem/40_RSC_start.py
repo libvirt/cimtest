@@ -36,60 +36,49 @@
 import sys
 import pywbem
 from VirtLib import utils
-from XenKvmLib.test_doms import undefine_test_domain 
+from XenKvmLib.test_doms import destroy_and_undefine_domain 
 from XenKvmLib.common_util import *
 from CimTest.Globals import logger
 from CimTest.Globals import do_main
-from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
+from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'KVM', 'XenFV']
-bug = "00001"
-bug_req_state = "00002"
 
-default_dom = 'test_domain'
+default_dom = 'cs_test_domain'
 REQUESTED_STATE = 2
 TIME = "00000000000000.000000:000"
-
-def check_attributes(domain_name, ip, virt):
-    rc, cs = get_cs_instance(domain_name, ip, virt)
-    if rc != 0:
-        return rc
-
-    if cs.RequestedState != REQUESTED_STATE:
-        logger.error("RequestedState should be %d not %d",
-                     REQUESTED_STATE, cs.RequestedState)
-        return FAIL
-
-    if cs.EnabledState != REQUESTED_STATE:
-        logger.error("EnabledState should be %d not %d",
-                     REQUESTED_STATE, cs.EnabledState)
-        return FAIL
-
-    return PASS
 
 @do_main(sup_types)
 def main():
     options = main.options
+    server = options.ip
+    virt = options.virt
     status = FAIL
 
+    status, test_network = create_netpool_conf(server, virt, False)
+    if status != PASS:
+        return FAIL
+
     try:
-        rc = create_using_definesystem(default_dom, options.ip, 
-                                       virt=options.virt)
+        rc = create_using_definesystem(default_dom, server, 
+                                       virt=virt)
         if rc != 0:
-            raise Exception("DefineSystem() failed to create domain: %s" % 
+            status = FAIL
+            raise Exception("DefineSystem() failed to create domain: '%s'" % 
                             default_dom)
 
-        rc = call_request_state_change(default_dom, options.ip, 
-                                       REQUESTED_STATE, TIME, options.virt)
+        rc = call_request_state_change(default_dom, server, 
+                                       REQUESTED_STATE, TIME, virt)
         if rc != 0:
-            status = XFAIL_RC(bug)
+            status = FAIL
             raise Exception("RequestedStateChange() could not be used to start"
                             " domain: '%s'" % default_dom)
 
+        status, dom_cs = poll_for_state_change(server, virt, default_dom, 
+                                               REQUESTED_STATE, timeout=10)
 
-        rc = check_attributes(default_dom, options.ip, options.virt)
-        if rc != 0:
-            status = XFAIL_RC(bug_req_state)
+        if status != PASS or dom_cs.RequestedState != REQUESTED_STATE:
+            status = FAIL
             raise Exception("Attributes were not set as expected for "
                             "domain: '%s'" % default_dom)
         else:
@@ -98,8 +87,8 @@ def main():
     except Exception, detail:
         logger.error("Exception: %s", detail)
 
-    undefine_test_domain(default_dom, options.ip, options.virt)
-
+    destroy_netpool(server, virt, test_network)
+    destroy_and_undefine_domain(default_dom, server, virt)
     return status
 
 if __name__ == "__main__":
