@@ -99,8 +99,8 @@ def start_guest(ip, guest_name, type, virt):
             cxml = virt_xml(guest_name)
             cxml.start(ip)
 
-            status = poll_for_state_change(ip, virt, guest_name,
-                                           REQUESTED_STATE)
+            status, dom_cs = poll_for_state_change(ip, virt, guest_name,
+                                                   REQUESTED_STATE)
             if status != PASS:
                 raise Exception("%s didn't change state as expected" % guest_name)
                 return FAIL, None

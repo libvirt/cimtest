@@ -49,8 +49,8 @@ def start_guest_get_ref(ip, guest_name, virt):
         logger.error("Error create domain %s" % guest_name)
         return FAIL
 
-    status = poll_for_state_change(ip, virt, guest_name,
-                                   REQUESTED_STATE)
+    status, dom_cs = poll_for_state_change(ip, virt, guest_name,
+                                           REQUESTED_STATE)
     if status != PASS:
         raise Exception("%s didn't change state as expected" % guest_name)
         return FAIL
