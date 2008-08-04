@@ -41,110 +41,100 @@
 #						Date  :18-10-2007
 
 import sys
-from time import sleep
 from XenKvmLib import computersystem
 from XenKvmLib import vxml
 from VirtLib import utils
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from CimTest.Globals import logger
 from CimTest.Globals import do_main
-from XenKvmLib.common_util import call_request_state_change
-from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
+from XenKvmLib.common_util import call_request_state_change, \
+poll_for_state_change
+from CimTest.ReturnCodes import PASS, FAIL
+from XenKvmLib.common_util import create_netpool_conf, destroy_netpool
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 test_dom = "DomST1"
 mem = 128 # MB
-# Keeping the bug no for future reference
-# bug_no_req_change_method = "90559"
-bug_no_req_change_prop   = "00002"
 START_STATE = 2 
 FINAL_STATE = 9
-REQUESTED_STATE = FINAL_STATE
 TIME = "00000000000000.000000:000"
 
 @do_main(sup_types)
 def main():
     options = main.options
     status = FAIL
-    
-    cxml = vxml.get_class(options.virt)(test_dom, mem)
+    server = options.ip
+    virt = options.virt
 
-#Create VS
+    destroy_and_undefine_all(server)
+    status, test_network = create_netpool_conf(server, virt)
+    if status != PASS:
+        return FAIL
+    
+    cxml = vxml.get_class(virt)(test_dom, mem)
+
+    #Create VS
     try:
-        ret = cxml.create(options.ip)
+        ret = cxml.create(server)
         if not ret:
-            logger.error("ERROR: VS %s was not created" % test_dom)
-            return status
-        cs = computersystem.get_cs_class(options.virt)(options.ip, test_dom)
-        if cs.Name == test_dom:
-            from_State = cs.EnabledState
-        else:
-            logger.error("ERROR: VS %s not found" % test_dom)
+            logger.error("VS '%s' was not created" % test_dom)
             return status
     except Exception, detail:
         logger.error("Exception variable: %s" % detail)
-        cxml.destroy(options.ip)
-        cxml.undefine(options.ip)
         return status
  
-#Suspend the VS
-    rc = call_request_state_change(test_dom, options.ip, REQUESTED_STATE,
-                                   TIME, options.virt)
-    if rc != 0:
-        logger.error("Unable to suspend dom %s using RequestedStateChange()", test_dom)
-        cxml.destroy(options.ip)
-        cxml.undefine(options.ip)
-        return status
-#Polling for the value of EnabledState to be set to 9.
-#We need to wait for the EnabledState to be set appropriately since
-#it does not get set immediatley to value of 9 when suspended.
-    timeout = 10
-    try:
-
-        for i in range(1, (timeout + 1)):
-            sleep(1)
-            cs = computersystem.get_cs_class(options.virt)(options.ip, test_dom)
-            if cs.Name == test_dom:
-                to_RequestedState = cs.RequestedState
-                enabledState =  cs.EnabledState
-            else:
-                logger.error("VS %s not found" % test_dom)
-                return status 
-            if enabledState == FINAL_STATE:
-                status = PASS
-                break
-
-    except Exception, detail:
-        logger.error("Exception variable: %s" % detail)
-        return status
-
-    if enabledState != FINAL_STATE:
-        logger.error("EnabledState has %i instead of %i", enabledState, FINAL_STATE)
-        logger.error("Try to increase the timeout and run the test again")
+    status, dom_cs = poll_for_state_change(server, virt, test_dom, 
+                                           START_STATE)
 
     if status != PASS:
-        ret = cxml.destroy(options.ip)
-        cxml.undefine(options.ip)
+        cxml.destroy(server)
+        destroy_netpool(server, virt, test_network)
         return status
 
-# Success: 
-# if  
-# From state == 9
-# To state == 2
-# Enabled_state == RequestedState
+    from_State = dom_cs.EnabledState
+ 
+    #Suspend the VS
+    status = call_request_state_change(test_dom, server, FINAL_STATE,
+                                       TIME, virt)
+    if status != PASS:
+        logger.error("Unable to suspend dom '%s' using RequestedStateChange()", 
+                      test_dom)
+        cxml.destroy(server)
+        destroy_netpool(server, virt, test_network)
+        return status
+
+    #Polling for the value of EnabledState to be set to 9.
+    #We need to wait for the EnabledState to be set appropriately since
+    #it does not get set immediatley to value of 9 when suspended.
+    status, dom_cs = poll_for_state_change(server, virt, test_dom, 
+                                           FINAL_STATE, timeout=40)
+
+    if status != PASS:
+        cxml.destroy(server)
+        destroy_netpool(server, virt, test_network)
+        return status
+
+    enabledState = dom_cs.EnabledState
+    to_RequestedState = dom_cs.RequestedState
+
+    # Success: 
+    # if  
+    # From state == 2
+    # To state == 9
+    # Enabled_state == RequestedState
 
     if from_State == START_STATE and \
         to_RequestedState == FINAL_STATE and \
-        enabledState == to_RequestedState:
+        to_RequestedState == enabledState:
         status = PASS
     else:
-        logger.error("ERROR: VS %s transition from suspend State to Activate state \
- was not Successful" % test_dom)
-# Replace the status with FAIL once the bug is fixed.
-        status = XFAIL_RC(bug_no_req_change_prop)
-    ret = cxml.destroy(options.ip)
-    cxml.undefine(options.ip)
-    return status
+        logger.error("VS '%s' transition from Activate State to Suspend State" 
+                     " was not Successful" % test_dom)
+        status = FAIL
 
+    cxml.destroy(server)
+    destroy_netpool(server, virt, test_network)
+    
+    return status
 if __name__ == "__main__":
     sys.exit(main())
