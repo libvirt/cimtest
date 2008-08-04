@@ -33,7 +33,8 @@ from XenKvmLib import hostsystem
 from pywbem.cim_obj import CIMInstanceName
 from XenKvmLib.devices import CIM_Instance
 from XenKvmLib.classes import get_typed_class
-from CimTest.Globals import logger, log_param, CIM_ERROR_ENUMERATE
+from CimTest.Globals import logger, log_param, CIM_ERROR_ENUMERATE, \
+CIM_ERROR_GETINSTANCE
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 from VirtLib.live import diskpool_list, virsh_version, net_list
 from XenKvmLib.vxml import PoolXML, NetXML
@@ -57,7 +58,7 @@ def get_cs_instance(domain_name, ip, virt='Xen'):
             return (1, cs)
 
     except Exception, detail:
-        logger.error(Globals.CIM_ERROR_GETINSTANCE, 
+        logger.error(CIM_ERROR_GETINSTANCE, 
                      get_typed_class(virt, 'ComputerSystem'))
         logger.error("Exception: %s", detail)
         return (1, cs) 
@@ -122,10 +123,21 @@ def create_using_definesystem(domain_name, ip,
 
     return PASS 
 
+def verify_err_desc(exp_rc, exp_desc, err_no, err_desc):
+    if err_no == exp_rc and err_desc.find(exp_desc) >= 0:
+        logger.info("Got expected exception where ")
+        logger.info("Errno is '%s' ", exp_rc)
+        logger.info("Error string is '%s'", exp_desc)
+        return PASS
+    else:
+        logger.error("Unexpected rc code %s and description %s\n", 
+                      (err_no, err_desc))
+        return FAIL
+
 def call_request_state_change(domain_name, ip, rs, time, virt='Xen'):
     rc, cs = get_cs_instance(domain_name, ip, virt)
     if rc != 0:
-        return 1 
+        return FAIL 
 
     try:
         cs.RequestStateChange(RequestedState=pywbem.cim_types.Uint16(rs),
@@ -133,11 +145,27 @@ def call_request_state_change(domain_name, ip, rs, time, virt='Xen'):
 
     except Exception, detail:
         logger.error("Exception: %s" % detail)
-        return 1
+        return FAIL 
 
-    return 0 
+    return PASS 
+
+def try_request_state_change(domain_name, ip, rs, time, exp_rc, 
+                             exp_desc, virt='Xen'):
+    rc, cs = get_cs_instance(domain_name, ip, virt)
+    if rc != 0:
+        return FAIL 
+
+    try:
+        cs.RequestStateChange(RequestedState=pywbem.cim_types.Uint16(rs),
+                              TimeoutPeriod=pywbem.cim_types.CIMDateTime(time))
+
+    except Exception, (err_no, err_desc) :
+        return verify_err_desc(exp_rc, exp_desc, err_no, err_desc)
+    logger.error("RequestStateChange failed to generate an exception")
+    return FAIL 
 
 def poll_for_state_change(server, virt, dom, exp_state, timeout=30):
+    dom_cs = None
     cs = computersystem.get_cs_class(virt)
 
     try:
@@ -146,22 +174,22 @@ def poll_for_state_change(server, virt, dom, exp_state, timeout=30):
             dom_cs = cs(server, name=dom)
             if dom_cs is None or dom_cs.Name != dom:
                 logger.error("CS instance not returned for %s." % dom)
-                return FAIL
+                return FAIL, dom_cs
 
             if dom_cs.EnabledState == exp_state:
                 break
 
     except Exception, detail:
         logger.error("Exception: %s" % detail)
-        return FAIL
+        return FAIL, dom_cs
 
     if dom_cs.EnabledState != exp_state:
         logger.error("EnabledState is %i instead of %i." % (dom_cs.EnabledState,
                      exp_state))
         logger.error("Try to increase the timeout and run the test again")
-        return FAIL
+        return FAIL, dom_cs
 
-    return PASS 
+    return PASS, dom_cs 
 
 def get_host_info(server, virt="Xen"):
     status = PASS
@@ -191,20 +219,12 @@ def try_assoc(conn, classname, assoc_classname, keys, field_name, \
     try:
         assoc_info = conn.AssociatorNames(instanceref, \
                              AssocClass=assoc_classname)
-    except pywbem.CIMError, (err_no, desc):
+    except pywbem.CIMError, (err_no, err_desc):
         exp_rc    = expr_values['rc']
         exp_desc  = expr_values['desc']
-        if err_no == exp_rc and desc.find(exp_desc) >= 0:
-            logger.info("Got expected exception where ")
-            logger.info("Errno is '%s' ", exp_rc)
-            logger.info("Error string is '%s'", exp_desc)
-            return PASS
-        else:
-            logger.error("Unexpected rc code %s and description %s\n" \
-                                                       %(err_no, desc))
-            return FAIL
-    logger.error("'%s' association failed to generate an exception and \
-'%s' passed.", assoc_classname, field_name)
+        return verify_err_desc(exp_rc, exp_desc, err_no, err_desc)
+    logger.error("'%s' association failed to generate an exception and" 
+                  " '%s' passed.", assoc_classname, field_name)
     return XFAIL_RC(bug_no)
 
 def try_getinstance(conn, classname, keys, field_name, expr_values, bug_no):
@@ -213,20 +233,12 @@ def try_getinstance(conn, classname, keys, field_name, expr_values, bug_no):
         instanceref = CIMInstanceName(classname, keybindings=keys)
         logger.info ("Instanceref is '%s'", instanceref)
         inst = conn.GetInstance(instanceref)
-    except pywbem.CIMError, (err_no, desc):
+    except pywbem.CIMError, (err_no, err_desc):
         exp_rc    = expr_values['rc']
         exp_desc  = expr_values['desc']
-        if err_no == exp_rc and desc.find(exp_desc) >= 0:
-            logger.info("Got expected exception where ")
-            logger.info("Errno is '%s' ", exp_rc)
-            logger.info("Error string is '%s'", exp_desc)
-            return PASS
-        else:
-            logger.error("Unexpected rc code %s and description %s\n" \
-                                                       %(err_no, desc))
-            return FAIL
-    logger.error("'%s' GetInstance failed to generate an exception and \
-'%s' passed.", classname, field_name)
+        return verify_err_desc(exp_rc, exp_desc, err_no, err_desc)
+    logger.error("'%s' GetInstance failed to generate an exception and" 
+                 " '%s' passed.", classname, field_name)
     return XFAIL_RC(bug_no)
 
 def profile_init_list():
