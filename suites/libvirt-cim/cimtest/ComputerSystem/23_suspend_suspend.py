@@ -94,12 +94,10 @@ def main():
                 break
 
             status, dom_cs = poll_for_state_change(server, virt, default_dom, en_state, 
-                                           timeout=30)
-            if status != PASS:
-                break
-
-            if dom_cs.RequestedState != rq_state:
-                logger.error("RequestedState for dom '%s' is not set as expected.", 
+                                                   timeout=30)
+            if status != PASS or dom_cs.RequestedState != rq_state:
+                status = FAIL
+                logger.error("Attributes for dom '%s' is not set as expected.", 
                               default_dom)
                 break
 
