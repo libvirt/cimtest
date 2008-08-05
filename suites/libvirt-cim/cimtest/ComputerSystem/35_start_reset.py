@@ -4,6 +4,7 @@
 #
 # Authors:
 #    Anoop V Chakkalakkal<anoop.vijayan@in.ibm.com>
+#    Deepti B. Kalakeri<deeptik@linux.vnet.ibm.com>
 #
 #
 # This library is free software; you can redistribute it and/or
@@ -41,83 +42,74 @@
 import sys
 from VirtLib import utils
 from CimTest.Globals import do_main, logger
-from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
-from XenKvmLib.test_doms import undefine_test_domain
+from CimTest.ReturnCodes import PASS, FAIL
+from XenKvmLib.test_doms import destroy_and_undefine_domain
 from XenKvmLib.common_util import get_cs_instance
 from XenKvmLib.common_util import create_using_definesystem
 from XenKvmLib.common_util import call_request_state_change
+from XenKvmLib.common_util import poll_for_state_change
+from XenKvmLib.common_util import create_netpool_conf, destroy_netpool
 
-sup_types = ['Xen', 'XenFV']
+sup_types = ['Xen', 'XenFV', 'KVM']
 
 ACTIVE_STATE = 2
 RESET_STATE  = 11
 
-bug_req_state     = "00002"
-default_dom = 'test_domain'
+default_dom = 'cs_test_domain'
 TIME        = "00000000000000.000000:000"
-
-def check_attributes(domain_name, ip, en_state, rq_state, virt):
-    rc, cs = get_cs_instance(domain_name, ip, virt)
-    if rc != 0:
-        return rc
-    if cs.RequestedState != rq_state:
-        logger.error("RequestedState should be %d not %d", 
-                     rq_state, cs.RequestedState)
-        return XFAIL_RC(bug_req_state)
-
-    if cs.EnabledState != en_state:
-        logger.error("EnabledState should be %d not %d", 
-                     en_state, cs.EnabledState)
-        return FAIL
-
-    return PASS
 
 @do_main(sup_types)
 def main():
     options = main.options
     status = FAIL
+    server = options.ip
+    virt   = options.virt
 
-    tc_scen = [('Start', [ACTIVE_STATE, ACTIVE_STATE]), \
+    status, test_network = create_netpool_conf(server, virt, False)
+    if status != PASS:
+        return FAIL
+
+    tc_scen = [('Start', [ACTIVE_STATE, ACTIVE_STATE]), 
                ('Reset', [ACTIVE_STATE, RESET_STATE])]
 
     try:
         # define the vs
-        status = create_using_definesystem(default_dom, options.ip,
-                                           virt=options.virt)
+        status = create_using_definesystem(default_dom, server,
+                                           virt=virt)
         if status != PASS:
-            logger.error("Unable to define domain %s using DefineSystem()", \
-                                                                 default_dom)
+            logger.error("Unable to define domain '%s' using DefineSystem()", 
+                          default_dom)
             return status
 
         # start and reset
         for action, state in tc_scen:
             en_state = state[0]
             rq_state = state[1]
-            status = call_request_state_change(default_dom, options.ip,
+            status = call_request_state_change(default_dom, server,
                                                rq_state, TIME,
-                                               virt=options.virt)
+                                               virt=virt)
             if status != PASS:
-                logger.error("Unable to %s dom %s using \
-RequestedStateChange()", action, default_dom)
+                logger.error("Unable to '%s' dom '%s' using RequestedStateChange()", 
+                              action, default_dom)
                 break
 
-            # FIX ME
-            # sleep()
-
-            status = check_attributes(default_dom, options.ip,
-                                      en_state, rq_state, options.virt)
+            status, dom_cs = poll_for_state_change(server, virt, default_dom, en_state,
+                                                    timeout=30)
             if status != PASS:
-                logger.error("Attributes for dom %s not set as expected.", 
+                break
+
+            if dom_cs.RequestedState != rq_state:
+                logger.error("RequestedState for dom '%s' is not set as expected.",
                               default_dom)
                 break
+
 
     except Exception, detail:
         logger.error("Exception: %s", detail)
         status = FAIL
 
-    # undefine the vs
-    undefine_test_domain(default_dom, options.ip, options.virt)
-
+    destroy_netpool(server, virt, test_network)
+    destroy_and_undefine_domain(default_dom, server, virt)
     return status
 
 if __name__ == "__main__":
