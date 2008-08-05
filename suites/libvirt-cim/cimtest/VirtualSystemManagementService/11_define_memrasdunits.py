@@ -47,10 +47,8 @@ values = [
 
 def try_define(options, vssd, units, value):
     mrasd_class = vsms.get_masd_class(options.virt)
-    mrasd = mrasd_class(None, default_dom)
-    
-    mrasd.AllocationUnits = units
-    mrasd.VirtualQuantity = value
+    mrasd = mrasd_class(megabytes=value, mallocunits=units, 
+                        name=default_dom)
 
     params = { 
         "vssd" : vssd.mof(),

@@ -78,7 +78,7 @@ def test_rasd(options, temp, test_size):
     drasd = drasd_class("hda", temp, default_dom)
 
     mrasd_class = vsms.get_masd_class(options.virt)
-    mrasd = mrasd_class(32, default_dom)
+    mrasd = mrasd_class(name=default_dom, megabytes=32)
 
     params = {
         "vssd" : vssd.mof(),
