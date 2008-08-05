@@ -498,7 +498,7 @@ class VirtXML(Virsh, XMLClass):
 
 class VirtCIM:
     def __init__(self, virt, dom_name, disk_dev, disk_source,
-                 net_type, net_mac, vcpus, mem):
+                 net_type, net_mac, vcpus, mem, mem_allocunits):
         self.virt = virt
         self.domain_name = dom_name
         self.vssd = vsms.get_vssd_class(virt)(name=dom_name, virt=virt)
@@ -509,7 +509,9 @@ class VirtCIM:
                                               mac=net_mac,
                                               name=dom_name)
         self.pasd = vsms.get_pasd_class(virt)(vcpu=vcpus, name=dom_name)
-        self.masd = vsms.get_masd_class(virt)(megabytes=mem, name=dom_name)
+        self.masd = vsms.get_masd_class(virt)(megabytes=mem, 
+                                              mallocunits=mem_allocunits,
+                                              name=dom_name)
 
     def cim_define(self, ip):
         service = vsms.get_vsms_class(self.virt)(ip)
@@ -552,6 +554,7 @@ class XenXML(VirtXML, VirtCIM):
     
     def __init__(self, test_dom=const.default_domname,
                        mem=const.default_memory,
+                       mem_allocunits=const.default_mallocunits,
                        vcpus=const.default_vcpus,
                        mac=const.Xen_default_mac,
                        disk_file_path=const.Xen_disk_path,
@@ -567,7 +570,7 @@ class XenXML(VirtXML, VirtCIM):
         self._devices(disk_file_path, disk, ntype, mac)
 
         VirtCIM.__init__(self, 'Xen', test_dom, disk, disk_file_path, 
-                         ntype, mac, vcpus, mem)
+                         ntype, mac, vcpus, mem, mem_allocunits)
 
     def _os(self, os_kernel, os_initrd):
         os = self.get_node('/domain/os')

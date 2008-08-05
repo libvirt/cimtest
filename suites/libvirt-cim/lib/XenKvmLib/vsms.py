@@ -203,11 +203,14 @@ def get_pasd_class(virt):
     pass
 
 class CIM_MemResourceAllocationSettingData(CIMClassMOF):
-    def __init__(self, megabytes, name):
+    def __init__(self, name,  megabytes=512, mallocunits="MegaBytes"):
         self.ResourceType = RASD_TYPE_MEM
         
         if megabytes != None:
             self.VirtualQuantity = megabytes
+
+        if mallocunits != None:
+            self.AllocationUnits = mallocunits
         
         if name != None:
             self.InstanceID = '%s/mem' % name
@@ -232,6 +235,7 @@ def default_vssd_rasd_str(dom_name='test_domain',
                           net_mac=const.Xen_default_mac,
                           proc_vcpu=1,
                           mem_mb=512,
+                          malloc_units="MegaBytes",
                           virt='Xen'):
     class_vssd = get_vssd_class(virt)
     vssd = class_vssd(name=dom_name, virt=virt)
@@ -258,6 +262,7 @@ def default_vssd_rasd_str(dom_name='test_domain',
     class_masd = get_masd_class(virt)
     m = class_masd(
                 megabytes=mem_mb,
+                mallocunits=malloc_units,
                 name=dom_name)
     if virt == 'LXC':
         return vssd.mof(), [d.mof(), m.mof()]

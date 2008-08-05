@@ -49,6 +49,7 @@ default_pool_name = 'testpool'
 default_domname = 'domU1'
 default_memory = 128
 default_vcpus = 1
+default_mallocunits="MegaBytes"
 
 
 _image_dir = '/tmp'
