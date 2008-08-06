@@ -41,11 +41,12 @@ import pywbem
 from VirtLib import utils
 from CimTest.Globals import do_main, logger
 from CimTest.ReturnCodes import PASS, FAIL
-from XenKvmLib.test_doms import undefine_test_domain
-from XenKvmLib.common_util import get_cs_instance
+from XenKvmLib.test_doms import destroy_and_undefine_domain
+from XenKvmLib.common_util import try_request_state_change
 from XenKvmLib.common_util import create_using_definesystem
+from XenKvmLib.common_util import create_netpool_conf, destroy_netpool
 
-sup_types = ['Xen', 'XenFV', 'LXC']
+sup_types = ['Xen', 'XenFV', 'LXC', 'KVM']
 
 SUSPEND_STATE = 9 
 default_dom   = 'test_domain'
@@ -53,44 +54,42 @@ TIME          = "00000000000000.000000:000"
 exp_rc        = pywbem.CIM_ERR_FAILED
 exp_desc      = 'Domain not running'
 
+
 @do_main(sup_types)
 def main():
     options = main.options
+    server = options.ip
+    virt   = options.virt
+    status = FAIL
+
+    status, test_network = create_netpool_conf(server, virt, False)
+    if status != PASS:
+        return FAIL
 
     try:
         # define the vs
-        status = create_using_definesystem(default_dom, options.ip,
-                                           virt=options.virt)
+        status = create_using_definesystem(default_dom, server, virt=virt)
         if status != PASS:
-            logger.error("Unable to define domain %s using DefineSystem()", \
-                                                                 default_dom)
-            return FAIL
+            logger.error("Unable to define domain '%s' using DefineSystem()", 
+                          default_dom)
+            return status
 
-        rc, cs = get_cs_instance(default_dom, options.ip, options.virt)
-        if rc != 0:
-            logger.error("GetInstance failed")
-            undefine_test_domain(default_dom, options.ip)
-            return FAIL
-
-        # try to suspend
-        cs.RequestStateChange( \
-            RequestedState=pywbem.cim_types.Uint16(SUSPEND_STATE), \
-            TimeoutPeriod=pywbem.cim_types.CIMDateTime(TIME))
-
-    except pywbem.CIMError, (err_no, desc):
-        if err_no == exp_rc and desc.find(exp_desc) >= 0:
-            logger.info("Got expected exception where ")
-            logger.info("Errno is '%s' ", exp_rc)
-            logger.info("Error string is '%s'", exp_desc)
-            undefine_test_domain(default_dom, options.ip, options.virt)
-            return PASS
-        logger.error("Unexpected RC: %s & Desc. %s", err_no, desc)
-        undefine_test_domain(default_dom, options.ip, options.virt)
+    except Exception, details:
+        logger.error("Exception: %s", details)
+        destroy_netpool(server, virt, test_network)
+        destroy_and_undefine_domain(default_dom, server, virt)
         return FAIL
 
-    logger.error("Expected Defined -> Suspended state transition to fail")
-    undefine_test_domain(default_dom, options.ip, options.virt)
-    return FAIL
+    status = try_request_state_change(default_dom, server,
+                                      SUSPEND_STATE, TIME, exp_rc, 
+                                      exp_desc, virt)
+
+    if status != PASS:
+        logger.error("Expected Defined -> Suspended state transition to fail")
+
+    destroy_netpool(server, virt, test_network)
+    destroy_and_undefine_domain(default_dom, server, virt)
+    return status 
 
 if __name__ == "__main__":
     sys.exit(main())
