@@ -51,8 +51,9 @@ def main():
                'exp_desc' : exp_desc
               }
 
-    rc = create_using_definesystem(dname, options.ip,
-                                   params, exp_err, virt=options.virt)
+
+    rc = create_using_definesystem(dname, options.ip, params, ref_config=' ',
+                                   exp_err=exp_err, virt=options.virt)
 
     if rc != PASS:
         logger.error('DefineSystem should NOT return OK with a wrong ss input')

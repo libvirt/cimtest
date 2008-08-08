@@ -64,8 +64,11 @@ def main():
 
     undefine_test_domain(default_dom, options.ip)
 
+
     try:
-        rc = create_using_definesystem(default_dom, options.ip, None, None, options.virt)
+        rc = create_using_definesystem(default_dom, options.ip, params=None,
+                                       ref_config='', exp_err=None, 
+                                       virt=options.virt)
         if rc != 0:
             raise Exception("Unable to create domain %s using DefineSys()"  % default_dom)
 
