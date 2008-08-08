@@ -32,13 +32,12 @@ from XenKvmLib import devices
 from XenKvmLib.vxml import KVMXML
 from CimTest.Globals import logger
 from CimTest.Globals import do_main
-from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
+from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['KVM']
 
 test_dom = "test_domain"
 test_mac = "00:11:22:33:44:55"
-bug = '00004'
 
 @do_main(sup_types)
 def main():
@@ -62,7 +61,7 @@ def main():
     except Exception, detail:
         logger.error("Exception: %s" % detail)
         cxml.undefine(options.ip)
-        return XFAIL_RC(bug)
+        return FAIL
 
     if dev.DeviceID != devid:
         logger.error("DeviceID reported incorrectly (%s instead of %s)",
