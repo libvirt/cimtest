@@ -23,6 +23,7 @@ DEFAULT_KERNEL = /tmp/default-xen-kernel
 DEFAULT_INITRD = /tmp/default-xen-initrd
 DEFAULT_DIMAGE = /tmp/default-xen-dimage
 DEFAULT_KVMIMG = /tmp/default-kvm-dimage
+DEFAULT_LXCINIT = /tmp/cimtest_lxc_init
 
 SECONDARY_DIMAGE = $(DEFAULT_DIMAGE).2ND
 SECONDARY_KVMIMG = $(DEFAULT_KVMIMG).2ND
@@ -34,13 +35,11 @@ XMT_IRAMFS = $(XMT_BASE)/xm-test.gz
 XMT_URL=http://xm-test.xensource.com/ramdisks/initrd-1.1-i386.img
 
 # Default to xm-test ramdisk image & kvm image for now
-default: xmtestimage $(DEFAULT_KERNEL) $(DEFAULT_KVMIMG)
+default: xmtestimage $(DEFAULT_KERNEL) $(DEFAULT_KVMIMG) $(DEFAULT_LXCINIT)
 
 $(DEFAULT_KERNEL):
 	if uname -r | grep -q xen; then \
 		cp /boot/vmlinuz-`uname -r` $@; \
-	else \
-		cp /boot/vmlinuz-xen $@; \
 	fi
 
 $(XMT_INITRD):
@@ -65,8 +64,11 @@ $(DEFAULT_KVMIMG):
 	cp $(XMT_DIMAGE) $(DEFAULT_KVMIMG)
 	cp $(XMT_DIMAGE) $(SECONDARY_KVMIMG)
 
+$(DEFAULT_LXCINIT):
+	echo  "exec /bin/bash" > $(DEFAULT_LXCINIT)
+	chmod 755 $(DEFAULT_LXCINIT)
 
 clean:
-	rm -f $(DEFAULT_KERNEL) $(DEFAULT_INITRD) $(DEFAULT_DIMAGE) $(SECONDARY_DIMAGE)
+	rm -f $(DEFAULT_KERNEL) $(DEFAULT_INITRD) $(DEFAULT_DIMAGE) $(SECONDARY_DIMAGE) $(DEFAULT_LXCINIT)
 	rm -f $(DEFAULT_KVMIMG) $(SECONDARY_KVMIMG)
 	rm -Rf $(XMT_BASE)
