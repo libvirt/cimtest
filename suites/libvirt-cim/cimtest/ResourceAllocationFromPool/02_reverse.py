@@ -56,18 +56,20 @@ def setup_env(server, virt):
         vsxml = virtxml(test_dom)
     else:
         vsxml = virtxml(test_dom, mem=test_mem, vcpus = test_vcpus,
-                        mac = test_mac, disk = test_disk)
+                        mac = test_mac, disk = test_disk,
+                        ntype = 'network')
+    test_network = vsxml.xml_get_net_network()
     try:
         ret = vsxml.define(server)
         if not ret:
             logger.error("Failed to Define the domain: %s", test_dom)
-            return FAIL, vsxml, test_disk
+            return FAIL, vsxml, test_disk, test_network
 
     except Exception, details:
         logger.error("Exception : %s", details)
-        return FAIL, vsxml, test_disk
+        return FAIL, vsxml, test_disk, test_network
 
-    return PASS, vsxml, test_disk
+    return PASS, vsxml, test_disk, test_network
 
 def init_list(test_disk, diskid, test_network, virt='Xen'):
 
@@ -163,16 +165,16 @@ def main():
     server = options.ip
     virt = options.virt
     
-    status, vsxml, test_disk = setup_env(server, virt)
+    status, vsxml, test_disk, test_network = setup_env(server, virt)
     if status != PASS:
+        destroy_netpool(server, virt, test_network)
+        vsxml.undefine(server)
         return status
 
     status, diskid = create_diskpool_conf(server, virt)
     if status != PASS:
-        return status
-
-    status, test_network = create_netpool_conf(server, virt)
-    if status != PASS:
+        destroy_netpool(server, virt, test_network)
+        vsxml.undefine(server)
         return status
 
     cn_id_list = init_list(test_disk, diskid, test_network, options.virt)

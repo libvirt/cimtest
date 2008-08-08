@@ -57,18 +57,21 @@ def setup_env(server, virt):
         vsxml = virtxml(test_dom)
     else:
         vsxml = virtxml(test_dom, mem=test_mem, vcpus = test_vcpus,
-                        mac = test_mac, disk = test_disk)
+                        mac = test_mac, disk = test_disk, 
+                        ntype='network')
+    
+    test_network = vsxml.xml_get_net_network()
     try:
         ret = vsxml.define(server)
         if not ret:
             logger.error("Failed to Define the domain: %s", test_dom)
-            return FAIL, vsxml, test_disk
+            return FAIL, vsxml, test_disk, test_network
 
     except Exception, details:
         logger.error("Exception : %s", details)
-        return FAIL, vsxml, test_disk
+        return FAIL, vsxml, test_disk, test_network
 
-    return PASS, vsxml, test_disk
+    return PASS, vsxml, test_disk, test_network
 
 def get_instance(server, pool, list, virt='Xen'):
     try:
@@ -111,22 +114,19 @@ def main():
     status = PASS
 
    
-    status, vsxml, test_disk = setup_env(options.ip, options.virt)
+    status, vsxml, test_disk, test_network = setup_env(options.ip, options.virt)
     if status != PASS:
+        destroy_netpool(options.ip, options.virt, test_network)
+        vsxml.undefine(options.ip)
         return status
     
     status, diskid = create_diskpool_conf(options.ip, options.virt)
     if status != PASS:
         cleanup_restore(options.ip, options.virt)
+        destroy_netpool(options.ip, options.virt, test_network)
         vsxml.undefine(options.ip)
         return status
 
-    status, test_network = create_netpool_conf(options.ip, options.virt)
-    if status != PASS:
-        cleanup_restore(options.ip, options.virt)
-        vsxml.undefine(options.ip)
-        return status
- 
     if options.virt == 'LXC':
         pool = { "MemoryPool" : {'InstanceID' : "MemoryPool/0"} }
         rasd = { "MemoryPool" :  "%s/mem" % test_dom }
