@@ -50,7 +50,7 @@ from XenKvmLib.common_util import create_netpool_conf, destroy_netpool
 
 sup_types = ['Xen', 'XenFV', 'KVM']
 
-bug_req_state     = "00002"
+bug_libvirt     = "00005"
 ACTIVE_STATE = 2
 REBOOT_STATE = 10
 default_dom = 'cs_test_domain'
@@ -89,7 +89,7 @@ def main():
             if status != PASS:
                 logger.error("Unable to '%s' dom '%s' using RequestedStateChange()", 
                               action, default_dom)
-                status = XFAIL_RC(bug_req_state)
+                status = XFAIL_RC(bug_libvirt)
                 break
 
             status, dom_cs = poll_for_state_change(server, virt, default_dom, en_state,
