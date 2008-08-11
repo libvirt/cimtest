@@ -29,12 +29,12 @@ from pywbem import WBEMConnection
 sys.path.append('../../lib')
 import TestSuite
 import commands
-from VirtLib import utils
 from VirtLib import groups
-from CimTest.ReturnCodes import PASS, SKIP, XFAIL
 from CimTest.Globals import platform_sup
 sys.path.append('./lib')
 from XenKvmLib.classes import get_typed_class
+import ConfigParser
+from XenKvmLib.reporting import gen_report, send_report 
 
 parser = OptionParser()
 parser.add_option("-i", "--ip", dest="ip", default="localhost",
@@ -54,8 +54,11 @@ parser.add_option("-v", "--virt", dest="virt", type="choice",
                   help="Virt type, select from 'Xen' & 'KVM' & 'XenFV' & 'LXC'(default: Xen). ")
 parser.add_option("-d", "--debug-output", action="store_true", dest="debug",
                   help="Duplicate the output to stderr")
+parser.add_option("--report", dest="report",
+                  help="Send report using mail info: --report=<recipient addr>")
 
 TEST_SUITE = 'cimtest'
+CIMTEST_RCFILE = '%s/.cimtestrc' % os.environ['HOME']
 
 def set_python_path():
     previous_pypath = os.environ.get('PYTHONPATH')
@@ -82,6 +85,28 @@ def remove_old_logs(ogroup):
 
     print "Cleaned log files."
 
+def get_rcfile_vals():
+    if not os.access(CIMTEST_RCFILE, os.R_OK):
+        print "\nCould not access the %s file for this user." % CIMTEST_RCFILE
+        print "Create this file and add the appropriate relay:"
+        print "\tfrom = me@isp.com\n\trelay = my.relay\n"
+        return None, None
+
+    try:
+        conf = ConfigParser.ConfigParser()
+        if not conf.read(CIMTEST_RCFILE):
+            return None, None
+
+        addr = conf.get("email", "from")
+        relay = conf.get("email", "relay")
+
+    except Exception, details:
+        print "\n%s" % details 
+        print "\nPlease verify the format of the %s file\n" % CIMTEST_RCFILE 
+        return None, None
+
+    return addr, relay
+
 def get_version(virt, ip):
     conn = WBEMConnection('http://%s' % ip, 
                           (os.getenv('CIM_USER'), os.getenv('CIM_PASS')),
@@ -101,7 +126,10 @@ def get_version(virt, ip):
 
 def main():
     (options, args) = parser.parse_args()
-
+    to_addr = None
+    from_addr = None
+    relay = None
+    div = "--------------------------------------------------------------------"
 
     if options.test and not options.group:
         parser.print_help()
@@ -114,7 +142,15 @@ def main():
         os.environ['CIMOM_PORT'] = str(options.port)
     #
 
-    testsuite = TestSuite.TestSuite()
+    if options.report:
+        from_addr, relay = get_rcfile_vals()
+
+        if from_addr == None or relay == None:
+            return 1
+         
+        to_addr = options.report
+
+    testsuite = TestSuite.TestSuite(log=True)
    
     set_python_path()
 
@@ -139,9 +175,10 @@ def main():
 
     revision, changeset = get_version(options.virt, options.ip)
 
-    print "Testing " + options.virt + " hypervisor"
+    print "\nTesting " + options.virt + " hypervisor"
 
-    for test in test_list:
+    for test in test_list: 
+        testsuite.debug(div) 
         t_path = os.path.join(TEST_SUITE, test['group'])
         os.environ['CIM_TC'] = test['test'] 
         cdto = 'cd %s' % t_path
@@ -155,7 +192,16 @@ def main():
 
         testsuite.print_results(test['group'], test['test'], os_status, output)
 
+    testsuite.debug("%s\n" % div) 
     testsuite.finish()
+
+    msg_body, heading = gen_report(revision, changeset, options.virt,
+                                   options.ip, testsuite.log_file)
+
+    if options.report:
+        print "Sending mail from %s to %s using %s relay.\n" % \
+              (from_addr, to_addr, relay)
+        send_report(to_addr, from_addr, relay, msg_body, heading)
 
 if __name__ == '__main__':
     sys.exit(main())
