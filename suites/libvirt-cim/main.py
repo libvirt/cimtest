@@ -153,14 +153,7 @@ def main():
 
         os_status = os.WEXITSTATUS(status)
 
-        if os_status == PASS:
-            testsuite.ok(test['group'], test['test'])
-        elif os_status == SKIP:
-            testsuite.skip(test['group'], test['test'], output)
-        elif os_status == XFAIL:
-            testsuite.xfail(test['group'], test['test'], output)
-        else:
-            testsuite.fail(test['group'], test['test'], output)
+        testsuite.print_results(test['group'], test['test'], os_status, output)
 
     testsuite.finish()
 

@@ -24,48 +24,59 @@ from xmlrpclib import ServerProxy, Error
 
 DEFAULT_RPC_URL = "http://morbo.linux.ibm.com/xenotest/testrun/api"
 
+DEFAULT_LOG_FILE = "run_report.txt"
+
 import Reporter
 import re 
+import os
+from CimTest.ReturnCodes import PASS, FAIL, XFAIL, SKIP
 
 class TestSuite:
     """Test Suite class to make the output of driving test suites a bit more consistant"""
 
-    def __init__(self):
-        self.rep = Reporter.Reporter(verbosity=5)
+    def __init__(self, log=False, file_name=None):
+        if log == True:
+            if file_name is None:
+                self.log_file = DEFAULT_LOG_FILE
+            else:
+                self.log_file = file_name
 
-    def ok(self, group, test, output=""):
-        self.rep.pass_test("%s - %s" % (group, test))
+            if os.path.exists(self.log_file):
+                os.remove(self.log_file)
+            self.log_fd = open(self.log_file, "w")
+        else:
+            self.log_file = None
+            self.log_fd = None
 
-    def skip(self, group, test, output=""):
-        self.rep.skip_test("%s - %s" % (group, test))
+        self.rep = Reporter.Reporter(verbosity=5, log_fd=self.log_fd)
+
+    def print_results(self, group, test, status, output=""):
+        bug = None
+        if status == XFAIL:
+            err = "Test error: returned XFAIL without a valid bug string."
+            bug = err
+            if len(output) > 0:
+                try:
+                    str = re.search('Bug:<[0-9]*>', output).group()
+                    bug = re.search("Bug:<([0-9]+)>", str).group(1)
+                    if len(str) > 0:
+                        if output == str:
+                            #No need to pring bug twice
+                            output = ""
+                except:
+                    #If we hit a problem, make sure bug = error msg
+                    bug = err
+
+        self.rep.results("%s - %s" % (group, test), status, bug)
         if output:
             self.rep.debug(1, output)
 
-    def fail(self, group, test, output=""):
-        self.rep.fail_test("%s - %s" % (group, test))
-        if output:
-            self.rep.debug(1, output)
-
-    def xfail(self, group, test, output=""):
-        err = "Test error: returned XFAIL without a valid bug string."
-        bug = err
-        if len(output) > 0:
-            try:
-                str = re.search('Bug:<[0-9]*>', output).group()
-                bug = re.search("Bug:<([0-9]+)>", str).group(1)
-                if len(str) > 0:
-                    if output == str:
-                        #No need to pring bug twice
-                        output = ""
-            except:
-                #If we hit a problem, make sure bug is equal to the error msg
-                bug = err
-        self.rep.xfail_test("%s - %s" % (group, test), bug)
-        if output:
-            self.rep.debug(1, output)
+    def debug(self, str):
+            self.rep.debug(1, str)
  
     def finish(self):
-        pass
+        if self.log_fd is not None:
+            self.log_fd.close()
 
 class RPCTestSuite:
     """Test Suite class to make the output of driving test suites a bit more consistant
