@@ -46,12 +46,13 @@ from CimTest import Globals
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, CIM_ERROR_ASSOCIATORNAMES 
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL
+from XenKvmLib.classes import get_typed_class
 
-sup_types = ['Xen']
+sup_types = ['Xen', 'XenFV', 'KVM']
 
 test_dom = "domguest"
 
-def setup_env(server):
+def setup_env(server, virt):
     rc = -1
     status = PASS
     csxml_info = None
@@ -76,53 +77,36 @@ def print_err(err, detail, cn):
     logger.error(err % cn)
     logger.error("Exception: %s", detail)
 
-def get_inst_from_list(server, cn, qcn, list, filter, exp_val):
-    status = PASS
-    ret = -1
-    inst = None
- 
-    if len(list) < 1:
-        logger.error("%s returned %i %s objects" % (qcn, len(list), cn))
-        return FAIL, None
- 
-    for inst in list:
-        if inst[filter['key']] == exp_val:
-            ret = PASS
-            break
+def get_expected_inst(cn, list, property, exp):
+    try:
+        for x in list:
+            if x[property] == exp:
+                return PASS, x
+    except Exception:
+        pass
+    logger.error("%s with %s was not returned" % (cn, exp))
+    return FAIL, None
 
-    if ret != PASS:
-        status = FAIL
-        logger.error("%s with %s was not returned" % (cn, exp_val))
 
-    return PASS, inst 
-
-def get_profile(server):
+def get_profile(server, virt):
     registeredname = 'Virtual System Profile'
-    cn = 'Xen_RegisteredProfile'
+    cn = get_typed_class(virt, 'RegisteredProfile')
     status = PASS 
     profile = None
 
     try:
-        proflist = enumclass.enumerate_inst(server,
-                                            enumclass.Xen_RegisteredProfile)
-
-        filter =  {"key" : "RegisteredName"}
-        status, profile = get_inst_from_list(server, 
-                                             cn, 
-                                             cn, 
-                                             proflist, 
-                                             filter,
-                                             registeredname)
-
+        proflist = enumclass.enumerate_inst(server, 'RegisteredProfile', virt)
+        status, profile = get_expected_inst(cn, proflist, 'RegisteredName',
+                                            registeredname)
     except Exception, detail:
         print_err(CIM_ERROR_ENUMERATE, detail, cn)
         status = FAIL 
 
     return status, profile
 
-def get_cs(server, profile):
-    cn = 'Xen_RegisteredProfile'
-    an = 'Xen_ElementConformsToProfile'
+def get_cs(server, virt, profile):
+    cn = get_typed_class(virt, 'RegisteredProfile')
+    an = get_typed_class(virt, 'ElementConformsToProfile')
     status = PASS
     cs = None
 
@@ -130,16 +114,11 @@ def get_cs(server, profile):
         assoc_info = Associators(server,
                                  an,
                                  cn,
-                                 InstanceID = profile['InstanceID'])
+                                 InstanceID = profile['InstanceID'],
+                                 virt=virt)
 
-        cn = 'Xen_ComputerSystem'
-        filter =  {"key" : "Name"}
-        status, cs = get_inst_from_list(server, 
-                                        cn, 
-                                        an, 
-                                        assoc_info, 
-                                        filter,
-                                        test_dom)
+        cn = get_typed_class(virt, 'ComputerSystem')
+        status, cs = get_expected_inst(cn, assoc_info, 'Name', test_dom)
 
     except Exception, detail:
         print_err(CIM_ERROR_ASSOCIATORNAMES, detail, cn)
@@ -147,9 +126,9 @@ def get_cs(server, profile):
 
     return status, cs 
 
-def get_elec(server, cs):
-    cn = 'Xen_ComputerSystem'
-    an = 'Xen_ElementCapabilities'
+def get_elec(server, virt, cs):
+    cn = get_typed_class(virt, 'ComputerSystem')
+    an = get_typed_class(virt, 'ElementCapabilities')
     status = FAIL
     elec = None
 
@@ -159,59 +138,46 @@ def get_elec(server, cs):
                                  an,
                                  cn,
                                  Name = cs['Name'],
-                                 CreationClassName = ccn)
-
-        cn = 'Xen_EnabledLogicalElementCapabilities'
-        filter =  {"key" : "InstanceID"}
-        status, elec = get_inst_from_list(server, 
-                                          cn, 
-                                          an, 
-                                          assoc_info, 
-                                          filter,
-                                          test_dom)
+                                 CreationClassName = ccn,
+                                 virt=virt)
+        cn = get_typed_class(virt, 'EnabledLogicalElementCapabilities')
+        status, elec = get_expected_inst(cn, assoc_info, 'InstanceID', test_dom)
 
     except Exception, detail:
         print_err(CIM_ERROR_ASSOCIATORNAMES, detail, cn)
         status = FAIL
-
     return status, elec
 
 @do_main(sup_types)
 def main():
-    global virt
-    global csxml
     options = main.options
     virt    = options.virt
     server  = options.ip
 
-    status = PASS 
-
-    status, csxml = setup_env(server)
+    status, csxml = setup_env(server, virt)
     if status != PASS:
         return status
 
     prev_namespace = Globals.CIM_NS
     Globals.CIM_NS = 'root/interop'
 
-    status, prof = get_profile(server)
+    status, prof = get_profile(server, virt)
     if status != PASS or prof == None:
         csxml.undefine(server)
-        return status 
+        return FAIL
 
-    status, cs = get_cs(server, prof)
+    status, cs = get_cs(server, virt, prof)
     if status != PASS or cs == None:
         csxml.undefine(server)
-        return status 
+        return FAIL
 
     Globals.CIM_NS = prev_namespace
 
-    status, elec = get_elec(server, cs)
+    status, elec = get_elec(server, virt, cs)
     if status != PASS or elec == None:
-        return status 
+        status = FAIL
 
     csxml.undefine(server)
     return status 
-
-
 if __name__ == "__main__":
     sys.exit(main())
