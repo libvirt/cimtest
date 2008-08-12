@@ -603,12 +603,13 @@ class XenXML(VirtXML, VirtCIM):
         return self._set_vbridge(ip, 'Xen')
 
 
-class KVMXML(VirtXML):
+class KVMXML(VirtXML, VirtCIM):
 
     secondary_disk_path = const.KVM_secondary_disk_path
     
     def __init__(self, test_dom=const.default_domname,
                        mem=const.default_memory,
+                       mem_allocunits=const.default_mallocunits,
                        vcpus=const.default_vcpus,
                        mac=const.KVM_default_mac,
                        disk_file_path=const.KVM_disk_path,
@@ -618,9 +619,12 @@ class KVMXML(VirtXML):
             logger.error('Error: Disk image does not exist')
             sys.exit(1)
         VirtXML.__init__(self, 'kvm', test_dom, set_uuid(), mem, vcpus)
+        VirtCIM.__init__(self, 'KVM', test_dom, disk, disk_file_path,
+                         ntype, mac, vcpus, mem, mem_allocunits)
         self._os()
         self._devices(const.KVM_default_emulator, ntype,
                       disk_file_path, disk, mac)
+
 
     def _os(self):
         self.add_sub_node('/domain/os', 'type', 'hvm')
@@ -645,12 +649,13 @@ class KVMXML(VirtXML):
         return self._set_vbridge(ip, 'KVM')
 
 
-class XenFVXML(VirtXML):
+class XenFVXML(VirtXML, VirtCIM):
 
     secondary_disk_path = const.XenFV_secondary_disk_path
 
     def __init__(self, test_dom=const.default_domname,
                        mem=const.default_memory,
+                       mem_allocunits=const.default_mallocunits,
                        vcpus=const.default_vcpus,
                        mac=const.XenFV_default_mac,
                        disk_file_path=const.XenFV_disk_path,
@@ -660,6 +665,8 @@ class XenFVXML(VirtXML):
             logger.error('Error: Disk image does not exist')
             sys.exit(1)
         VirtXML.__init__(self, 'xenfv', test_dom, set_uuid(), mem, vcpus)
+        VirtCIM.__init__(self, 'XenFV', test_dom, disk, disk_file_path,
+                         ntype, mac, vcpus, mem, mem_allocunits)
         self._features()
         self._os(const.XenFV_default_loader)
         self._devices(const.XenFV_default_emulator,
