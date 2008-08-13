@@ -49,7 +49,8 @@ def main():
         local_ver = live.get_hv_ver(options.ip, options.virt)
 
         if cim_ver != local_ver:
-            logger.error("CIM says version is `%s', but libvirt says `%s'")
+            logger.error("CIM says version is `%s', but libvirt says `%s'" \
+                         % (cim_ver, local_ver))
             return FAIL
         else:
             logger.info("Verified %s == %s" % (cim_ver, local_ver))
