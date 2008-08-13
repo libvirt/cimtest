@@ -45,8 +45,7 @@ def destroysystem_fail(tc, options):
                               keybindings = {'CreationClassName':classname})
 
         exp_value = { 'rc'    : pywbem.CIM_ERR_FAILED,
-                      'desc'  : 'CIM_ERR_FAILED: Unable to retrieve domain\
- name.'
+                      'desc'  : 'Unable to retrieve domain name.'
                     }
 
     elif tc == 'nonexistent':
@@ -55,7 +54,7 @@ def destroysystem_fail(tc, options):
                                 'CreationClassName':classname})
 
         exp_value = { 'rc'   : pywbem.CIM_ERR_FAILED,
-                      'desc' : 'CIM_ERR_FAILED: Failed to find domain' 
+                      'desc' : 'Failed to find domain' 
                     }
 
     else:
@@ -68,7 +67,7 @@ def destroysystem_fail(tc, options):
     except Exception, details:
         err_no   = details[0]
         err_desc = details[1]
-        if err_no == exp_value['rc'] and err_desc == exp_value['desc']:
+        if err_no == exp_value['rc'] and err_desc.find(exp_value['desc']) >= 0:
             logger.error("For Invalid Scenario '%s'", tc)
             logger.info('Got expected error no: %s', err_no)
             logger.info('Got expected error desc: %s',err_desc)
