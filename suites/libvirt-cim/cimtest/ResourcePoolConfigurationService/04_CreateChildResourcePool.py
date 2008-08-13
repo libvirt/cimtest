@@ -56,7 +56,6 @@ from CimTest.Globals import do_main, platform_sup
 from XenKvmLib.classes import get_typed_class
 
 cim_errno  = pywbem.CIM_ERR_NOT_SUPPORTED
-cim_desc   = "CIM_ERR_NOT_SUPPORTED"
 cim_mname  = "CreateChildResourcePool"
 
 @do_main(platform_sup)
@@ -67,7 +66,7 @@ def main():
     try:
         rpcs_conn.CreateChildResourcePool()
     except pywbem.CIMError, (err_no, desc):
-        if err_no == cim_errno and desc.find(cim_desc) >= 0 :
+        if err_no == cim_errno :
             logger.info("Got expected exception for '%s' service", cim_mname)
             logger.info("Errno is '%s' ", err_no)
             logger.info("Error string is '%s'", desc)
