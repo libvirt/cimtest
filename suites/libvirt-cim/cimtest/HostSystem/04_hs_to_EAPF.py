@@ -59,8 +59,8 @@ from XenKvmLib.classes import get_typed_class
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.logicaldevices import verify_device_values
-from XenKvmLib.common_util import cleanup_restore, test_dpath, \
-create_diskpool_file, create_netpool_conf, destroy_netpool
+from XenKvmLib.common_util import cleanup_restore, \
+create_diskpool_conf, destroy_netpool
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
@@ -68,27 +68,40 @@ test_dom   = "CrossClass_GuestDom"
 test_mac   = "00:11:22:33:44:aa"
 test_mem   = 128 
 test_vcpus = 1 
-test_disk  = "xvdb"
-diskid = "%s/%s" % ("DiskPool", test_dpath)
-memid = "%s/%s" % ("MemoryPool", 0)
-procid = "%s/%s" % ("ProcessorPool", 0)
 
 def print_err(err, detail, cn):
     logger.error(err % cn)
     logger.error("Exception: %s", detail)
 
-def pool_init_list(pool_assoc):
+def pool_init_list(virt, pool_assoc, net_name, dp_InstID):
     """
         Creating the lists that will be used for comparisons.
     """
     in_pllist = {}
-    for i in range(len(pool_assoc)):
-        classname_keyvalue = pool_assoc[i].classname
-        instid =  pool_assoc[i]['InstanceID']
-        in_pllist[classname_keyvalue] = instid
+    mpool =  get_typed_class(virt, 'MemoryPool')
+
+    exp_pllist = {
+		   mpool   : 'MemoryPool/0'
+		 }
+
+    if virt != 'LXC': 
+        npool =  get_typed_class(virt, 'NetworkPool')
+        dpool =  get_typed_class(virt, 'DiskPool')
+        ppool =  get_typed_class(virt, 'ProcessorPool')
+        exp_pllist[dpool] = dp_InstID
+        exp_pllist[npool] = '%s/%s' %('NetworkPool', net_name)
+        exp_pllist[ppool] = 'ProcessorPool/0'
+        exp_pllist[mpool] = 'MemoryPool/0'
+
+    for p_inst in pool_assoc:
+        CName = p_inst.classname
+        InstID = p_inst['InstanceID']
+        if exp_pllist[CName] == InstID:
+            in_pllist[CName] = InstID 
+
     return in_pllist
 
-def eapf_list(server, virt="Xen"):
+def eapf_list(server, virt, test_disk):
     disk_inst = get_typed_class(virt, "LogicalDisk")
     proc_inst = get_typed_class(virt, "Processor")
     net_inst = get_typed_class(virt, "NetworkPort")
@@ -136,7 +149,7 @@ def get_inst_for_dom(assoc_val):
 
     return dom_list
 
-def get_assocname_info(server, cn, an, qcn, hostname, virt="Xen"):
+def get_assocname_info(server, cn, an, qcn, hostname, virt):
     status = PASS
     assoc_info = []
     try:
@@ -155,9 +168,6 @@ def get_assocname_info(server, cn, an, qcn, hostname, virt="Xen"):
         print_err(CIM_ERROR_ASSOCIATORNAMES, detail, cn)
         status = FAIL
 
-    if status != PASS:
-        cleanup_restore(server, virt='Xen')
-
     return status, assoc_info
 
 def check_len(an, assoc_list_info, qcn, exp_len):
@@ -167,14 +177,14 @@ def check_len(an, assoc_list_info, qcn, exp_len):
         return FAIL
     return PASS
 
-def verify_eafp_values(server, in_pllist, virt="Xen"):
+def verify_eafp_values(server, in_pllist, virt, test_disk):
     # Looping through the in_pllist to get association for various pools.
     status = PASS
     an = get_typed_class(virt, "ElementAllocatedFromPool")
     exp_len = 1
-    qcn = "Logical Devices"
-    eafp_values = eapf_list(server, virt)
+    eafp_values = eapf_list(server, virt, test_disk)
     for cn,  instid in sorted(in_pllist.items()):
+        qcn = cn
         try:
             assoc_info = Associators(server, an, cn, virt, InstanceID = instid)  
             inst_list = get_inst_for_dom(assoc_info)
@@ -185,14 +195,12 @@ def verify_eafp_values(server, in_pllist, virt="Xen"):
             CCName = assoc_eafp_info['CreationClassName']
             status = verify_device_values(assoc_eafp_info, 
                                           eafp_values, virt)
-
             if status != PASS:
                 return status
-
         except Exception, detail:
             logger.error(CIM_ERROR_ASSOCIATORS, an)
             logger.error("Exception: %s", detail)
-            cleanup_restore(server, virt='Xen')
+            cleanup_restore(server, virt)
             status = FAIL
     return status
 
@@ -200,38 +208,37 @@ def verify_eafp_values(server, in_pllist, virt="Xen"):
 def main():
     options= main.options
     server = options.ip
-    if options.virt == "XenFV":
-        virt = "Xen"
-    else:
-        virt=options.virt
+    virt=options.virt
     # Get the host info 
     status, host_name, classname = get_host_info(server, virt)
     if status != PASS:
         return status
+
     destroy_and_undefine_all(server)
+    if virt == 'Xen':
+        test_disk = 'xvdb'
+    else:
+        test_disk = 'hdb'
+
     virt_type = get_class(virt)
     if virt == 'LXC':
-        vsxml = virt_type(test_dom)
+        vsxml = virt_type(test_dom, ntype="network")
     else:
         vsxml = virt_type(test_dom, vcpus = test_vcpus, mac = test_mac,
-                          disk = test_disk)
+                          disk = test_disk, ntype="network")
 
     ret = vsxml.define(server)
     if not ret:
         logger.error("Failed to define the dom: '%s'", test_dom)
         return FAIL
-    # Verify DiskPool on machine
-    status = create_diskpool_file() 
+
+    # Get the network pool info which is used by the VS.
+    net_name = vsxml.xml_get_net_network()
+
+    status, dpool_name = create_diskpool_conf(server, virt)
     if status != PASS:
         logger.error("Failed to create diskpool")
-        vsxml.undefine(server)    
-        return FAIL
-    # Create NetPool on machine
-    status, net_name = create_netpool_conf(server, virt, use_existing=False)
-    if status != PASS:
-        logger.error('Unable to create network pool')
         vsxml.undefine(server)
-        cleanup_restore(server, virt=virt)
         return FAIL
 
     # Get the hostedResourcePool info first
@@ -244,22 +251,18 @@ def main():
         cleanup_restore(server, virt=virt)
         destroy_netpool(server, virt, net_name)
         return status
+
+    in_pllist = pool_init_list(virt, pool, net_name, dpool_name)
     # One pool for each Device type, hence len should be 4
     exp_len = 4
-    status = check_len(an, pool, qcn, exp_len)
+    status = check_len(an, in_pllist, qcn, exp_len)
     if status != PASS:
         vsxml.undefine(server)
         cleanup_restore(server, virt=virt)
         destroy_netpool(server, virt, net_name)
         return FAIL
 
-    in_pllist = pool_init_list(pool)
-    if virt == 'LXC':
-        for cn, instid in in_pllist.items():
-            if cn == 'LXC_MemoryPool':
-                in_pllist = {cn: instid} 
-                break
-    status = verify_eafp_values(server, in_pllist, virt)
+    status = verify_eafp_values(server, in_pllist, virt, test_disk)
     vsxml.undefine(server)
     cleanup_restore(server, virt=virt)
     destroy_netpool(server, virt, net_name)
