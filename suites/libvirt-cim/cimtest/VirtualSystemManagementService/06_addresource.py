@@ -34,7 +34,7 @@ from CimTest.ReturnCodes import FAIL, PASS
 from XenKvmLib import vsms_util
 from XenKvmLib.common_util import create_netpool_conf, destroy_netpool
 
-sup_types = ['Xen', 'KVM']
+sup_types = ['Xen', 'KVM', 'XenFV']
 default_dom = 'rstest_domain'
 nmac = '99:aa:bb:cc:ee:ff'
 ntype = 'network'
