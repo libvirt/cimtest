@@ -513,15 +513,20 @@ class VirtCIM:
                                               mallocunits=mem_allocunits,
                                               name=dom_name)
 
-    def cim_define(self, ip):
+
+    def cim_define(self, ip, ref_conf=None):
         service = vsms.get_vsms_class(self.virt)(ip)
         sys_settings = str(self.vssd)
         res_settings = [str(self.dasd), str(self.nasd),
                         str(self.pasd), str(self.masd)]
+
+        if ref_conf is None:
+             ref_conf = ' '
+
         try:
             service.DefineSystem(SystemSettings=sys_settings,
                                  ResourceSettings=res_settings,
-                                 ReferenceConfiguration=' ')
+                                 ReferenceConfiguration=ref_conf)
         except pywbem.CIMError, (rc, desc):
             logger.error('Got CIM error %s with return code %s' % (desc, rc))
             return False
