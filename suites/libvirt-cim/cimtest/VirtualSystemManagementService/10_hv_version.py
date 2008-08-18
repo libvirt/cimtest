@@ -26,9 +26,10 @@ from VirtLib import live
 from XenKvmLib import vsms
 from CimTest.Globals import do_main
 from CimTest.Globals import logger
-from CimTest.ReturnCodes import FAIL, PASS
+from CimTest.ReturnCodes import FAIL, PASS, XFAIL_RC
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
+bug_libvirt = "00006"
 
 @do_main(sup_types)
 def main():
@@ -51,7 +52,10 @@ def main():
         if cim_ver != local_ver:
             logger.error("CIM says version is `%s', but libvirt says `%s'" \
                          % (cim_ver, local_ver))
-            return FAIL
+            if options.virt == 'LXC':
+                return XFAIL_RC(bug_libvirt)
+            else:
+                return FAIL
         else:
             logger.info("Verified %s == %s" % (cim_ver, local_ver))
     except Exception, details:
