@@ -35,6 +35,7 @@ sys.path.append('./lib')
 from XenKvmLib.classes import get_typed_class
 import ConfigParser
 from XenKvmLib.reporting import gen_report, send_report 
+from VirtLib import utils
 
 parser = OptionParser()
 parser.add_option("-i", "--ip", dest="ip", default="localhost",
@@ -84,6 +85,22 @@ def remove_old_logs(ogroup):
         status, output = commands.getstatusoutput(cmd)
 
     print "Cleaned log files."
+
+def pre_check(ip):
+    cmd = "ps -ef | grep -v grep | grep cimserver"
+    rc, out = utils.run_remote(ip, cmd)
+    if rc != 0:
+        cmd = "ps -ef | grep -v grep | grep sfcbd"
+        rc, out = utils.run_remote(ip, cmd)
+        if rc != 0:
+            return "A supported CIMOM is not running" 
+
+    cmd = "ps -ef | grep -v grep | grep libvirtd"
+    rc, out = utils.run_remote(ip, cmd)
+    if rc != 0:
+        return "libvirtd is not running" 
+
+    return None
 
 def get_rcfile_vals():
     if not os.access(CIMTEST_RCFILE, os.R_OK):
@@ -135,21 +152,22 @@ def main():
         parser.print_help()
         return 1
 
+    env_ready = pre_check(options.ip)
+    if env_ready != None: 
+        print "\n%s.  Please check your environment.\n" % env_ready
+        return 1
+
     # HACK: Exporting CIMOM_PORT as an env var, to be able to test things 
-    # on Director without having to change a lot of code.
-    # This will change soon
+    # with a different port 
     if options.port:
         os.environ['CIMOM_PORT'] = str(options.port)
-    #
 
     if options.report:
+        to_addr = options.report
         from_addr, relay = get_rcfile_vals()
-
         if from_addr == None or relay == None:
             return 1
          
-        to_addr = options.report
-
     testsuite = TestSuite.TestSuite(log=True)
    
     set_python_path()
