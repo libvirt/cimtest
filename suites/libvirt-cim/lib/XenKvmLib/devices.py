@@ -26,19 +26,8 @@ from pywbem.cim_obj import CIMInstanceName
 from CimTest import CimExt
 from CimTest import Globals
 from XenKvmLib import assoc
-from XenKvmLib.const import CIM_REV
 from XenKvmLib.classes import get_typed_class
 
-net_rev = 599
-
-# The branch has to be removed once the new rpm
-# including the changes in revision 599 is available.
-# The value of LinkTechnology should be set to 2 for
-# network, bridge and ethernet type interfaces.
-if net_rev > CIM_REV:
-    LinkTechnology_Ethernet = 0
-else:
-    LinkTechnology_Ethernet = 2
 
 class CIM_Instance:
     def __init__(self, inst):

@@ -24,6 +24,7 @@ import commands
 import smtplib
 from time import gmtime, strftime
 from VirtLib import utils
+from XenKvmLib.const import get_provider_version 
 
 def get_cmd_val(cmd, ip):
     rc, out = utils.run_remote(ip, cmd)
@@ -67,7 +68,7 @@ def get_cimom_ver(ip):
     return cimom, cimom_ver
 
 
-def get_env_data(rev, changeset, ip):
+def get_env_data(ip, virt):
     distro = get_cmd_val("cat /etc/issue | awk 'NR<=1'", ip)
     kernel_ver = get_cmd_val("uname -r", ip)
 
@@ -77,6 +78,8 @@ def get_env_data(rev, changeset, ip):
 
     env = "Distro: %s\nKernel: %s\nlibvirt: %s\nHypervisor: %s\nCIMOM: %s %s\n"\
           % (distro, kernel_ver, libvirt_ver, hyp_ver, cimom, cimom_ver)
+
+    rev, changeset = get_provider_version(virt, ip)
 
     lc_ver = "Libvirt-cim revision: %s\nLibvirt-cim changeset: %s\n" % \
              (rev, changeset)
@@ -129,13 +132,13 @@ def build_report_body(rvals, tstr, div):
 
     return results, results_total, test_block
 
-def gen_report(rev, changeset, virt, ip, log_file):
+def gen_report(virt, ip, log_file):
     date = strftime("%b %d %Y", gmtime())
 
     cimom, cimom_ver = get_cimom_ver(ip)
 
     heading  = "%s on %s Test Run Summary for %s" % (virt, cimom, date)
-    sys_env = get_env_data(rev, changeset, ip)
+    sys_env = get_env_data(ip, virt)
 
     divider = "=================================================\n"
 

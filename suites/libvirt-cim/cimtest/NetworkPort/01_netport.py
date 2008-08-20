@@ -39,11 +39,25 @@ from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from CimTest.Globals import logger
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
+from XenKvmLib.const import get_provider_version 
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 
 test_dom = "test_domain"
 test_mac = "00:11:22:33:44:55"
+
+def get_linktech(ip, virt):
+    rev, changeset = get_provider_version(virt, ip)
+
+    net_rev = 599
+
+    # The value of LinkTechnology should be set to 0 for rev > 599
+    # else, it should be set to 2
+    if net_rev > rev:
+        return 0
+    else:
+        return 2
+
 
 @do_main(sup_types)
 def main():
@@ -75,10 +89,12 @@ def main():
         return FAIL
 
     status = PASS
+
+    link_tech = get_linktech(options.ip, options.virt)
     
-    if dev.LinkTechnology != devices.LinkTechnology_Ethernet:
+    if dev.LinkTechnology != link_tech:
         logger.error("LinkTechnology should be set to `%i' instead of `%s'" % \
-              (devices.LinkTechnology_Ethernet, dev.LinkTechnology))
+              (link_tech, dev.LinkTechnology))
         status = FAIL
 
     addrs = dev.NetworkAddresses

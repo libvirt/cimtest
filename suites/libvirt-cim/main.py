@@ -192,8 +192,7 @@ def main():
     testsuite.debug("%s\n" % div) 
     testsuite.finish()
 
-    msg_body, heading = gen_report(revision, changeset, options.virt,
-                                   options.ip, testsuite.log_file)
+    msg_body, heading = gen_report(options.virt, options.ip, testsuite.log_file)
 
     if options.report:
         print "Sending mail from %s to %s using %s relay.\n" % \
