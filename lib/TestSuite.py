@@ -68,7 +68,7 @@ class TestSuite:
                     bug = err
 
         self.rep.results("%s - %s" % (group, test), status, bug)
-        if output:
+        if output and status != PASS:
             self.rep.debug(1, output)
 
     def debug(self, str):
