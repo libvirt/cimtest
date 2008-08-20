@@ -85,7 +85,18 @@ copy_in_ramdisk() {
 kernel_path() {
     local prefix=$1
 
-    find /boot | grep vmlinuz | grep -v xen | tail -n1
+    local image=`find /boot | grep vmlinuz | grep -v xen | tail -n1`
+
+    if [ -z $image ]; then
+        local dummy_path="cimtest-dummy-image"
+
+        echo "No non-Xen kernel found.  Creating a fake image.\n"
+        touch /boot/vmlinuz-$(dummy_path)
+        mkdir /lib/modules/$(dummy_path)
+        image="/boot/vmlinuz-$(dummy_path)"
+    fi
+
+    echo $image
 }
 
 copy_in_kernel() {
