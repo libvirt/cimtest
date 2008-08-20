@@ -129,7 +129,7 @@ def main():
         if ref is None:
             raise Exception("Unable to get %s reference" % test_dom)
 
-        rc = cxml2.cim_define(options.ip)
+        rc = cxml2.cim_define(options.ip, ref_conf=ref)
         if not rc: 
             logger.error("Unable define domain %s"  % test_dom2)
             raise Exception("Unable to define %s" % test_dom2)
