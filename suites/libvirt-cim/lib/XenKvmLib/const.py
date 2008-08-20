@@ -22,20 +22,8 @@ import os
 import platform
 from VirtLib.live import fv_cap
 from CimTest.Globals import CIM_IP
-
-global CIM_REV
-global CIM_SET
-
-rev = os.getenv("CIM_REV").strip("+")
-if rev.isdigit():
-    CIM_REV = int(rev)
-else:
-    CIM_REV = 0
-CIM_SET = os.getenv("CIM_SET")
-
-if not CIM_REV or not CIM_SET:
-    CIM_REV = 0
-    CIM_SET = 'Unknown'
+from pywbem import WBEMConnection
+from XenKvmLib.classes import get_typed_class
 
 # vxml.NetXML
 default_bridge_name = 'testbridge'
@@ -91,3 +79,26 @@ LXC_default_tty = '/dev/ptmx'
 LXC_default_mp = '/tmp'
 LXC_default_source = '/tmp/lxc_files'
 LXC_default_mac = '11:22:33:aa:bb:cc'
+
+def get_provider_version(virt, ip):
+    conn = WBEMConnection('http://%s' % ip,
+                          (os.getenv('CIM_USER'), os.getenv('CIM_PASS')),
+                          os.getenv('CIM_NS'))
+    vsms_cn = get_typed_class(virt, 'VirtualSystemManagementService')
+    try:
+        inst = conn.EnumerateInstances(vsms_cn)
+        revision = inst[0]['Revision']
+        changeset = inst[0]['Changeset']
+    except Exception:
+        return 0, "Unknown" 
+
+    if revision is None or changeset is None:
+        return 0, "Unknown" 
+
+    revision.strip("+")
+    if revision.isdigit():
+        revision = int(revision)
+
+    return revision, changeset 
+
+

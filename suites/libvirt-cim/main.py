@@ -25,15 +25,13 @@
 from optparse import OptionParser
 import os
 import sys
-from pywbem import WBEMConnection
 sys.path.append('../../lib')
 import TestSuite
 import commands
 from VirtLib import groups
 from CimTest.Globals import platform_sup
-sys.path.append('./lib')
-from XenKvmLib.classes import get_typed_class
 import ConfigParser
+sys.path.append('./lib')
 from XenKvmLib.reporting import gen_report, send_report 
 from VirtLib import utils
 
@@ -124,22 +122,6 @@ def get_rcfile_vals():
 
     return addr, relay
 
-def get_version(virt, ip):
-    conn = WBEMConnection('http://%s' % ip, 
-                          (os.getenv('CIM_USER'), os.getenv('CIM_PASS')),
-                          os.getenv('CIM_NS'))
-    vsms_cn = get_typed_class(virt, 'VirtualSystemManagementService')
-    try:
-        inst = conn.EnumerateInstances(vsms_cn)
-        revision = inst[0]['Revision']
-        changeset = inst[0]['Changeset']
-    except Exception:
-        return '0', 'Unknown'
-    if revision is None:
-        revision = '0'
-    if changeset is None:
-        changeset = 'Unknown'
-    return revision, changeset
 
 def main():
     (options, args) = parser.parse_args()
@@ -191,8 +173,6 @@ def main():
     else:
         dbg = ""
 
-    revision, changeset = get_version(options.virt, options.ip)
-
     print "\nTesting " + options.virt + " hypervisor"
 
     for test in test_list: 
@@ -200,10 +180,9 @@ def main():
         t_path = os.path.join(TEST_SUITE, test['group'])
         os.environ['CIM_TC'] = test['test'] 
         cdto = 'cd %s' % t_path
-        env = 'CIM_REV=%s CIM_SET=%s' % (revision, changeset)
         run = 'python %s -i %s -v %s %s' % (test['test'], options.ip, 
                                             options.virt, dbg)
-        cmd = cdto + ' && ' + env + ' ' + run
+        cmd = cdto + ' && ' + ' ' + run
         status, output = commands.getstatusoutput(cmd)
 
         os_status = os.WEXITSTATUS(status)
