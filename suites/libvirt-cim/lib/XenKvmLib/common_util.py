@@ -39,6 +39,8 @@ from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 from VirtLib.live import diskpool_list, virsh_version, net_list, domain_list
 from XenKvmLib.vxml import PoolXML, NetXML
 from XenKvmLib.enumclass import getInstance
+from VirtLib import utils 
+from XenKvmLib import const 
 
 test_dpath = "foo"
 disk_file = '/etc/libvirt/diskpool.conf'
@@ -373,7 +375,8 @@ def create_diskpool_conf(server, virt):
     return status, diskid
 
 
-def create_netpool_conf(server, virt, use_existing=False):
+def create_netpool_conf(server, virt, use_existing=False,
+                        net_name=const.default_network_name):
     status = PASS
     test_network = None
     try:
@@ -383,7 +386,14 @@ def create_netpool_conf(server, virt, use_existing=False):
                 test_network = vir_network[0]
 
         if test_network == None:
-            net_name = "default-net" + str(random.randint(1, 100))
+            cmd = "virsh -c %s net-list --all | grep %s" % \
+                  (utils.virt2uri(virt), net_name)
+            ret, out = utils.run_remote(server, cmd)
+            if out != "":
+                logger.error("Network pool with name '%s' already exists",
+                              net_name)
+                return FAIL, "Unknown" 
+                
             netxml = NetXML(server, virt=virt, networkname=net_name)
             ret = netxml.create_vnet()
             if not ret:

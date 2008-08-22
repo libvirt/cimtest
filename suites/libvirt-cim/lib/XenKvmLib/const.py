@@ -27,7 +27,7 @@ from XenKvmLib.classes import get_typed_class
 
 # vxml.NetXML
 default_bridge_name = 'testbridge'
-default_network_name = 'default-net'
+default_network_name = 'cimtest-networkpool'
 default_net_type = 'network'
 
 #vxml.PoolXML
