@@ -50,7 +50,6 @@ from CimTest.Globals import do_main
 from XenKvmLib.common_util import call_request_state_change, \
 poll_for_state_change
 from CimTest.ReturnCodes import PASS, FAIL
-from XenKvmLib.common_util import create_netpool_conf, destroy_netpool
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 test_dom = "DomST1"
@@ -67,9 +66,6 @@ def main():
     virt = options.virt
 
     destroy_and_undefine_all(server)
-    status, test_network = create_netpool_conf(server, virt)
-    if status != PASS:
-        return FAIL
     
     cxml = vxml.get_class(virt)(test_dom, mem)
 
@@ -88,7 +84,6 @@ def main():
 
     if status != PASS:
         cxml.destroy(server)
-        destroy_netpool(server, virt, test_network)
         return status
 
     from_State = dom_cs.EnabledState
@@ -100,7 +95,6 @@ def main():
         logger.error("Unable to suspend dom '%s' using RequestedStateChange()", 
                       test_dom)
         cxml.destroy(server)
-        destroy_netpool(server, virt, test_network)
         return status
 
     #Polling for the value of EnabledState to be set to 9.
@@ -111,7 +105,6 @@ def main():
 
     if status != PASS:
         cxml.destroy(server)
-        destroy_netpool(server, virt, test_network)
         return status
 
     enabledState = dom_cs.EnabledState
@@ -133,7 +126,6 @@ def main():
         status = FAIL
 
     cxml.destroy(server)
-    destroy_netpool(server, virt, test_network)
     
     return status
 if __name__ == "__main__":

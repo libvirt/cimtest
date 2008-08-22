@@ -36,8 +36,7 @@ from XenKvmLib.test_doms import destroy_and_undefine_domain
 from CimTest.Globals import do_main, logger
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.common_util import create_using_definesystem, \
-                                  call_request_state_change, get_cs_instance, \
-                                  create_netpool_conf, destroy_netpool
+                                  call_request_state_change, get_cs_instance
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 test_dom = "domgst"
@@ -62,17 +61,12 @@ def chk_state(domain_name, ip, en_state, virt):
 def main():
     options = main.options
 
-    status, test_network = create_netpool_conf(options.ip, options.virt, False)
-    if status != PASS:
-        return FAIL
-
     try:
         # define the vs
         status = create_using_definesystem(test_dom, options.ip,
                                            virt=options.virt)
         if status != PASS:
             logger.error("Unable to define %s using DefineSystem()" % test_dom)
-            destroy_netpool(options.ip, options.virt, test_network)
             return status
 
         # suspend the vs
@@ -95,7 +89,6 @@ def main():
         logger.error("Error: %s" % detail)
         status = FAIL 
 
-    destroy_netpool(options.ip, options.virt, test_network)
     destroy_and_undefine_domain(test_dom, options.ip, options.virt)
     return status
 

@@ -55,10 +55,6 @@ def main():
     virt = options.virt
     status = FAIL
 
-    status, test_network = create_netpool_conf(server, virt, False)
-    if status != PASS:
-        return FAIL
-
     try:
         rc = create_using_definesystem(default_dom, server, 
                                        virt=virt)
@@ -87,7 +83,6 @@ def main():
     except Exception, detail:
         logger.error("Exception: %s", detail)
 
-    destroy_netpool(server, virt, test_network)
     destroy_and_undefine_domain(default_dom, server, virt)
     return status
 

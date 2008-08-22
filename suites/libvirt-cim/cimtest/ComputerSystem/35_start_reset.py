@@ -44,11 +44,9 @@ from VirtLib import utils
 from CimTest.Globals import do_main, logger
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.test_doms import destroy_and_undefine_domain
-from XenKvmLib.common_util import get_cs_instance
-from XenKvmLib.common_util import create_using_definesystem
-from XenKvmLib.common_util import call_request_state_change
-from XenKvmLib.common_util import poll_for_state_change
-from XenKvmLib.common_util import create_netpool_conf, destroy_netpool
+from XenKvmLib.common_util import get_cs_instance, create_using_definesystem, \
+                                  call_request_state_change, \
+                                  poll_for_state_change
 
 sup_types = ['Xen', 'XenFV', 'KVM']
 
@@ -64,10 +62,6 @@ def main():
     status = FAIL
     server = options.ip
     virt   = options.virt
-
-    status, test_network = create_netpool_conf(server, virt, False)
-    if status != PASS:
-        return FAIL
 
     tc_scen = [('Start', [ACTIVE_STATE, ACTIVE_STATE]), 
                ('Reset', [ACTIVE_STATE, RESET_STATE])]
@@ -107,7 +101,6 @@ def main():
         logger.error("Exception: %s", detail)
         status = FAIL
 
-    destroy_netpool(server, virt, test_network)
     destroy_and_undefine_domain(default_dom, server, virt)
     return status
 

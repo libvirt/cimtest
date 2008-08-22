@@ -42,9 +42,8 @@ from VirtLib import utils
 from CimTest.Globals import do_main, logger
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.test_doms import destroy_and_undefine_domain
-from XenKvmLib.common_util import try_request_state_change
-from XenKvmLib.common_util import create_using_definesystem
-from XenKvmLib.common_util import create_netpool_conf, destroy_netpool
+from XenKvmLib.common_util import try_request_state_change, \
+                                  create_using_definesystem
 
 sup_types = ['Xen', 'XenFV', 'LXC', 'KVM']
 
@@ -62,10 +61,6 @@ def main():
     virt   = options.virt
     status = FAIL
 
-    status, test_network = create_netpool_conf(server, virt, False)
-    if status != PASS:
-        return FAIL
-
     try:
         # define the vs
         status = create_using_definesystem(default_dom, server, virt=virt)
@@ -76,7 +71,6 @@ def main():
 
     except Exception, details:
         logger.error("Exception: %s", details)
-        destroy_netpool(server, virt, test_network)
         destroy_and_undefine_domain(default_dom, server, virt)
         return FAIL
 
@@ -87,7 +81,6 @@ def main():
     if status != PASS:
         logger.error("Expected Defined -> Suspended state transition to fail")
 
-    destroy_netpool(server, virt, test_network)
     destroy_and_undefine_domain(default_dom, server, virt)
     return status 
 
