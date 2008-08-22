@@ -24,8 +24,7 @@ import sys
 import pywbem
 from XenKvmLib.common_util import create_using_definesystem, \
                                   call_request_state_change, \
-                                  poll_for_state_change, get_cs_instance, \
-                                  create_netpool_conf, destroy_netpool
+                                  poll_for_state_change, get_cs_instance
 from XenKvmLib import vsms
 from VirtLib import utils 
 from CimTest.Globals import logger, do_main
@@ -119,11 +118,6 @@ def main():
     options = main.options
 
     try:
-        status, net_name = create_netpool_conf(options.ip, options.virt, False)
-        if status != PASS:
-            logger.error('Unable to find a network pool')
-            return FAIL
-
         status = setup_first_guest(options.ip, options.virt)
         if status != PASS:
             raise Exception("Unable to start %s" % test_dom)
@@ -164,7 +158,6 @@ def main():
         logger.error(details)
         status = FAIL
 
-    destroy_netpool(options.ip, options.virt, net_name)
     destroy_and_undefine_domain(test_dom, options.ip, options.virt)
     destroy_and_undefine_domain(test_dom2, options.ip, options.virt)
 

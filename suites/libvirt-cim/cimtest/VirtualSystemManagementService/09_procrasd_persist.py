@@ -30,7 +30,6 @@ from CimTest.Globals import logger
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import FAIL, PASS
 from XenKvmLib.test_doms import destroy_and_undefine_domain 
-from XenKvmLib.common_util import create_netpool_conf, destroy_netpool
 
 sup_types = ['Xen', 'XenFV', 'KVM']
 default_dom = 'rstest_domain'
@@ -95,11 +94,6 @@ def check_proc_sched(server, virt):
 def main():
     options = main.options
 
-    status, test_network = create_netpool_conf(options.ip, options.virt, False)
-    if status != PASS:
-        return FAIL
-
-
     status, vssd, rasd = setup_rasd_mof(options.ip, options.virt)
     if status != PASS:
         return status
@@ -134,7 +128,6 @@ def main():
         logger.error(details)
         status = FAIL
 
-    destroy_netpool(options.ip, options.virt, test_network)
     destroy_and_undefine_domain(default_dom, options.ip, options.virt)
 
     return status 
