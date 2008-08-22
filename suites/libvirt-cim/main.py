@@ -34,6 +34,9 @@ import ConfigParser
 sys.path.append('./lib')
 from XenKvmLib.reporting import gen_report, send_report 
 from VirtLib import utils
+from CimTest.ReturnCodes import PASS, FAIL
+from XenKvmLib import const 
+from XenKvmLib.common_util import create_netpool_conf, destroy_netpool
 
 parser = OptionParser()
 parser.add_option("-i", "--ip", dest="ip", default="localhost",
@@ -122,6 +125,22 @@ def get_rcfile_vals():
 
     return addr, relay
 
+def setup_env(ip, virt):
+    status, netpool = create_netpool_conf(ip, virt, 
+                                          net_name=const.default_network_name)
+    if status != PASS:
+        print "\nUnable to create network pool %s" % const.default_network_name
+        return status
+
+    return PASS
+
+def cleanup_env(ip, virt):
+    status = destroy_netpool(ip, virt, const.default_network_name) 
+    if status != PASS:
+        print "Unable to destroy network pool %s." % const.default_network_name
+        return status
+
+    return PASS
 
 def main():
     (options, args) = parser.parse_args()
@@ -173,6 +192,11 @@ def main():
     else:
         dbg = ""
 
+    status = setup_env(options.ip, options.virt)
+    if status != PASS:
+        print "Please check your environment.\n"
+        return 1
+
     print "\nTesting " + options.virt + " hypervisor"
 
     for test in test_list: 
@@ -191,6 +215,10 @@ def main():
 
     testsuite.debug("%s\n" % div) 
     testsuite.finish()
+
+    status = cleanup_env(options.ip, options.virt)
+    if status != PASS:
+        print "Unable to clean up.  Please check your environment.\n"
 
     msg_body, heading = gen_report(options.virt, options.ip, testsuite.log_file)
 
