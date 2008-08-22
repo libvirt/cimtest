@@ -59,8 +59,7 @@ from XenKvmLib.classes import get_typed_class
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.logicaldevices import verify_device_values
-from XenKvmLib.common_util import cleanup_restore, \
-create_diskpool_conf, destroy_netpool
+from XenKvmLib.common_util import cleanup_restore, create_diskpool_conf
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
@@ -249,7 +248,6 @@ def main():
     if status != PASS:
         vsxml.undefine(server)
         cleanup_restore(server, virt=virt)
-        destroy_netpool(server, virt, net_name)
         return status
 
     in_pllist = pool_init_list(virt, pool, net_name, dpool_name)
@@ -259,13 +257,11 @@ def main():
     if status != PASS:
         vsxml.undefine(server)
         cleanup_restore(server, virt=virt)
-        destroy_netpool(server, virt, net_name)
         return FAIL
 
     status = verify_eafp_values(server, in_pllist, virt, test_disk)
     vsxml.undefine(server)
     cleanup_restore(server, virt=virt)
-    destroy_netpool(server, virt, net_name)
     return status
 if __name__ == "__main__":
     sys.exit(main())

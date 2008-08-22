@@ -32,8 +32,8 @@ from XenKvmLib.vxml import get_class
 from CimTest import Globals
 from CimTest.Globals import logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
-from XenKvmLib.common_util import cleanup_restore, create_diskpool_conf, \
-create_netpool_conf, destroy_netpool
+from XenKvmLib.common_util import cleanup_restore, create_diskpool_conf
+from XenKvmLib.const import default_network_name
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
@@ -41,6 +41,7 @@ test_dom    = "RAFP_dom"
 test_vcpus  = 1
 test_mem    = 128
 test_mac    = "00:11:22:33:44:aa"
+test_npool  = default_network_name
 
 def setup_env(server, virt):
     destroy_and_undefine_all(server)
@@ -58,20 +59,19 @@ def setup_env(server, virt):
     else:
         vsxml = virtxml(test_dom, mem=test_mem, vcpus = test_vcpus,
                         mac = test_mac, disk = test_disk, 
-                        ntype='network')
+                        ntype='network', net_name = test_npool)
     
-    test_network = vsxml.xml_get_net_network()
     try:
         ret = vsxml.define(server)
         if not ret:
             logger.error("Failed to Define the domain: %s", test_dom)
-            return FAIL, vsxml, test_disk, test_network
+            return FAIL, vsxml, test_disk
 
     except Exception, details:
         logger.error("Exception : %s", details)
-        return FAIL, vsxml, test_disk, test_network
+        return FAIL, vsxml, test_disk
 
-    return PASS, vsxml, test_disk, test_network
+    return PASS, vsxml, test_disk
 
 def get_instance(server, pool, list, virt='Xen'):
     try:
@@ -114,16 +114,14 @@ def main():
     status = PASS
 
    
-    status, vsxml, test_disk, test_network = setup_env(options.ip, options.virt)
+    status, vsxml, test_disk = setup_env(options.ip, options.virt)
     if status != PASS:
-        destroy_netpool(options.ip, options.virt, test_network)
         vsxml.undefine(options.ip)
         return status
     
     status, diskid = create_diskpool_conf(options.ip, options.virt)
     if status != PASS:
         cleanup_restore(options.ip, options.virt)
-        destroy_netpool(options.ip, options.virt, test_network)
         vsxml.undefine(options.ip)
         return status
 
@@ -135,7 +133,7 @@ def main():
                  "ProcessorPool" : {'InstanceID' : "ProcessorPool/0"},
                  "DiskPool"      : {'InstanceID' : diskid},
                  "NetworkPool"   : {'InstanceID' : "NetworkPool/%s" \
-                                     % test_network }}
+                                     % test_npool }}
         rasd = { "MemoryPool"    : "%s/mem" % test_dom, 
                  "ProcessorPool" : "%s/proc" % test_dom, 
                  "DiskPool"      : "%s/%s" %(test_dom, test_disk), 
@@ -152,7 +150,6 @@ def main():
             break
 
     cleanup_restore(options.ip, options.virt)
-    destroy_netpool(options.ip, options.virt, test_network)
     vsxml.undefine(options.ip)
     return status 
         

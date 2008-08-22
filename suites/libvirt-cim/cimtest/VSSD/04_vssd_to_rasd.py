@@ -54,6 +54,7 @@ from XenKvmLib.classes import get_typed_class
 from XenKvmLib import rasd
 from XenKvmLib.rasd import verify_procrasd_values, verify_netrasd_values, \
 verify_diskrasd_values, verify_memrasd_values, rasd_init_list
+from XenKvmLib.const import default_network_name 
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
@@ -71,7 +72,7 @@ def setup_env(virt):
         vsxml_info = virt_xml(test_dom,  mem=test_mem, vcpus = test_vcpus,
                               mac = test_mac, disk = test_disk)
         try:
-            bridge = vsxml_info.set_vbridge(server)
+            bridge = vsxml_info.set_vbridge(server, default_network_name)
         except Exception, details:
             logger.error("Exception : %s", details)
             return FAIL, vsxml_info

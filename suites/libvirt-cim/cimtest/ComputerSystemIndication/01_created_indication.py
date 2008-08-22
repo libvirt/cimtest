@@ -29,8 +29,7 @@ from CimTest.Globals import logger
 from CimTest.Globals import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.common_util import create_using_definesystem, \
-                                  call_request_state_change, \
-                                  create_netpool_conf, destroy_netpool
+                                  call_request_state_change
 from XenKvmLib.test_doms import destroy_and_undefine_domain 
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.indication_tester import CIMIndicationSubscription
@@ -144,10 +143,6 @@ def main():
     options = main.options
     status = FAIL
 
-    status, test_network = create_netpool_conf(options.ip, options.virt)
-    if status != PASS:
-        return FAIL
-
     sub_list, ind_names, dict = sub_ind(options.ip, options.virt)
 
     ind_list = ["define", "start", "destroy"]
@@ -185,7 +180,6 @@ def main():
         sub.unsubscribe(dict['default_auth'])
         logger.info("Cancelling subscription for %s" % ind_names[ind])
        
-    destroy_netpool(options.ip, options.virt, test_network)
     destroy_and_undefine_domain(test_dom, options.ip, options.virt)
 
     return status

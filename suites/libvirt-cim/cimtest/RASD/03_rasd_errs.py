@@ -62,6 +62,7 @@ from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS, CIM_ERROR_GETINSTANCE
 from CimTest.ReturnCodes import PASS, FAIL
+from XenKvmLib.const import default_network_name 
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
@@ -141,7 +142,7 @@ def main():
                                 vcpus = test_vcpus, \
                                 mac = test_mac, \
                                 disk = test_disk)
-        bridge = vsxml.set_vbridge(server)
+        bridge = vsxml.set_vbridge(server, default_network_name)
     try:
         ret = vsxml.define(options.ip)
         if not ret:

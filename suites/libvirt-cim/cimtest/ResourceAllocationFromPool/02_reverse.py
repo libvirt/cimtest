@@ -33,15 +33,15 @@ from CimTest import Globals
 from CimTest.Globals import logger, do_main
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib import enumclass
-from XenKvmLib.common_util import cleanup_restore, create_diskpool_conf, \
-create_netpool_conf, destroy_netpool
-
+from XenKvmLib.common_util import cleanup_restore, create_diskpool_conf
+from XenKvmLib.const import default_network_name 
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 test_dom    = "RAFP_dom"
 test_vcpus  = 1
 test_mem    = 128
 test_mac    = "00:11:22:33:44:aa"
+test_npool  = default_network_name
 
 def setup_env(server, virt):
     destroy_and_undefine_all(server)
@@ -57,21 +57,20 @@ def setup_env(server, virt):
     else:
         vsxml = virtxml(test_dom, mem=test_mem, vcpus = test_vcpus,
                         mac = test_mac, disk = test_disk,
-                        ntype = 'network')
-    test_network = vsxml.xml_get_net_network()
+                        ntype = 'network', net_name = test_npool)
     try:
         ret = vsxml.define(server)
         if not ret:
             logger.error("Failed to Define the domain: %s", test_dom)
-            return FAIL, vsxml, test_disk, test_network
+            return FAIL, vsxml, test_disk
 
     except Exception, details:
         logger.error("Exception : %s", details)
-        return FAIL, vsxml, test_disk, test_network
+        return FAIL, vsxml, test_disk
 
-    return PASS, vsxml, test_disk, test_network
+    return PASS, vsxml, test_disk
 
-def init_list(test_disk, diskid, test_network, virt='Xen'):
+def init_list(test_disk, diskid, virt='Xen'):
 
     proc = { 'rasd_id' : '%s/%s' % (test_dom, 'proc'),
              'pool_id' : 'ProcessorPool/0'
@@ -83,7 +82,7 @@ def init_list(test_disk, diskid, test_network, virt='Xen'):
 
     net  = { 
              'rasd_id' : '%s/%s' % (test_dom, test_mac),
-             'pool_id' : 'NetworkPool/%s' %test_network
+             'pool_id' : 'NetworkPool/%s' % test_npool
            }
 
     disk = { 'rasd_id' : '%s/%s' % (test_dom, test_disk),
@@ -165,19 +164,17 @@ def main():
     server = options.ip
     virt = options.virt
     
-    status, vsxml, test_disk, test_network = setup_env(server, virt)
+    status, vsxml, test_disk = setup_env(server, virt)
     if status != PASS:
-        destroy_netpool(server, virt, test_network)
         vsxml.undefine(server)
         return status
 
     status, diskid = create_diskpool_conf(server, virt)
     if status != PASS:
-        destroy_netpool(server, virt, test_network)
         vsxml.undefine(server)
         return status
 
-    cn_id_list = init_list(test_disk, diskid, test_network, options.virt)
+    cn_id_list = init_list(test_disk, diskid, options.virt)
 
     for rasd_cn, id_info in cn_id_list.iteritems():
         status = get_rasdinst_verify_pool_from_RAFP(server, virt, vsxml, 
@@ -186,7 +183,6 @@ def main():
             return status
 
     cleanup_restore(server, virt)
-    destroy_netpool(server, virt, test_network)
     vsxml.undefine(server)    
     return status
 

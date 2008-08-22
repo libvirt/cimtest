@@ -63,13 +63,14 @@ from CimTest.Globals import do_main, platform_sup, logger, \
 CIM_ERROR_GETINSTANCE, CIM_ERROR_ASSOCIATORS
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import cleanup_restore, create_diskpool_conf, \
-create_netpool_conf, destroy_netpool
-from XenKvmLib.common_util import print_field_error
+                                  print_field_error
+from XenKvmLib.const import default_network_name 
 
 platform_sup = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 memid = "%s/%s" % ("MemoryPool", 0)
 procid = "%s/%s" % ("ProcessorPool", 0)
+test_npool = default_network_name
 
 def get_or_bail(virt, ip, id, pool_class):
     """
@@ -84,8 +85,7 @@ def get_or_bail(virt, ip, id, pool_class):
         logger.error("Exception: %s", detail)
         cleanup_restore(ip, virt)
         sys.exit(FAIL)
-    return instance
-
+    return instance 
 
 def init_list(virt, pool):
     """
@@ -140,25 +140,20 @@ def get_pool_details(virt, server):
         mpool = get_pool_info(virt, server, memid, poolname= "MemoryPool")
         ppool = get_pool_info(virt, server, procid, poolname= "ProcessorPool")
 
-        status, test_network = create_netpool_conf(server, virt)
-        if status != PASS:
-            return status, pool_set, test_network
-
-        netid = "%s/%s" % ("NetworkPool", test_network)
+        netid = "%s/%s" % ("NetworkPool", test_npool)
         npool = get_pool_info(virt, server, netid, poolname= "NetworkPool")
         if dpool.InstanceID == None or mpool.InstanceID == None \
            or npool.InstanceID == None or ppool.InstanceID == None:
            logger.error("Get pool None") 
            cleanup_restore(server, virt)
-           destroy_netpool(server, virt, test_network)
            return FAIL
         else:
            pool_set = [dpool, mpool, ppool, npool]      
     except Exception, detail:
         logger.error("Exception: %s", detail)
-        return FAIL, pool_set, test_network
+        return FAIL, pool_set
 
-    return PASS, pool_set, test_network
+    return PASS, pool_set
 
 def verify_rasd_fields(loop, assoc_info, cllist, rtype, rangelist):
     for inst in assoc_info:
@@ -207,15 +202,14 @@ def main():
     server = options.ip
     virt = options.virt
 
-    status, pool, test_network = get_pool_details(virt, server)
+    status, pool = get_pool_details(virt, server)
     if status != PASS:
         cleanup_restore(server, virt)
-        destroy_netpool(server, virt, test_network)
         return FAIL
 
     status = verify_sdc_with_ac(virt, server, pool)
+
     cleanup_restore(server, virt)
-    destroy_netpool(server, virt, test_network)
     return status
     
 if __name__ == "__main__":

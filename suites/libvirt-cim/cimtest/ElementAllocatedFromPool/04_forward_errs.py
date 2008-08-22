@@ -41,6 +41,7 @@ from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import cleanup_restore, test_dpath, \
 create_diskpool_file
+from XenKvmLib.const import default_network_name 
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 bug_no             = "88651"
@@ -507,7 +508,7 @@ def main():
     if status != PASS:
         return status
 
-    bridge = vsxml.set_vbridge(options.ip)
+    bridge = vsxml.set_vbridge(options.ip, default_network_name)
     ret = vsxml.define(options.ip)
     if not ret:
         logger.error("Failed to define the dom: %s", test_dom)
