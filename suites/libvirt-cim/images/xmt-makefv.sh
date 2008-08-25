@@ -16,6 +16,7 @@ TMPMOUNT=/tmp/cimtest_image_temp
 SIZE=16
 QEMU_VER=082
 QEMU_FILE=""
+DUMMY_PATH="cimtest-dummy-image"
 
 if [ -e "/usr/lib64/xen/bin/qemu-dm" ]; then
     QEMU_FILE="/usr/lib64/xen/bin/qemu-dm"
@@ -88,12 +89,9 @@ kernel_path() {
     local image=`find /boot | grep vmlinuz | grep -v xen | tail -n1`
 
     if [ -z $image ]; then
-        local dummy_path="cimtest-dummy-image"
-
-        echo "No non-Xen kernel found.  Creating a fake image.\n"
-        touch /boot/vmlinuz-$(dummy_path)
-        mkdir /lib/modules/$(dummy_path)
-        image="/boot/vmlinuz-$(dummy_path)"
+        touch /boot/vmlinuz-$DUMMY_PATH
+        mkdir /lib/modules/$DUMMY_PATH
+        image="/boot/vmlinuz-$DUMMY_PATH"
     fi
 
     echo $image
@@ -112,6 +110,12 @@ copy_in_kernel() {
     cp $kernel ${target}/vmlinuz
 
     mkinitrd  --preload ata_piix ${target}/initrd $ver
+ 
+    if [ $ver == $DUMMY_PATH ]; then
+        echo "No non-Xen kernel found.  Using a fake image."
+        rm /boot/vmlinuz-$DUMMY_PATH
+        rm -rf /lib/modules/$DUMMY_PATH
+    fi
 }
 
 grub_image() {
