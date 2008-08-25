@@ -68,6 +68,7 @@ def start_guest_get_ref(ip, guest_name, virt):
 @do_main(sup_types)
 def main():
     options = main.options
+    virt = options.virt
     status = PASS
     rc = -1
     
@@ -85,14 +86,13 @@ def main():
     else:
         local_migrate = 0
 
-    status, cs_ref, cxml = start_guest_get_ref(options.ip, dom_name, options.virt)
+    status, cs_ref, cxml = start_guest_get_ref(options.ip, dom_name, virt)
     if status != PASS:
         cxml.destroy(options.ip)
         cxml.undefine(options.ip)
         return FAIL
 
     guest_name = cs_ref['Name']
-
     status = check_possible_host_migration(service, cs_ref, target_ip) 
     if status != PASS:
         cxml.destroy(options.ip)
@@ -108,9 +108,8 @@ def main():
         return status 
     elif len(ret) == 2:
         id = ret[1]['Job'].keybindings['InstanceID']
-
     status =  check_migration_job(options.ip, id, target_ip, 
-                                  guest_name, local_migrate)
+                                  guest_name, local_migrate, virt)
 
     cxml.destroy(options.ip)
     cxml.undefine(options.ip)

@@ -29,7 +29,8 @@ from XenKvmLib import vxml
 from XenKvmLib.common_util import poll_for_state_change
 from XenKvmLib import computersystem
 from XenKvmLib import vsmigrations
-from XenKvmLib.vsmigrations import check_possible_host_migration, migrate_guest_to_host, check_migration_job
+from XenKvmLib.vsmigrations import check_possible_host_migration, \
+migrate_guest_to_host, check_migration_job
 from XenKvmLib import enumclass
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
@@ -116,6 +117,7 @@ def main():
     options = main.options
     status = PASS
     rc = -1
+    virt = options.virt
     
     try:
         service = vsmigrations.Xen_VirtualSystemMigrationService(options.ip)
@@ -136,7 +138,7 @@ def main():
     ref_list = []
     cs_ref = None
 
-    status, ref_list = setup_env(options.ip, mlist, local_migrate, options.virt)
+    status, ref_list = setup_env(options.ip, mlist, local_migrate, virt)
     if status != PASS or len(ref_list) < 1:
         return FAIL
 
@@ -145,7 +147,7 @@ def main():
     for type, item in mlist.iteritems():
         guest_name = cs_ref['Name']
 
-        status, cxml = start_guest(options.ip, guest_name, type, options.virt)
+        status, cxml = start_guest(options.ip, guest_name, type, virt)
         if status != PASS:
             break
 
@@ -166,7 +168,7 @@ def main():
             id = ret[1]['Job'].keybindings['InstanceID']
 
         status =  check_migration_job(options.ip, id, target_ip, 
-                                      guest_name, local_migrate)
+                                      guest_name, local_migrate, virt)
         if status != PASS:
             break
 
