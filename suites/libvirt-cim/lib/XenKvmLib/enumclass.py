@@ -90,9 +90,7 @@ class CIM_ProcResourceAllocationSettingData(CIM_MyClass):
 class CIM_DiskResourceAllocationSettingData(CIM_MyClass):
     pass
 
-
-
-class Virt_MigrationJob(CIM_MyClass):
+class Xen_MigrationJob(CIM_MyClass):
     pass
 
 class Xen_RegisteredProfile(CIM_RegisteredProfile):

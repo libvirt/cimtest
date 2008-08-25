@@ -26,6 +26,7 @@ from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.test_doms import destroy_and_undefine_domain
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from XenKvmLib import enumclass
+from XenKvmLib.classes import get_typed_class
 from VirtLib.live import domain_list 
 
 class CIM_VirtualSystemMigrationService(CIMMethodClass):
@@ -100,22 +101,19 @@ def migrate_guest_to_host(service, ref, ip, msd=None):
     if len(ret) == 0:
         logger.error("MigrateVirtualSystemToHost returns an empty list")
         return FAIL, ret
-
     return PASS, ret
 
-def get_migration_job_instance(ip, id):
+def get_migration_job_instance(ip, virt, id):
     job = []
     key_list = ["instanceid"]
-
+    mig_job_cn   = get_typed_class(virt, 'MigrationJob')
     try:
-        #virt='Virt' is odd here.  However, for MigrationJob, the
-        #provider is virtualization neutral.  
         job = enumclass.enumerate(ip,
-                                  enumclass.Virt_MigrationJob,
+                                  mig_job_cn,
                                   key_list,
-                                  virt='Virt')
+                                  virt=virt)
     except Exception, details:
-        logger.error(CIM_ERROR_ENUMERATE, 'Virt_MigrationJob')
+        logger.error(CIM_ERROR_ENUMERATE, mig_job_cn)
         logger.error(details)
         return FAIL, None
 
@@ -126,7 +124,7 @@ def get_migration_job_instance(ip, id):
         if job[i].InstanceID == id:
             break
         elif i == len(job)-1 and job[i].InstanceID != id:
-            logger.error("Virt_MigrationJob err: can't find expected job inst")
+            logger.error("%s err: can't find expected job inst", mig_job_cn)
             return FAIL, None
 
     return PASS, job[i]
@@ -144,8 +142,8 @@ def verify_domain_list(list, local_migrate, test_dom):
 
     return PASS
 
-def check_migration_job(ip, id, target_ip, test_dom, local_migrate):
-    status, job_inst = get_migration_job_instance(ip, id)
+def check_migration_job(ip, id, target_ip, test_dom, local_migrate, virt='Xen'):
+    status, job_inst = get_migration_job_instance(ip, virt, id)
     if status != PASS:
         return FAIL
 
@@ -159,7 +157,7 @@ def check_migration_job(ip, id, target_ip, test_dom, local_migrate):
             break
         elif job_inst.JobState == 4 and i < 49:
             time.sleep(3)
-            status, job_inst = get_migration_job_instance(ip, id)
+            status, job_inst = get_migration_job_instance(ip, virt, id)
             if status != PASS:
                 return FAIL
         else:
