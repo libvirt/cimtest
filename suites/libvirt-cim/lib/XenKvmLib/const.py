@@ -20,10 +20,16 @@
 
 import os
 import platform
+import traceback
+from optparse import OptionParser
 from VirtLib.live import fv_cap
 from CimTest.Globals import CIM_IP
 from pywbem import WBEMConnection
 from XenKvmLib.classes import get_typed_class
+
+platform_sup = ["Xen", "KVM", "XenFV"]
+
+VIRSH_ERROR_DEFINE = "Failed to define a domain with the name %s from virsh"
 
 # vxml.NetXML
 default_bridge_name = 'testbridge'
@@ -79,6 +85,42 @@ LXC_default_tty = '/dev/ptmx'
 LXC_default_mp = '/tmp'
 LXC_default_source = '/tmp/lxc_files'
 LXC_default_mac = '11:22:33:aa:bb:cc'
+
+parser = OptionParser()
+parser.add_option("-i", "--ip", dest="ip", default="localhost",
+                  help="IP address of machine to test, default: localhost")
+parser.add_option("-v", "--virt", dest="virt", type="choice",
+                  choices=['Xen', 'KVM', 'XenFV', 'LXC'], default="Xen",
+                  help="Virt type, select from: 'Xen' & 'KVM' & 'XenFV' & 'LXC', default: Xen")
+parser.add_option("-d", "--debug-output", action="store_true", dest="debug",
+                  help="Duplicate the output to stderr")
+
+
+def do_main(types=['Xen'], p=parser):
+    def do_type(f):
+        import sys
+        from ReturnCodes import SKIP, FAIL
+        (options, args) = p.parse_args()
+        if options.virt not in types:
+            return lambda:SKIP
+        else:
+            def do_try():
+                try:
+                    log_param()
+                    from VirtLib.utils import setup_ssh_key
+                    from XenKvmLib.test_doms import destroy_and_undefine_all
+                    setup_ssh_key()
+                    destroy_and_undefine_all(options.ip, options.virt)
+                    rc = f()
+                except Exception, e:
+                    logger.error('%s : %s' % (e.__class__.__name__, e))
+                    logger.error("%s" % traceback.print_exc())
+                    rc = FAIL
+                return rc
+            setattr(do_try, 'options', options)
+            return do_try
+    return do_type
+
 
 def get_provider_version(virt, ip):
     conn = WBEMConnection('http://%s' % ip,
