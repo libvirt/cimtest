@@ -21,7 +21,7 @@
 #
 
 import sys
-from CimTest.Globals import log_param, logger
+from CimTest.Globals import logger
 from CimTest.ReturnCodes import FAIL, PASS
 from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class

@@ -79,7 +79,7 @@ def remove_old_logs(ogroup):
 
     for group in group_list:
         g_path = os.path.join(TEST_SUITE, group)
-        cmd = "cd %s rm && rm %s" % (g_path, "vsmtest.log")
+        cmd = "cd %s && rm -f %s" % (g_path, "cimtest.log")
         status, output = commands.getstatusoutput(cmd)
 
     print "Cleaned log files."

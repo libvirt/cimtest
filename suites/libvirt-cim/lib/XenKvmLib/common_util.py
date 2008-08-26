@@ -33,7 +33,7 @@ from XenKvmLib import hostsystem
 from pywbem.cim_obj import CIMInstanceName
 from XenKvmLib.devices import CIM_Instance
 from XenKvmLib.classes import get_typed_class
-from CimTest.Globals import logger, log_param, CIM_ERROR_ENUMERATE, \
+from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, \
                             CIM_ERROR_GETINSTANCE
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 from VirtLib.live import diskpool_list, virsh_version, net_list, domain_list
