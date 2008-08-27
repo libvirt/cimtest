@@ -29,7 +29,7 @@ from XenKvmLib.test_xml import *
 from XenKvmLib.test_doms import * 
 from XenKvmLib import vsms 
 from XenKvmLib import computersystem 
-from XenKvmLib import hostsystem 
+from XenKvmLib import enumclass 
 from pywbem.cim_obj import CIMInstanceName
 from XenKvmLib.devices import CIM_Instance
 from XenKvmLib.classes import get_typed_class
@@ -198,8 +198,9 @@ def get_host_info(server, virt="Xen"):
     status = PASS
     host_name = ''
     host_ccn  = ''
+    keys = ['Name', 'CreationClassName']
     try :
-        host_sys = hostsystem.enumerate(server, virt)
+        host_sys = enumclass.enumerate(server, 'HostSystem', keys, virt)
         if host_sys[0].Name == "":
             logger.error("HostName seems to be empty")
             status = FAIL
