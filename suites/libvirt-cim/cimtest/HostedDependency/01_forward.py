@@ -49,7 +49,7 @@ from VirtLib import utils
 from XenKvmLib import vxml
 from XenKvmLib import computersystem 
 from XenKvmLib import assoc
-from XenKvmLib import hostsystem
+from XenKvmLib import enumclass
 from XenKvmLib.classes import get_class_basename
 from CimTest import Globals
 from CimTest.Globals import do_main
@@ -75,9 +75,9 @@ def main():
         Globals.logger.error("Failed to Create the dom: %s", test_dom)
         status = FAIL
         return status
-
+    keys = ['Name', 'CreationClassName']
     try:
-        host = hostsystem.enumerate(options.ip, options.virt)[0]
+        host = enumclass.enumerate(options.ip, 'HostSystem', keys, options.virt)[0]
     except Exception,detail:
         Globals.logger.error(Globals.CIM_ERROR_ENUMERATE, 'Hostsystem')
         Globals.logger.error("Exception: %s", detail)

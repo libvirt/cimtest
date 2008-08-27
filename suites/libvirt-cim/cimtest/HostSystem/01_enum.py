@@ -26,7 +26,7 @@
 # and verifies the hostname returned by the provider
 
 import sys
-from XenKvmLib import hostsystem
+from XenKvmLib import enumclass
 from XenKvmLib.classes import get_typed_class
 from VirtLib import live
 from VirtLib import utils
@@ -41,8 +41,9 @@ def main():
     host = live.hostname(options.ip) 
    
     status = FAIL
+    keys = ['Name', 'CreationClassName']
     try:
-        hs = hostsystem.enumerate(options.ip, options.virt)
+        hs = enumclass.enumerate(options.ip, 'HostSystem', keys, options.virt)
         name = get_typed_class(options.virt, 'HostSystem')
         
         if len(hs) != 1:

@@ -24,7 +24,7 @@ import sys
 import pywbem
 from pywbem.cim_obj import CIMInstanceName
 from XenKvmLib import assoc
-from XenKvmLib import hostsystem
+from XenKvmLib import enumclass
 from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
 from CimTest.Globals import logger, do_main

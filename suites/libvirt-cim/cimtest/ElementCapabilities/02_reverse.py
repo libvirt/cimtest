@@ -25,7 +25,7 @@ import sys
 from VirtLib import utils
 from VirtLib import live
 from XenKvmLib import assoc
-from XenKvmLib import hostsystem
+from XenKvmLib import enumclass
 from XenKvmLib import vsms
 from XenKvmLib.classes import get_typed_class 
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, CIM_ERROR_ASSOCIATORNAMES
@@ -64,8 +64,9 @@ def verify_host(inst_list, ip, virt="Xen"):
         return status
 
     inst = list[0]
+    keys = ['Name', 'CreationClassName']
     try:
-        host_sys = hostsystem.enumerate(ip, virt)[0]
+        host_sys = enumclass.enumerate(ip, 'HostSystem', keys, virt)[0]
     except Exception:
         logger.error(CIM_ERROR_ENUMERATE, 'HostSystem')
         return FAIL

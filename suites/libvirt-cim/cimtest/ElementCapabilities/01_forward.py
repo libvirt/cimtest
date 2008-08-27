@@ -24,7 +24,7 @@ import sys
 from VirtLib import utils
 from VirtLib import live
 from XenKvmLib import assoc
-from XenKvmLib import hostsystem
+from XenKvmLib import enumclass
 from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
 from CimTest.Globals import do_main, logger, CIM_ERROR_ASSOCIATORNAMES, \
@@ -60,9 +60,9 @@ def main():
     options = main.options
     server = options.ip
     virt = options.virt
-
+    keys = ['Name', 'CreationClassName']
     try:
-        host_sys = hostsystem.enumerate(server, virt)[0]
+        host_sys = enumclass.enumerate(server, 'HostSystem', keys, virt)[0]
     except Exception:
         logger.error(CIM_ERROR_ENUMERATE, get_typed_class(virt, 'HostSystem'))
         return FAIL

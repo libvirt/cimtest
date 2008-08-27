@@ -24,7 +24,7 @@ import sys
 import pywbem
 from pywbem.cim_obj import CIMInstanceName
 from XenKvmLib import assoc
-from XenKvmLib import hostsystem
+from XenKvmLib import enumclass
 from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
 from CimTest.Globals import logger, do_main
@@ -39,9 +39,9 @@ def main():
     options = main.options
     rc = -1
     status = FAIL
-
+    keys = ['Name', 'CreationClassName']
     try:
-        host_sys = hostsystem.enumerate(options.ip, options.virt)[0]
+        host_sys = enumclass.enumerate(options.ip, 'HostSystem', keys, options.virt)[0]
     except Exception:
         logger.error(Globals.CIM_ERROR_ENUMERATE % host_sys.name)
         return FAIL

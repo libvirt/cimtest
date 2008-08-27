@@ -23,7 +23,7 @@
 #
 
 import sys
-from XenKvmLib import hostsystem
+from XenKvmLib import enumclass
 from XenKvmLib import rpcs
 from CimTest import Globals
 from CimTest.ReturnCodes import PASS, FAIL
@@ -38,8 +38,9 @@ def main():
     options = main.options
     server = options.ip
     classname =  get_typed_class(options.virt, "ResourcePoolConfigurationService")
+    keys = ['Name', 'CreationClassName']
     try:
-        host_sys = hostsystem.enumerate(server, options.virt)[0]
+        host_sys = enumclass.enumerate(server, 'HostSystem', keys, options.virt)[0]
     except Exception:
         host_cn = get_typed_class(options.virt, "HostSystem")
         logger.error(Globals.CIM_ERROR_ENUMERATE % host_cn)

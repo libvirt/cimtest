@@ -43,7 +43,7 @@
 import sys
 from VirtLib import utils
 from XenKvmLib import vxml
-from XenKvmLib import hostsystem
+from XenKvmLib import enumclass
 from XenKvmLib import computersystem 
 from XenKvmLib import assoc
 from XenKvmLib.classes import get_class_basename
@@ -71,9 +71,9 @@ def main():
         logger.error("ERROR: Failed to Create the dom: %s" % test_dom)
         status = FAIL
         return status
-
+    keys = ['Name', 'CreationClassName']
     try:
-        host_sys = hostsystem.enumerate(options.ip, options.virt)
+        host_sys = enumclass.enumerate(options.ip, 'HostSystem', keys, options.virt)
         if host_sys[0].Name == "":
             raise Exception("HostName seems to be empty")
         else:

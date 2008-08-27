@@ -43,7 +43,7 @@ from VirtLib import utils
 from CimTest import Globals
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, CIM_ERROR_ASSOCIATORS 
 from CimTest.Globals import do_main
-from XenKvmLib import hostsystem
+from XenKvmLib import enumclass
 from XenKvmLib import computersystem
 from XenKvmLib import assoc
 from XenKvmLib.test_doms import destroy_and_undefine_all
@@ -105,10 +105,10 @@ def main():
             return FAIL 
 
         inst_list.append(sys)
-
+    keys = ['Name', 'CreationClassName']
     try:
         #Getting the hostname, to verify with the value returned by the assoc.
-        host_sys = hostsystem.enumerate(options.ip, options.virt)
+        host_sys = enumclass.enumerate(options.ip, 'HostSystem', keys, options.virt)
 
         if len(host_sys) < 1:
             logger.error("ERROR: Enumerate returned 0 host instances")

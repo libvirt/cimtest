@@ -24,7 +24,7 @@
 import sys
 import pywbem
 from XenKvmLib import assoc
-from XenKvmLib import hostsystem
+from XenKvmLib import enumclass
 from XenKvmLib.common_util import try_assoc
 from CimTest import Globals
 from CimTest.Globals import logger
@@ -41,9 +41,9 @@ sup_types=['Xen', 'KVM', 'XenFV', 'LXC']
 def main():
     options = main.options
     status = PASS
-
+    keys = ['Name', 'CreationClassName']
     try: 
-        host_sys = hostsystem.enumerate(options.ip, options.virt)[0]
+        host_sys = enumclass.enumerate(options.ip, 'HostSystem', keys, options.virt)[0]
     except Exception:
         host_cn = get_typed_class(options.virt, "HostSystem")
         logger.error(Globals.CIM_ERROR_ENUMERATE % host_cn)
