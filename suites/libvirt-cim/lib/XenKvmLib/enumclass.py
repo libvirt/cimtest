@@ -45,6 +45,9 @@ class CIM_MyClass(CIM_Instance):
 
         CIM_Instance.__init__(self, inst)
 
+class CIM_System(CIM_MyClass):
+    pass
+
 class CIM_AllocationCapabilities(CIM_MyClass):
     pass
 
@@ -88,6 +91,15 @@ class CIM_ProcResourceAllocationSettingData(CIM_MyClass):
     pass
 
 class CIM_DiskResourceAllocationSettingData(CIM_MyClass):
+    pass
+
+class Xen_HostSystem(CIM_System):
+    pass
+
+class KVM_HostSystem(CIM_System):
+    pass
+
+class LXC_HostSystem(CIM_System):
     pass
 
 class Xen_MigrationJob(CIM_MyClass):
