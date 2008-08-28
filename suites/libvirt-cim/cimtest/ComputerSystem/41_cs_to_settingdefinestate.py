@@ -65,7 +65,7 @@ from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.assoc import Associators, AssociatorNames
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES, \
 CIM_ERROR_ASSOCIATORS
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib import rasd
 from XenKvmLib.rasd import verify_procrasd_values, verify_netrasd_values, \

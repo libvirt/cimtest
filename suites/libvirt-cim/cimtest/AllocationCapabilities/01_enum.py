@@ -28,8 +28,8 @@
 import sys
 from VirtLib.live import virsh_version
 from XenKvmLib import enumclass
-from CimTest.Globals import do_main
-from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, platform_sup
+from XenKvmLib.const import do_main, platform_sup
+from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.common_util import cleanup_restore, create_diskpool_conf
 

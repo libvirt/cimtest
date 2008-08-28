@@ -99,13 +99,14 @@ parser.add_option("-d", "--debug-output", action="store_true", dest="debug",
 def do_main(types=['Xen'], p=parser):
     def do_type(f):
         import sys
-        from ReturnCodes import SKIP, FAIL
+        from CimTest.ReturnCodes import SKIP, FAIL
         (options, args) = p.parse_args()
         if options.virt not in types:
             return lambda:SKIP
         else:
             def do_try():
                 try:
+                    from CimTest.Globals import logger, log_param 
                     log_param()
                     from VirtLib.utils import setup_ssh_key
                     from XenKvmLib.test_doms import destroy_and_undefine_all

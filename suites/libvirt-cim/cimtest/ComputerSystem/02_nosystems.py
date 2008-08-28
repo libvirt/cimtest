@@ -28,7 +28,7 @@ from XenKvmLib import computersystem
 from VirtLib import live
 from VirtLib import utils
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 
 sup_types = ['KVM', 'LXC']

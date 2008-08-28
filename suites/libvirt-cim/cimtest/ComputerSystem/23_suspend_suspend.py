@@ -41,7 +41,8 @@
 import sys
 import pywbem
 from VirtLib import utils
-from CimTest.Globals import do_main, logger
+from CimTest.Globals import logger
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.test_doms import destroy_and_undefine_domain
 from XenKvmLib.common_util import create_using_definesystem, \

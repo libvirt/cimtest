@@ -33,7 +33,8 @@ from XenKvmLib import computersystem
 from VirtLib import utils
 from XenKvmLib import vxml
 from XenKvmLib.test_doms import destroy_and_undefine_domain
-from CimTest.Globals import do_main, logger
+from CimTest.Globals import logger
+from XenKvmLib.const import do_main 
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.common_util import create_using_definesystem, \
                                   call_request_state_change, get_cs_instance

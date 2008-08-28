@@ -23,7 +23,7 @@
 #
 
 import sys
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from XenKvmLib import computersystem
 from VirtLib import live
 from VirtLib import utils

@@ -60,7 +60,7 @@ from XenKvmLib.common_util import try_getinstance
 from VirtLib.live import net_list
 from XenKvmLib.test_xml import netxml
 from XenKvmLib.test_doms import create_vnet
-from CimTest.Globals import do_main, platform_sup
+from XenKvmLib.const import do_main, platform_sup
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import cleanup_restore, test_dpath, \
 create_diskpool_file

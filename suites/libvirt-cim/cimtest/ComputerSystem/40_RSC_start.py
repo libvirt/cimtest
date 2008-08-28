@@ -39,7 +39,7 @@ from VirtLib import utils
 from XenKvmLib.test_doms import destroy_and_undefine_domain 
 from XenKvmLib.common_util import *
 from CimTest.Globals import logger
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'KVM', 'XenFV']

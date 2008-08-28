@@ -29,13 +29,12 @@ sys.path.append('../../lib')
 import TestSuite
 import commands
 from VirtLib import groups
-from CimTest.Globals import platform_sup
 import ConfigParser
 sys.path.append('./lib')
+from XenKvmLib.const import platform_sup, default_network_name
 from XenKvmLib.reporting import gen_report, send_report 
 from VirtLib import utils
 from CimTest.ReturnCodes import PASS, FAIL
-from XenKvmLib import const 
 from XenKvmLib.common_util import create_netpool_conf, destroy_netpool
 
 parser = OptionParser()
@@ -127,17 +126,17 @@ def get_rcfile_vals():
 
 def setup_env(ip, virt):
     status, netpool = create_netpool_conf(ip, virt, 
-                                          net_name=const.default_network_name)
+                                          net_name=default_network_name)
     if status != PASS:
-        print "\nUnable to create network pool %s" % const.default_network_name
+        print "\nUnable to create network pool %s" % default_network_name
         return status
 
     return PASS
 
 def cleanup_env(ip, virt):
-    status = destroy_netpool(ip, virt, const.default_network_name) 
+    status = destroy_netpool(ip, virt, default_network_name) 
     if status != PASS:
-        print "Unable to destroy network pool %s." % const.default_network_name
+        print "Unable to destroy network pool %s." % default_network_name
         return status
 
     return PASS

@@ -79,8 +79,8 @@ from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import try_getinstance
 from CimTest.ReturnCodes import PASS, FAIL
-from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS, VIRSH_ERROR_DEFINE
-from CimTest.Globals import do_main
+from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
+from XenKvmLib.const import do_main, VIRSH_ERROR_DEFINE
 
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']

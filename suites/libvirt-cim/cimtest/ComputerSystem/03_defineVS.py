@@ -32,7 +32,7 @@ from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class
 from VirtLib import utils
 from CimTest import Globals
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main, VIRSH_ERROR_DEFINE
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
@@ -46,7 +46,7 @@ def main():
     cxml = vxml.get_class(options.virt)(test_dom)
     rc = cxml.define(options.ip)
     if not rc:
-        Globals.logger.error(Globals.VIRSH_ERROR_DEFINE % test_dom)
+        Globals.logger.error(VIRSH_ERROR_DEFINE % test_dom)
         return status
 
     try:

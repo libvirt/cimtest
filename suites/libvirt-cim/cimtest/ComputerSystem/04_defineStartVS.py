@@ -35,7 +35,7 @@ from XenKvmLib import vxml
 from XenKvmLib import computersystem
 from CimTest import Globals
 from XenKvmLib.classes import get_typed_class
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']

@@ -46,7 +46,7 @@ from XenKvmLib import computersystem
 from XenKvmLib import vxml
 from VirtLib import utils
 from CimTest.Globals import logger
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from XenKvmLib.common_util import call_request_state_change
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 
