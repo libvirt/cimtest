@@ -26,7 +26,7 @@ import signal
 import time
 from pywbem.cim_obj import CIMInstanceName
 from CimTest.Globals import logger
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.common_util import create_using_definesystem, \
                                   call_request_state_change

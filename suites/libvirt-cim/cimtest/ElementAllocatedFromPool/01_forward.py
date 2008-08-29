@@ -51,7 +51,8 @@ from XenKvmLib.vxml import get_class
 from XenKvmLib.common_util import create_diskpool_conf, cleanup_restore
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.logicaldevices import field_err
-from CimTest.Globals import do_main, logger
+from CimTest.Globals import logger
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']

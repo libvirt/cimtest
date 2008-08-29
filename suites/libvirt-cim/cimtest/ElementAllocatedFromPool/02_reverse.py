@@ -49,7 +49,8 @@ import os
 import pywbem
 from XenKvmLib.assoc import Associators
 from XenKvmLib.vxml import get_class
-from CimTest.Globals import do_main, logger, CIM_ERROR_ASSOCIATORS
+from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.classes import get_typed_class

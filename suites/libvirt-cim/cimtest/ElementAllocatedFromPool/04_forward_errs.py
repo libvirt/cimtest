@@ -36,7 +36,7 @@ from XenKvmLib.test_doms import destroy_and_undefine_all
 from CimTest import Globals
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
-from CimTest.Globals import do_main, platform_sup
+from XenKvmLib.const import do_main, platform_sup
 from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import cleanup_restore, test_dpath, \
