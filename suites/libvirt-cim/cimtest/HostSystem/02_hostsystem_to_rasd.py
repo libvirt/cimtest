@@ -47,7 +47,7 @@
 #                                                                      Date : 29.01.2008
 
 import sys
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.test_doms import destroy_and_undefine_all

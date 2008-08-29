@@ -30,7 +30,8 @@ from XenKvmLib import enumclass
 from XenKvmLib.classes import get_typed_class
 from VirtLib import live
 from VirtLib import utils
-from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, do_main
+from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
 SUPPORTED_TYPES = ['Xen', 'KVM', 'XenFV', 'LXC']

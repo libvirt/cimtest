@@ -26,8 +26,9 @@ from pywbem.cim_obj import CIMInstanceName
 from XenKvmLib import assoc
 from XenKvmLib import enumclass
 from XenKvmLib.classes import get_typed_class
-from CimTest import Globals
-from CimTest.Globals import logger, do_main
+from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, CIM_USER, \
+                            CIM_PASS, CIM_NS
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
@@ -43,7 +44,7 @@ def main():
     try:
         host_sys = enumclass.enumerate(options.ip, 'HostSystem', keys, options.virt)[0]
     except Exception:
-        logger.error(Globals.CIM_ERROR_ENUMERATE % host_sys.name)
+        logger.error(CIM_ERROR_ENUMERATE % host_sys.name)
         return FAIL
 
 
@@ -53,8 +54,8 @@ def main():
                                               
     
     conn = assoc.myWBEMConnection('http://%s' % options.ip,                                        
-                                  (Globals.CIM_USER, Globals.CIM_PASS),
-                                  Globals.CIM_NS)
+                                  (CIM_USER, CIM_PASS),
+                                   CIM_NS)
     for k, v in servicelist.items():
         instanceref = CIMInstanceName(k, 
                                       keybindings = {"Wrong" : v,

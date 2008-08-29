@@ -45,7 +45,8 @@ from XenKvmLib.common_util import get_host_info
 from XenKvmLib.assoc import Associators
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from XenKvmLib.classes import get_typed_class
-from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES, do_main
+from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.test_xml import testxml
 from XenKvmLib.test_doms import destroy_and_undefine_all

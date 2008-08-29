@@ -79,7 +79,8 @@ from XenKvmLib.common_util import get_host_info, try_getinstance
 from XenKvmLib.classes import get_typed_class
 from optparse import OptionParser
 from CimTest.ReturnCodes import PASS, FAIL
-from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS, do_main
+from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
+from XenKvmLib.const import do_main
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 

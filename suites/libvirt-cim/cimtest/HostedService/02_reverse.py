@@ -27,7 +27,7 @@ from XenKvmLib import assoc
 from XenKvmLib import enumclass
 from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
 

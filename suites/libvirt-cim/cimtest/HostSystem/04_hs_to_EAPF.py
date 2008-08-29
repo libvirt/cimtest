@@ -51,7 +51,7 @@ from distutils.file_util import move_file
 from VirtLib import utils
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES, \
 CIM_ERROR_ASSOCIATORS
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from XenKvmLib.assoc import AssociatorNames, Associators
 from XenKvmLib.common_util import get_host_info

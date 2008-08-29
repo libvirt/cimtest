@@ -29,7 +29,7 @@ from XenKvmLib.common_util import try_assoc
 from CimTest import Globals
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from XenKvmLib.classes import get_typed_class
 
 expr_values = { "rc"   : pywbem.CIM_ERR_NOT_FOUND, \

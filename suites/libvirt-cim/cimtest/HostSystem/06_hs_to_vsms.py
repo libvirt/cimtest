@@ -45,7 +45,7 @@
 #                                                                      Date : 28.03.2008
 
 import sys
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.assoc import Associators, AssociatorNames
 from XenKvmLib.common_util import get_host_info
