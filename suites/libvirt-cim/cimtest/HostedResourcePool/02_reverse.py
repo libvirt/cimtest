@@ -25,17 +25,25 @@
 import sys
 from XenKvmLib import assoc
 from XenKvmLib import enumclass
+from XenKvmLib.const import default_network_name
 from CimTest import Globals
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import do_main
 from XenKvmLib.classes import get_typed_class
+from XenKvmLib.common_util import cleanup_restore, create_diskpool_conf
 
 sup_types=['Xen', 'KVM', 'XenFV', 'LXC']
 @do_main(sup_types)
 def main():
     options = main.options
     status = PASS
+
+    status, dpool_name = create_diskpool_conf(options.ip, options.virt)
+    if status != PASS:
+        logger.error("Failed to create diskpool")
+        return FAIL
+
     keys = ['Name', 'CreationClassName']
     try:
         host_sys = enumclass.enumerate(options.ip, 'HostSystem', keys, options.virt)[0]
@@ -46,7 +54,14 @@ def main():
     assoc_cn = get_typed_class(options.virt, "HostedResourcePool")
     proc_cn  = get_typed_class(options.virt, "ProcessorPool")
     mem_cn   = get_typed_class(options.virt, "MemoryPool")
-    poollist = { mem_cn : "MemoryPool/0", proc_cn : "ProcessorPool/0"}
+    net_cn = get_typed_class(options.virt, "NetworkPool")
+    disk_cn = get_typed_class(options.virt, "DiskPool")
+    poollist = { 
+                 mem_cn : "MemoryPool/0", 
+                 proc_cn : "ProcessorPool/0",
+                 net_cn : "NetworkPool/%s" %default_network_name,
+                 disk_cn : "DiskPool/%s" %dpool_name
+               }
 
     for k, v in poollist.items():
         try:
@@ -64,6 +79,7 @@ def main():
                 status = FAIL 
         if status != PASS:
             break 
+    cleanup_restore(options.ip, options.virt) 
     return status
 if __name__ == "__main__":
     sys.exit(main())

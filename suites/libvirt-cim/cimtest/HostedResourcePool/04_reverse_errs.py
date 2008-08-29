@@ -24,12 +24,14 @@
 import sys
 import pywbem
 from XenKvmLib import assoc
+from XenKvmLib.const import default_network_name
 from XenKvmLib.common_util import try_assoc
 from CimTest import Globals
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS
 from CimTest.Globals import do_main
 from XenKvmLib.classes import get_typed_class
+from XenKvmLib.common_util import cleanup_restore, create_diskpool_conf
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 expr_values = {
@@ -48,14 +50,26 @@ def main():
     options = main.options
     status = PASS
 
+    status, dpool_name = create_diskpool_conf(options.ip, options.virt)
+    if status != PASS:
+        logger.error("Failed to create diskpool")
+        return FAIL
+
     assoc_classname = get_typed_class(options.virt, "HostedResourcePool")
     proc_cn  = get_typed_class(options.virt, "ProcessorPool")
     mem_cn   = get_typed_class(options.virt, "MemoryPool")
+    net_cn = get_typed_class(options.virt, "NetworkPool")
+    disk_cn = get_typed_class(options.virt, "DiskPool")
     conn = assoc.myWBEMConnection('http://%s' % options.ip,
                                   (Globals.CIM_USER, Globals.CIM_PASS),
                                                        Globals.CIM_NS)
 
-    poollist = {mem_cn : "MemoryPool/0", proc_cn : "ProcessorPool/0"}
+    poollist = {
+                 mem_cn : "MemoryPool/0", 
+                 proc_cn : "ProcessorPool/0",
+                 net_cn : "NetworkPool/%s" %default_network_name,
+                 disk_cn : "DiskPool/%s" %dpool_name  
+               } 
     for k, v in poollist.items():
         keys = { "Wrong" : v} 
         ret = try_assoc(conn, k, assoc_classname, keys, "InstanceID", \
@@ -73,6 +87,7 @@ def main():
             logger.error("------ FAILED: Invalid Name Key Value.------")
             status = ret
 
+    cleanup_restore(options.ip, options.virt)
     return status        
 if __name__ == "__main__":
     sys.exit(main())
