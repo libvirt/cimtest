@@ -38,8 +38,9 @@ from XenKvmLib import assoc
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib import vxml
-from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS, do_main
 from CimTest import Globals 
+from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS
+from XenKvmLib.const import do_main 
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']

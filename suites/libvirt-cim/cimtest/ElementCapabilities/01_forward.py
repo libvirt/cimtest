@@ -26,9 +26,9 @@ from VirtLib import live
 from XenKvmLib import assoc
 from XenKvmLib import enumclass
 from XenKvmLib.classes import get_typed_class
-from CimTest import Globals
-from CimTest.Globals import do_main, logger, CIM_ERROR_ASSOCIATORNAMES, \
-CIM_ERROR_ENUMERATE
+from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES, \
+                            CIM_ERROR_ENUMERATE
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from XenKvmLib.enumclass import enumerate
 
@@ -113,7 +113,7 @@ def main():
                                          Name = system,
                                          CreationClassName = ccn)
   	except Exception:
-            logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % system)
+            logger.error(CIM_ERROR_ASSOCIATORNAMES % system)
             return FAIL     
         cn = get_typed_class(virt, "EnabledLogicalElementCapabilities") 
         if elec[0].classname != cn:

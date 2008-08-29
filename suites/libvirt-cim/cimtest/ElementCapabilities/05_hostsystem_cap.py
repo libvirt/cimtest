@@ -53,7 +53,7 @@ from XenKvmLib.assoc import AssociatorNames
 from XenKvmLib.common_util import get_host_info
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']

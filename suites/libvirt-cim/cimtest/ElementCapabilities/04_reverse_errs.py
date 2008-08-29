@@ -25,8 +25,8 @@ import pywbem
 from pywbem.cim_obj import CIMInstanceName
 from XenKvmLib import assoc
 from XenKvmLib.classes import get_typed_class
-from CimTest import Globals
-from CimTest.Globals import logger, do_main
+from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS 
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
@@ -36,8 +36,8 @@ exp_desc = "No such instance"
 
 def try_assoc(ref, ref_class, exp_rc, exp_desc, options):
     conn = assoc.myWBEMConnection('http://%s' % options.ip,
-                                  (Globals.CIM_USER, Globals.CIM_PASS),
-                                  Globals.CIM_NS)
+                                  (CIM_USER, CIM_PASS),
+                                   CIM_NS)
     status = FAIL
     rc = -1
     names = []

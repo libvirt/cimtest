@@ -42,7 +42,7 @@ from XenKvmLib.test_xml import testxml
 from VirtLib import utils
 from CimTest import Globals
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, CIM_ERROR_ASSOCIATORS 
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from XenKvmLib import enumclass
 from XenKvmLib import computersystem
 from XenKvmLib import assoc
