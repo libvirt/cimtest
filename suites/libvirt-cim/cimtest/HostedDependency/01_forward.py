@@ -52,7 +52,7 @@ from XenKvmLib import assoc
 from XenKvmLib import enumclass
 from XenKvmLib.classes import get_class_basename
 from CimTest import Globals
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']

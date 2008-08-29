@@ -52,10 +52,10 @@ from VirtLib import utils
 from XenKvmLib.enumclass import getInstance 
 from XenKvmLib.assoc import Associators, compare_all_prop
 from XenKvmLib.classes import get_typed_class
-from CimTest.Globals import do_main, logger, CIM_ERROR_ASSOCIATORS
+from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.vxml import get_class
-from XenKvmLib import const 
+from XenKvmLib.const import do_main 
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 

@@ -33,7 +33,7 @@ from VirtLib import utils
 from XenKvmLib import assoc
 from XenKvmLib import vxml
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import get_host_info, try_assoc
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
