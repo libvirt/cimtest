@@ -26,7 +26,8 @@ from pywbem.cim_obj import CIMInstanceName
 from VirtLib import utils
 from XenKvmLib import vxml
 from XenKvmLib import vsmigrations
-from CimTest.Globals import logger, do_main
+from CimTest.Globals import logger
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
 
 sup_types = ['Xen', 'XenFV']
