@@ -28,7 +28,6 @@ from distutils.file_util import move_file
 from XenKvmLib.test_xml import * 
 from XenKvmLib.test_doms import * 
 from XenKvmLib import vsms 
-from XenKvmLib import computersystem 
 from XenKvmLib import enumclass 
 from pywbem.cim_obj import CIMInstanceName
 from XenKvmLib.devices import CIM_Instance
@@ -54,7 +53,11 @@ def print_field_error(fieldname, ret_value, exp_value):
 def get_cs_instance(domain_name, ip, virt='Xen'):
     cs = None
     try:
-        cs = computersystem.get_cs_class(virt)(ip, domain_name)
+        keys = {
+                'Name' : domain_name,
+                'CreationClassName' : get_typed_class(virt, 'ComputerSystem')
+               }
+        cs = enumclass.getInstance(ip, 'ComputerSystem', keys, virt)
 
         if cs.Name != domain_name:
             logger.error("VS %s is not found" % domain_name)
@@ -169,12 +172,16 @@ def try_request_state_change(domain_name, ip, rs, time, exp_rc,
 
 def poll_for_state_change(server, virt, dom, exp_state, timeout=30):
     dom_cs = None
-    cs = computersystem.get_cs_class(virt)
+
+    keys = {
+            'Name' : dom,
+            'CreationClassName' : get_typed_class(virt, 'ComputerSystem')
+           }
+    dom_cs = enumclass.getInstance(server, 'ComputerSystem', keys, virt)
 
     try:
         for i in range(1, (timeout + 1)):
             sleep(1)
-            dom_cs = cs(server, name=dom)
             if dom_cs is None or dom_cs.Name != dom:
                 logger.error("CS instance not returned for %s." % dom)
                 return FAIL, dom_cs
