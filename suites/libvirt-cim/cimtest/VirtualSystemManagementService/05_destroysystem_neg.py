@@ -29,7 +29,7 @@ from XenKvmLib import vsms
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.test_doms import undefine_test_domain
 from CimTest.Globals import logger
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import FAIL, PASS, SKIP
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']

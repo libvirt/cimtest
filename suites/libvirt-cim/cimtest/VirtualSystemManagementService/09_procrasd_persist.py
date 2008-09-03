@@ -27,7 +27,7 @@ from XenKvmLib.common_util import call_request_state_change, \
 from XenKvmLib import vsms
 from VirtLib import utils 
 from CimTest.Globals import logger
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import FAIL, PASS
 from XenKvmLib.test_doms import destroy_and_undefine_domain 
 

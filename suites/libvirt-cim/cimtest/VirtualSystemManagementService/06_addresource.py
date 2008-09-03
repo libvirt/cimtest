@@ -30,7 +30,7 @@ from XenKvmLib import vsms
 from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import FAIL, PASS
 from XenKvmLib import vsms_util
 from XenKvmLib.const import default_network_name 

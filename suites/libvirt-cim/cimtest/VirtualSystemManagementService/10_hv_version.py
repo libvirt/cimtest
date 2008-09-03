@@ -24,7 +24,7 @@ import sys
 import pywbem
 from VirtLib import live
 from XenKvmLib import vsms
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import FAIL, PASS, XFAIL_RC
 

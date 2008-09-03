@@ -30,7 +30,7 @@ from VirtLib.live import network_by_bridge
 from XenKvmLib import vsms
 from XenKvmLib import vxml
 from CimTest.Globals import logger
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib import vsms_util
 from XenKvmLib.const import default_network_name

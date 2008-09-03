@@ -27,7 +27,8 @@ from XenKvmLib.common_util import create_using_definesystem, \
                                   poll_for_state_change, get_cs_instance
 from XenKvmLib import vsms
 from VirtLib import utils 
-from CimTest.Globals import logger, do_main
+from CimTest.Globals import logger
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import FAIL, PASS
 from XenKvmLib.test_doms import destroy_and_undefine_domain 
 from XenKvmLib.classes import get_typed_class

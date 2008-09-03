@@ -27,7 +27,7 @@ import pywbem
 from VirtLib import utils
 from XenKvmLib.test_doms import undefine_test_domain
 from XenKvmLib.common_util import create_using_definesystem
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from CimTest.Globals import logger
 
 SUPPORTED_TYPES = ['Xen', 'KVM', 'XenFV', 'LXC']

@@ -29,7 +29,7 @@ from XenKvmLib.common_util import create_using_definesystem
 from XenKvmLib import rasd
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib import enumclass
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import FAIL, PASS
 

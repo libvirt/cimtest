@@ -28,7 +28,7 @@ from VirtLib import utils
 from VirtLib.live import domain_list, active_domain_list
 from XenKvmLib import vsms, vxml
 from XenKvmLib.classes import get_typed_class
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL
 
