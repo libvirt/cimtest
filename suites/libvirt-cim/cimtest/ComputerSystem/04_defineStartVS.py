@@ -32,8 +32,8 @@
 import sys
 from time import sleep
 from XenKvmLib import vxml
-from XenKvmLib import computersystem
-from CimTest import Globals
+from XenKvmLib import enumclass
+from CimTest import Globals, CimExt
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
@@ -62,8 +62,11 @@ def main():
         # otherwise. 
         for i in range(1, (timeout + 1)):
             sleep(1)
-            cs = computersystem.get_cs_class(options.virt)(options.ip,
-                                                             test_dom)
+            keys = {
+                    'Name' : test_dom,
+                    'CreationClassName' : get_typed_class(options.virt, 'ComputerSystem')
+                   } 
+            cs = enumclass.getInstance(options.ip, 'ComputerSystem', keys, options.virt)
             if cs.Name != test_dom:
                 Globals.logger.error("VS %s is not defined" % test_dom)
                 break  

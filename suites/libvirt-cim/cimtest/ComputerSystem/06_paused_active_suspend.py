@@ -41,7 +41,6 @@
 #						Date  :18-10-2007
 
 import sys
-from XenKvmLib import computersystem
 from XenKvmLib import vxml
 from VirtLib import utils
 from XenKvmLib.test_doms import destroy_and_undefine_all

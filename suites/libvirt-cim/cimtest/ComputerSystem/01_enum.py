@@ -24,7 +24,7 @@
 
 import sys
 from XenKvmLib.const import do_main
-from XenKvmLib import computersystem
+from XenKvmLib import enumclass
 from VirtLib import live
 from VirtLib import utils
 from CimTest import Globals
@@ -37,8 +37,9 @@ def main():
     options = main.options 
     status = PASS
 
+    keys = ['Name', 'CreationClassName']
     try:
-        cs = computersystem.enumerate(options.ip, options.virt)
+        cs = enumclass.enumerate(options.ip, 'ComputerSystem', keys, options.virt)
         live_cs = live.domain_list(options.ip, options.virt)
         for system in cs:
             name = system.name

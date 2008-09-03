@@ -27,7 +27,7 @@
 # 26-Sep-2007
 
 import sys
-from XenKvmLib import computersystem
+from XenKvmLib import enumclass
 from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class
 from VirtLib import utils
@@ -49,8 +49,9 @@ def main():
         Globals.logger.error(VIRSH_ERROR_DEFINE % test_dom)
         return status
 
+    keys = ['Name', 'CreationClassName']
     try:
-        cs = computersystem.enumerate(options.ip, options.virt)
+        cs = enumclass.enumerate(options.ip, 'ComputerSystem', keys, options.virt)
         if len(cs) == 0:
             raise Exception('No cs instance returned')
         for dom in cs:

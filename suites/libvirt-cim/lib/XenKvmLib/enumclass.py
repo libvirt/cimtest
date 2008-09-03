@@ -27,7 +27,7 @@ import pywbem
 from pywbem.cim_obj import CIMInstanceName
 from XenKvmLib.devices import CIM_Instance
 from XenKvmLib.classes import get_typed_class
-from CimTest import Globals
+from CimTest import Globals, CimExt
 
 class CIM_MyClass(CIM_Instance):
     def __init__(self, server, keys):
@@ -42,8 +42,30 @@ class CIM_MyClass(CIM_Instance):
             inst = conn.GetInstance(ref)
         except pywbem.CIMError, arg:
             raise arg
+        
+        self.conn = conn
+        self.inst = inst
+        self.ref = ref
 
         CIM_Instance.__init__(self, inst)
+
+    def __invoke(self, method, params):
+        try:
+            return self.conn.InvokeMethod(method,
+                                          self.ref,
+                                          **params)
+        except pywbem.CIMError, arg:
+            print 'InvokeMethod(%s): %s' % (method, arg[1])
+            raise
+
+    def __getattr__(self, attr):
+        if self.inst.has_key(attr):
+            return self.inst[attr]
+        else:
+            return CimExt._Method(self.__invoke, attr)
+
+class CIM_ComputerSystem(CIM_MyClass):
+    pass
 
 class CIM_System(CIM_MyClass):
     pass
@@ -91,6 +113,15 @@ class CIM_ProcResourceAllocationSettingData(CIM_MyClass):
     pass
 
 class CIM_DiskResourceAllocationSettingData(CIM_MyClass):
+    pass
+
+class Xen_ComputerSystem(CIM_ComputerSystem):
+    pass
+
+class KVM_ComputerSystem(CIM_ComputerSystem):
+    pass
+
+class LXC_ComputerSystem(CIM_ComputerSystem):
     pass
 
 class Xen_HostSystem(CIM_System):

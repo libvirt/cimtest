@@ -58,7 +58,6 @@
 
 import sys
 from VirtLib import utils
-from XenKvmLib import computersystem
 from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.test_doms import destroy_and_undefine_all

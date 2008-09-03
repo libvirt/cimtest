@@ -29,7 +29,6 @@
 # Date: 14-12-2007
 
 import sys
-from XenKvmLib import computersystem
 from VirtLib import utils
 from XenKvmLib import vxml
 from XenKvmLib.test_doms import destroy_and_undefine_domain

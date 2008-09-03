@@ -24,7 +24,7 @@
 
 import sys
 import pywbem
-from XenKvmLib import computersystem
+from XenKvmLib import enumclass
 from VirtLib import live
 from VirtLib import utils
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
@@ -50,8 +50,9 @@ def main():
 
     cn = "%s_ComputerSystem" % options.virt
 
+    keys = ['Name', 'CreationClassName']
     try:
-        cs = computersystem.enumerate(options.ip, options.virt)
+        cs = enumclass.enumerate(options.ip, 'ComputerSystem', keys, options.virt)
 
     except Exception, details:
         logger.error(CIM_ERROR_ENUMERATE, cn)

@@ -42,11 +42,12 @@
 #						Date  : 17-10-2007
 
 import sys
-from XenKvmLib import computersystem
+from XenKvmLib import enumclass
 from XenKvmLib import vxml
 from VirtLib import utils
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
+from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import call_request_state_change
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 
@@ -73,7 +74,12 @@ def main():
             logger.error("ERROR: VS %s was not defined" % test_dom)
             return status 
 
-        cs = computersystem.get_cs_class(options.virt)(options.ip, test_dom)
+        keys = {
+                'Name' : test_dom,
+                'CreationClassName' : get_typed_class(options.virt, 'ComputerSystem')
+               }
+        cs = enumclass.getInstance(options.ip, 'ComputerSystem', keys, options.virt)
+
         if cs.Name == test_dom:
             from_State =  cs.EnabledState
         else:
@@ -95,7 +101,7 @@ def main():
 
 #Get the value of the EnabledState property and RequestedState property.
     try:
-        cs = computersystem.get_cs_class(options.virt)(options.ip, test_dom)
+        cs= enumclass.getInstance(options.ip, 'ComputerSystem', keys, options.virt)
         if cs.Name == test_dom:
             to_RequestedState = cs.RequestedState
             enabledState = cs.EnabledState
