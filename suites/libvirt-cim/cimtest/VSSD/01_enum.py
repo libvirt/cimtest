@@ -31,7 +31,8 @@ from VirtLib import live
 from XenKvmLib import enumclass
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.vxml import get_class
-from CimTest.Globals import do_main, platform_sup, logger
+from CimTest.Globals import logger
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
 platform_sup = ['Xen', 'KVM', 'XenFV', 'LXC']

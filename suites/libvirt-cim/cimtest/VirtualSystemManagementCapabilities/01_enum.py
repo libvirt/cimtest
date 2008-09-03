@@ -25,7 +25,7 @@
 import sys
 from XenKvmLib import enumclass
 from CimTest import Globals
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from XenKvmLib.classes import get_typed_class
 
 sup_types=['Xen', 'KVM', 'XenFV', 'LXC']

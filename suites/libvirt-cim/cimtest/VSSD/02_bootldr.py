@@ -32,7 +32,8 @@ from VirtLib import utils
 from VirtLib.live import bootloader
 from XenKvmLib.test_doms import test_domain_function, destroy_and_undefine_all
 from XenKvmLib.test_xml import testxml_bl
-from CimTest.Globals import logger, do_main
+from CimTest.Globals import logger
+from XenKvmLib.const import do_main
 
 sup_types = ['Xen']
 test_dom = "dom"

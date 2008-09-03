@@ -44,8 +44,8 @@
 import sys
 import XenKvmLib
 from XenKvmLib import enumclass
-from CimTest.Globals import do_main, CIM_ERROR_ASSOCIATORS, CIM_ERROR_ENUMERATE
-from CimTest.Globals import logger
+from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS, CIM_ERROR_ENUMERATE
+from XenKvmLib.const import do_main 
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib import assoc
