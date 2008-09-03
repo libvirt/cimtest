@@ -28,7 +28,7 @@ from XenKvmLib import rpcs
 from CimTest import Globals
 from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import logger
-from CimTest.Globals import do_main, platform_sup
+from XenKvmLib.const import do_main
 from XenKvmLib.classes import get_typed_class
 
 platform_sup = ['Xen', 'XenFV', 'LXC', 'KVM']

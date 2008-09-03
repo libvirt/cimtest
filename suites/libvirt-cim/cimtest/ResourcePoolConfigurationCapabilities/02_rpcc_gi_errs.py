@@ -50,7 +50,7 @@ import pywbem
 from XenKvmLib import assoc
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.common_util import try_getinstance
 

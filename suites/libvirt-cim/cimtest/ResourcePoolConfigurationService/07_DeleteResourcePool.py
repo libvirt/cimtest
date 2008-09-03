@@ -46,7 +46,7 @@ import pywbem
 from XenKvmLib import rpcs_service
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import FAIL, PASS
-from CimTest.Globals import do_main, platform_sup
+from XenKvmLib.const import do_main, platform_sup
 from XenKvmLib.classes import get_typed_class
 
 cim_errno  = pywbem.CIM_ERR_NOT_SUPPORTED
