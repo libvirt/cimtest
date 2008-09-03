@@ -130,9 +130,8 @@ from XenKvmLib.classes import get_typed_class
 from XenKvmLib.vxml import get_class
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from CimTest.ReturnCodes import PASS, FAIL
-from CimTest.Globals import logger, CIM_USER
-from CimTest.Globals import CIM_PASS, CIM_NS
-from CimTest.Globals import do_main
+from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
+from XenKvmLib.const import do_main
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 

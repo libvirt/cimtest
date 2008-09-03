@@ -55,7 +55,7 @@ from XenKvmLib import assoc
 from XenKvmLib.common_util import try_getinstance
 from CimTest.ReturnCodes import PASS, FAIL
 from CimTest import Globals
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 

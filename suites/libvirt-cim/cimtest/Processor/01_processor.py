@@ -31,7 +31,7 @@ from XenKvmLib.test_xml import testxml
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from CimTest.Globals import logger
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
 SUPPORTED_TYPES = ['Xen', 'KVM', 'XenFV']

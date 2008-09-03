@@ -26,7 +26,7 @@ default_dom = "diskrasd_test"
 import sys
 
 from CimTest.ReturnCodes import FAIL, PASS
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from CimTest.Globals import logger
 from VirtLib import utils
 from XenKvmLib.test_doms import undefine_test_domain

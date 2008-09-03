@@ -44,7 +44,7 @@ from XenKvmLib.vxml import get_class
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from CimTest import Globals 
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, CIM_ERROR_ASSOCIATORNAMES 
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.classes import get_typed_class
 

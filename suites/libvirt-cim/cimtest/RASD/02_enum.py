@@ -29,12 +29,12 @@
 
 import sys
 from XenKvmLib import enumclass
-from CimTest.Globals import do_main, CIM_ERROR_ENUMERATE
+from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib import rasd 
-from CimTest.Globals import logger
+from XenKvmLib.const import do_main 
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib import rasd
 from XenKvmLib.rasd import verify_procrasd_values, verify_netrasd_values, \

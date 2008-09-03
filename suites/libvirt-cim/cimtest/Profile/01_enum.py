@@ -30,7 +30,8 @@ import pywbem
 from XenKvmLib import enumclass
 from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
-from CimTest.Globals import do_main, logger
+from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
@@ -53,7 +54,7 @@ def main():
         key_list = ["InstanceID"]
         proflist = enumclass.enumerate(options.ip, cn, key_list, options.virt)
     except Exception, detail:
-        logger.error(Globals.CIM_ERROR_ENUMERATE, get_typed_class(options.virt,
+        logger.error(CIM_ERROR_ENUMERATE, get_typed_class(options.virt,
                      cn))
         logger.error("Exception: %s", detail)
         status = FAIL

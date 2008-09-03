@@ -48,7 +48,7 @@
 
 import sys
 from CimTest import Globals
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib import assoc
 from XenKvmLib import vxml 

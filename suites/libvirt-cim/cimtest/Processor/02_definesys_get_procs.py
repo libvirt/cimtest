@@ -38,7 +38,8 @@ from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from XenKvmLib.test_doms import undefine_test_domain 
 from XenKvmLib.common_util import create_using_definesystem 
 from XenKvmLib.devices import get_dom_proc_insts
-from CimTest.Globals import logger, do_main
+from CimTest.Globals import logger
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'KVM', 'XenFV']

@@ -56,7 +56,7 @@ import sys
 import pywbem
 from XenKvmLib import assoc
 from XenKvmLib.common_util import try_getinstance
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
