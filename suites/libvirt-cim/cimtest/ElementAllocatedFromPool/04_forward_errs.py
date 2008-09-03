@@ -36,12 +36,10 @@ from XenKvmLib.test_doms import destroy_and_undefine_all
 from CimTest import Globals
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
-from XenKvmLib.const import do_main, platform_sup
+from XenKvmLib.const import do_main, platform_sup, default_network_name, \
+                            default_pool_name
 from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.common_util import cleanup_restore, test_dpath, \
-create_diskpool_file
-from XenKvmLib.const import default_network_name 
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 bug_no             = "88651"
@@ -480,7 +478,6 @@ def err_invalid_syscreationclassname_keyvalue(conn, exp_ret):
 
 def clean_and_exit(server, virt,  msg):
     logger.error("------FAILED: Invalid %s.------", msg)
-    cleanup_restore(server, virt)
     vsxml.undefine(server)
 
 @do_main(platform_sup)
@@ -503,10 +500,6 @@ def main():
     destroy_and_undefine_all(options.ip)
     vsxml = get_class(virt)(test_dom, vcpus = test_vcpus, mac = test_mac, \
                                                           disk = test_disk)
-    # Verify DiskPool on machine
-    status = create_diskpool_file()
-    if status != PASS:
-        return status
 
     bridge = vsxml.set_vbridge(options.ip, default_network_name)
     ret = vsxml.define(options.ip)
@@ -563,7 +556,6 @@ def main():
         clean_and_exit(options.ip, virt, "System creationclassname Keyvalue")
         return ret
 
-    cleanup_restore(options.ip, virt)
     vsxml.undefine(options.ip)
     return PASS
 if __name__ == "__main__":

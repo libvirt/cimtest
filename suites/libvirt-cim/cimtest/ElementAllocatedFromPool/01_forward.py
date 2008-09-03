@@ -48,11 +48,10 @@ from XenKvmLib import devices
 from XenKvmLib.enumclass import getInstance 
 from CimTest.Globals import CIM_ERROR_ASSOCIATORS, CIM_ERROR_GETINSTANCE
 from XenKvmLib.vxml import get_class
-from XenKvmLib.common_util import create_diskpool_conf, cleanup_restore
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.logicaldevices import field_err
 from CimTest.Globals import logger
-from XenKvmLib.const import do_main
+from XenKvmLib.const import do_main, default_pool_name
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
@@ -82,7 +81,7 @@ def get_pool_details(server, virt, vsxml, diskid):
     if virt != 'LXC':
         virt_network = vsxml.xml_get_net_network()
         keys  = {
-                    'DiskPool'      : diskid,
+                    'DiskPool'      : 'DiskPool/%s' % diskid,
                     'ProcessorPool' : 'ProcessorPool/0' ,
                     'MemoryPool'    : 'MemoryPool/0',
                     'NetworkPool'   : 'NetworkPool/%s' %virt_network
@@ -96,7 +95,6 @@ def get_pool_details(server, virt, vsxml, diskid):
         key_list = {"InstanceID" : k}
         inst = get_inst(server, virt, cn, key_list)
         if inst is None:
-            cleanup_restore(server, virt)
             vsxml.destroy(server)
             return FAIL, gi_inst_list 
         cn = get_typed_class(virt, cn)
@@ -134,7 +132,6 @@ def verify_eafp_values(server, virt, in_pllist, gi_inst_list):
         except Exception, detail:
             logger.error(CIM_ERROR_ASSOCIATORS, an)
             logger.error("Exception: %s", detail)
-            cleanup_restore(server, virt)
             return FAIL
     return PASS
 
@@ -158,10 +155,6 @@ def main():
         vsxml = virt_type(test_dom, vcpus = test_vcpus, mac = test_mac,
                        disk = test_disk)
 
-    # Verify DiskPool on machine
-    status, diskid = create_diskpool_conf(server, virt)
-    if status != PASS:
-        return status
     ret = vsxml.create(server)
     if not ret:
         logger.error("Failed to Create the dom: '%s'", test_dom)
@@ -180,12 +173,12 @@ def main():
         ldlist[net_cn]  = "%s/%s" % (test_dom, test_mac)
         ldlist[proc_cn] = "%s/%s" % (test_dom, "0")
 
-    status, gi_inst_list = get_pool_details(server, virt, vsxml, diskid)
+    status, gi_inst_list = get_pool_details(server, virt, vsxml, 
+                                            default_pool_name)
     if status != PASS:
         return status
      
     status = verify_eafp_values(server, virt, ldlist, gi_inst_list)
-    cleanup_restore(server, virt)
     vsxml.destroy(server)
     return status
     

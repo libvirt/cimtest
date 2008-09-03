@@ -54,8 +54,8 @@ from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.common_util import create_diskpool_conf, cleanup_restore
 from XenKvmLib.logicaldevices import verify_device_values
+from XenKvmLib.const import default_pool_name
 
 sup_types = ['Xen' , 'KVM', 'XenFV', 'LXC']
 
@@ -70,7 +70,7 @@ def init_pllist(virt, vsxml, diskid):
             }
     if virt != 'LXC':
         virt_network = vsxml.xml_get_net_network()
-        keys['DiskPool']      = diskid
+        keys['DiskPool']      = 'DiskPool/%s' % default_pool_name 
         keys['ProcessorPool'] = 'ProcessorPool/0'
         keys['NetworkPool']   = 'NetworkPool/%s' %virt_network
 
@@ -190,24 +190,17 @@ def main():
         vsxml = virt_type(test_dom,  mem = test_mem, vcpus = test_vcpus, 
                           mac = test_mac, disk = test_disk)
 
-    # Verify DiskPool on machine
-    status, diskid = create_diskpool_conf(server, virt)
-    if status != PASS:
-        return status
-
     ret = vsxml.create(server)
     if not ret:
         logger.error("Failed to Create the dom: '%s'", test_dom)
-        cleanup_restore(server, virt)
         return FAIL
 
     # Get pool list against which the EAFP should be queried
-    pllist = init_pllist(virt, vsxml, diskid)
+    pllist = init_pllist(virt, vsxml, default_pool_name)
 
     
     status = verify_eafp_values(server, virt, pllist, test_disk)
     vsxml.destroy(server)
-    cleanup_restore(server, virt)
     return status
 
 if __name__ == "__main__":

@@ -31,7 +31,7 @@ from XenKvmLib import enumclass
 from XenKvmLib.const import do_main, platform_sup
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from CimTest.ReturnCodes import PASS, FAIL
-from XenKvmLib.common_util import cleanup_restore, create_diskpool_conf
+from XenKvmLib.const import default_pool_name
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
@@ -87,11 +87,6 @@ def main():
 
     cn = 'AllocationCapabilities'
 
-    status, diskid = create_diskpool_conf(options.ip, options.virt)
-    if status != PASS:
-        cleanup_restore(options.ip, options.virt)
-        return FAIL 
-
     pools, ac = enum_pools_and_ac(options.ip, options.virt, cn)
     if len(pools) < 4:
         logger.error("Only %d pools returned, expected at least 4" % len(pools))
@@ -99,8 +94,6 @@ def main():
         return FAIL
 
     status = compare_pool_to_ac(ac, pools, cn)
-
-    cleanup_restore(options.ip, options.virt)
 
     return status 
 

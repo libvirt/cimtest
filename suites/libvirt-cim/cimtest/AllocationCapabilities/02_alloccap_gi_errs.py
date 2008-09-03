@@ -55,17 +55,15 @@ from distutils.file_util import move_file
 from XenKvmLib import assoc
 from VirtLib import utils
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
-from CimTest.ReturnCodes import PASS, SKIP
+from CimTest.ReturnCodes import PASS, SKIP, FAIL
 from XenKvmLib.common_util import try_getinstance
 from VirtLib.live import net_list
 from XenKvmLib.test_xml import netxml
 from XenKvmLib.test_doms import create_vnet
-from XenKvmLib.const import do_main, platform_sup
+from XenKvmLib.const import do_main, platform_sup, default_pool_name
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.common_util import cleanup_restore, test_dpath, \
-create_diskpool_file
 
-diskid = "%s/%s" % ("DiskPool", test_dpath)
+diskid = "%s/%s" % ("DiskPool", default_pool_name)
 memid = "%s/%s" % ("MemoryPool", 0)
 procid = "%s/%s" % ("ProcessorPool", 0)
 
@@ -76,10 +74,6 @@ def main():
     options = main.options
     server = options.ip
     virt = options.virt
-    # Verify DiskPool on machine
-    status = create_diskpool_file()
-    if status != PASS:
-        return status
 
     #Verify the virtual Network on the machine
     vir_network = net_list(server)
@@ -115,20 +109,19 @@ def main():
                                 expr_values=exp['invalid_keyvalue'], bug_no="")
     if ret_value != PASS:
         logger.error("------ FAILED: Invalid InstanceID Key Value.------")
-        status = ret_value
+        return ret_value 
 
     field = 'INVALID_Instid_KeyName'
+    status = FAIL
     for i in range(len(instid_list)):
         keys = { field : instid_list[i] }
-        ret_value = try_getinstance(conn, classname, keys, field_name=field,
+        status = try_getinstance(conn, classname, keys, field_name=field,
                                     expr_values=exp['invalid_keyname'],
                                     bug_no="")
-        if ret_value != PASS:
+        if status != PASS:
             logger.error("------ FAILED: Invalid InstanceID Key Name.------")
-            status = ret_value
-        if status != PASS: 
             break
-    cleanup_restore(server, virt)
+
     return status
 if __name__ == "__main__":
     sys.exit(main())

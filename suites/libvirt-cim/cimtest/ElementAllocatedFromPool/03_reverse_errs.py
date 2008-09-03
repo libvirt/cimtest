@@ -36,17 +36,15 @@ from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.common_util import try_assoc
 from CimTest.ReturnCodes import PASS, FAIL	
 from CimTest.Globals import logger
-from XenKvmLib.const import do_main, platform_sup
+from XenKvmLib.const import do_main, platform_sup, default_pool_name
 from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.common_util import cleanup_restore, test_dpath, \
-create_diskpool_file
 
 bug_no     = "88651"
 test_dom   = "hd_domain"
 test_mac   = "00:11:22:33:44:aa"
 test_vcpus = 1 
-id1        = "DiskPool/%s" %test_dpath
+id1        = "DiskPool/%s" % default_pool_name
 id2        = "MemoryPool/0"
 id3        = "NetworkPool/xenbr0"
 id4        = "ProcessorPool/0"
@@ -167,7 +165,6 @@ def err_invalid_keyvalue():
 
 def clean_and_exit(server, virt, msg):
     logger.error("------FAILED: Invalid %s.------", msg)
-    cleanup_restore(server, virt)
     vsxml.undefine(server)
 
 @do_main(platform_sup)
@@ -188,10 +185,6 @@ def main():
     vsxml = virt_type (test_dom, vcpus = test_vcpus, mac = test_mac, 
                        disk = test_disk)
 
-    # Verify DiskPool on machine
-    status = create_diskpool_file()
-    if status != PASS:
-        return status
     ret = vsxml.define(options.ip)
     if not ret:
         logger.error("Failed to define the dom: %s", test_dom)
@@ -215,7 +208,6 @@ def main():
         clean_and_exit(options.ip, virt, "CCName")
         return ret
 
-    cleanup_restore(options.ip, virt)
     vsxml.undefine(options.ip)
     return PASS
 if __name__ == "__main__":
