@@ -27,7 +27,6 @@ from pywbem.cim_obj import CIMInstanceName
 from VirtLib import utils
 from XenKvmLib import vxml
 from XenKvmLib.common_util import poll_for_state_change
-from XenKvmLib import computersystem
 from XenKvmLib import vsmigrations
 from XenKvmLib.vsmigrations import check_possible_host_migration, \
 migrate_guest_to_host, check_migration_job

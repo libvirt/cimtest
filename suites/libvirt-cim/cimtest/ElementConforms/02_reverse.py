@@ -44,7 +44,6 @@ from CimTest import Globals
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, CIM_ERROR_ASSOCIATORS 
 from XenKvmLib.const import do_main
 from XenKvmLib import enumclass
-from XenKvmLib import computersystem
 from XenKvmLib import assoc
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.test_doms import destroy_and_undefine_all
