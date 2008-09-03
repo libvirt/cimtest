@@ -31,7 +31,7 @@ from XenKvmLib import const
 from XenKvmLib import devices
 from XenKvmLib.vxml import KVMXML
 from CimTest.Globals import logger
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['KVM']

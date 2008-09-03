@@ -33,7 +33,8 @@ from XenKvmLib.common_util import try_getinstance
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.vxml import XenXML, KVMXML, LXCXML, get_class
 from CimTest.ReturnCodes import PASS, SKIP
-from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS, do_main
+from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
+from XenKvmLib.const import do_main
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 

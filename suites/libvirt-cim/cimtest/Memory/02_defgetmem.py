@@ -32,7 +32,8 @@ import sys
 from XenKvmLib.test_doms import undefine_test_domain 
 from XenKvmLib.common_util import create_using_definesystem 
 from XenKvmLib.devices import get_dom_mem_inst
-from CimTest.Globals import logger, do_main
+from CimTest.Globals import logger
+from XenKvmLib.const import do_main
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 default_dom = "domu"

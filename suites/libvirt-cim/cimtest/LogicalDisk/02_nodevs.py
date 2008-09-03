@@ -27,7 +27,8 @@ import sys
 import pywbem
 from VirtLib import live
 from XenKvmLib import devices
-from CimTest.Globals import logger, do_main, CIM_ERROR_ENUMERATE
+from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
