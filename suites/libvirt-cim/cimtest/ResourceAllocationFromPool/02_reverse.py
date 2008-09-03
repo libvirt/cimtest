@@ -30,7 +30,8 @@ from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
-from CimTest.Globals import logger, do_main
+from CimTest.Globals import logger
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib import enumclass
 from XenKvmLib.common_util import cleanup_restore, create_diskpool_conf

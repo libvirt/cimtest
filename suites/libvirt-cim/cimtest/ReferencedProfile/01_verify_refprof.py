@@ -76,7 +76,7 @@ from XenKvmLib.assoc import Associators
 from XenKvmLib.common_util import profile_init_list
 from CimTest import Globals
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, CIM_ERROR_ASSOCIATORS
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from XenKvmLib.classes import get_typed_class
 from CimTest.ReturnCodes import FAIL, PASS, SKIP
 from XenKvmLib.common_util import print_field_error

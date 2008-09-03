@@ -26,7 +26,8 @@ from pywbem.cim_obj import CIMInstanceName
 from XenKvmLib import assoc
 from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
-from CimTest.Globals import logger, do_main
+from CimTest.Globals import logger
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']

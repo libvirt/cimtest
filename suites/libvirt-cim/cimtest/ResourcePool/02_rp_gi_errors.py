@@ -36,7 +36,7 @@ from XenKvmLib.classes import get_typed_class
 from distutils.file_util import move_file
 from CimTest.ReturnCodes import PASS, SKIP
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from XenKvmLib.common_util import cleanup_restore, test_dpath, \
 create_diskpool_file
 
