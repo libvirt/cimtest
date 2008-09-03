@@ -39,7 +39,7 @@ import sys
 from XenKvmLib import assoc
 from CimTest.Globals import CIM_ERROR_ASSOCIATORS, logger
 from CimTest.ReturnCodes import PASS, FAIL
-from CimTest.Globals import do_main, platform_sup
+from XenKvmLib.const import do_main
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import print_field_error
 

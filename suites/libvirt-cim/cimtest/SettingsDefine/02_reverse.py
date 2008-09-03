@@ -52,7 +52,8 @@
 
 import sys
 from CimTest import Globals 
-from CimTest.Globals import logger, do_main
+from CimTest.Globals import logger
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from VirtLib import utils
 from XenKvmLib import assoc

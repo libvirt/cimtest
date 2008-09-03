@@ -59,8 +59,8 @@ from XenKvmLib import assoc
 from XenKvmLib import enumclass
 from VirtLib.live import virsh_version
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
-from CimTest.Globals import do_main, platform_sup, logger, \
-CIM_ERROR_GETINSTANCE, CIM_ERROR_ASSOCIATORS
+from CimTest.Globals import logger, CIM_ERROR_GETINSTANCE, CIM_ERROR_ASSOCIATORS
+from XenKvmLib.const import do_main
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import cleanup_restore, create_diskpool_conf, \
                                   print_field_error
