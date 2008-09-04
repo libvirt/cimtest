@@ -31,11 +31,13 @@ import commands
 from VirtLib import groups
 import ConfigParser
 sys.path.append('./lib')
-from XenKvmLib.const import platform_sup, default_network_name
+from XenKvmLib.const import platform_sup, default_network_name, \
+                            default_pool_name
 from XenKvmLib.reporting import gen_report, send_report 
 from VirtLib import utils
 from CimTest.ReturnCodes import PASS, FAIL
-from XenKvmLib.common_util import create_netpool_conf, destroy_netpool
+from XenKvmLib.common_util import create_netpool_conf, destroy_netpool, \
+                                  create_diskpool_conf, destroy_diskpool
 
 parser = OptionParser()
 parser.add_option("-i", "--ip", dest="ip", default="localhost",
@@ -131,12 +133,25 @@ def setup_env(ip, virt):
         print "\nUnable to create network pool %s" % default_network_name
         return status
 
+    status, dpool = create_diskpool_conf(ip, virt, dpool=default_pool_name)
+    if status != PASS:
+        print "\nUnable to create disk pool %s" % default_pool_name
+        status = destroy_netpool(ip, virt, default_network_name)
+        if status != PASS:
+            print "\nUnable to destroy network pool %s." % default_network_name 
+        return FAIL
+
     return PASS
 
 def cleanup_env(ip, virt):
     status = destroy_netpool(ip, virt, default_network_name) 
     if status != PASS:
         print "Unable to destroy network pool %s." % default_network_name
+        return status
+
+    status = destroy_diskpool(ip, virt, default_pool_name)
+    if status != PASS:
+        print "Unable to destroy disk pool %s." % default_pool_name
         return status
 
     return PASS
