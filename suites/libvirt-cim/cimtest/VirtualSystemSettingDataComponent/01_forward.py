@@ -58,7 +58,8 @@ from CimTest import Globals
 from XenKvmLib import assoc
 from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class
-from CimTest.Globals import logger, do_main
+from CimTest.Globals import logger
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import FAIL, PASS
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']

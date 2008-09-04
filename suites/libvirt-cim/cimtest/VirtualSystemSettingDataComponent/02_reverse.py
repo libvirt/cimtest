@@ -53,7 +53,8 @@ from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.rasd import InstId_err
-from CimTest.Globals import logger, do_main
+from CimTest.Globals import logger
+from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']

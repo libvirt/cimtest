@@ -25,7 +25,7 @@ import sys
 from XenKvmLib import enumclass
 from CimTest.Globals import CIM_ERROR_ENUMERATE, logger
 from CimTest.ReturnCodes import PASS, FAIL
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from XenKvmLib.classes import get_typed_class
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']

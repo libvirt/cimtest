@@ -31,7 +31,7 @@ from XenKvmLib import assoc
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from CimTest.ReturnCodes import PASS
 from XenKvmLib.common_util import try_getinstance
-from CimTest.Globals import do_main
+from XenKvmLib.const import do_main
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import get_host_info
 
