@@ -37,7 +37,7 @@ default_network_name = 'cimtest-networkpool'
 default_net_type = 'network'
 
 #vxml.PoolXML
-default_pool_name = 'testpool'
+default_pool_name = 'cimtest-diskpool'
 
 # vxml.VirtXML
 default_domname = 'domU1'

@@ -39,9 +39,8 @@ from VirtLib.live import diskpool_list, virsh_version, net_list, domain_list
 from XenKvmLib.vxml import PoolXML, NetXML
 from XenKvmLib.enumclass import getInstance
 from VirtLib import utils 
-from XenKvmLib import const 
+from XenKvmLib.const import default_pool_name, default_network_name
 
-test_dpath = "foo"
 disk_file = '/etc/libvirt/diskpool.conf'
 
 back_disk_file = disk_file + "." + "backup"
@@ -308,7 +307,7 @@ def conf_file():
     logger.info("Disk conf file : %s", disk_file)
     try:
         f = open(disk_file, 'w')
-        f.write('%s %s' % (test_dpath, '/'))
+        f.write('%s %s' % (default_pool_name, '/'))
         f.close()
     except Exception,detail:
         logger.error("Exception: %s", detail)
@@ -354,19 +353,28 @@ def create_diskpool_file():
     
     return conf_file()
 
-def create_diskpool(server, virt='KVM'):
+def create_diskpool(server, virt='KVM', dpool=default_pool_name,
+                    useExisting=False):
     status = PASS
     dpoolname = None
     try:
-        dpool_list = diskpool_list(server, virt='KVM')
-        if len(dpool_list) > 0:
-            dpoolname=dpool_list[0]
-        else:
-            diskxml = PoolXML(server, virt=virt)
+        if useExisting == True:
+            dpool_list = diskpool_list(server, virt='KVM')
+            if len(dpool_list) > 0:
+                dpoolname=dpool_list[0]
+
+        if dpoolname == None:
+            cmd = "virsh -c %s pool-list --all | grep %s" % \
+                  (utils.virt2uri(virt), dpool)
+            ret, out = utils.run_remote(server, cmd)
+            if out != "":
+                logger.error("Disk pool with name '%s' already exists", dpool)
+                return FAIL, "Unknown"
+
+            diskxml = PoolXML(server, virt=virt, poolname=dpool)
             ret = diskxml.create_vpool()
             if not ret:
-                logger.error('Failed to create the disk pool "%s"',
-                         dpoolname)
+                logger.error('Failed to create the disk pool "%s"', dpool)
                 status = FAIL
             else:
                 dpoolname=diskxml.xml_get_diskpool_name()
@@ -375,20 +383,40 @@ def create_diskpool(server, virt='KVM'):
         status=FAIL
     return status, dpoolname
 
-def create_diskpool_conf(server, virt):
+def create_diskpool_conf(server, virt, dpool=default_pool_name):
     libvirt_version = virsh_version(server, virt)
     if libvirt_version >= '0.4.1':
-        status, dpoolname = create_diskpool(server, virt=virt)
+        status, dpoolname = create_diskpool(server, virt, dpool)
         diskid = "%s/%s" % ("DiskPool", dpoolname)
     else:
         status = create_diskpool_file()
-        diskid = "%s/%s" % ("DiskPool", test_dpath)
+        diskid = "DiskPool/%s" % default_pool_name
 
     return status, diskid
 
+def destroy_diskpool(server, virt, dpool):
+    libvirt_version = virsh_version(server, virt)
+    if libvirt_version >= '0.4.1':
+        if dpool == None:
+            logger.error("No disk pool specified")
+            return FAIL
+
+        pool_xml = PoolXML(server, virt=virt, poolname=dpool)
+        ret = pool_xml.destroy_vpool()
+        if not ret:
+            logger.error("Failed to destroy disk pool '%s'", dpool)
+            return FAIL
+
+    else:
+        status = cleanup_restore(server, virt)
+        if status != PASS:
+            logger.error("Failed to restore original disk pool file")
+            return status 
+
+    return PASS
 
 def create_netpool_conf(server, virt, use_existing=False,
-                        net_name=const.default_network_name):
+                        net_name=default_network_name):
     status = PASS
     test_network = None
     try:

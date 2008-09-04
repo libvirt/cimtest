@@ -145,14 +145,12 @@ class Virsh:
             self.vuri = 'lxc:///system'
 
     def run(self, ip, vcmd, param):
-        file_arg_cmds = ['define', 'create', 'net-create', 'pool-create', 'pool-destroy']
+        file_arg_cmds = ['define', 'create', 'net-create', 'pool-create']
         if vcmd in file_arg_cmds:
             ntf = tempfile.NamedTemporaryFile('w')
             ntf.write(param)
             ntf.flush()
             name = ntf.name
-        elif vcmd == 'pool-destroy':
-            name = param
         elif param is None:
             name = ""
         else:
