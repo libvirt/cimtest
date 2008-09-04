@@ -24,7 +24,6 @@
 #
 import os
 import logging
-from optparse import OptionParser
 import traceback
 
 global CIM_USER
@@ -32,14 +31,12 @@ global CIM_PASS
 global CIM_NS
 global CIM_LEVEL
 global CIM_FUUID
-global platform_sup
 global CIM_IP
 global CIM_PORT
 
 global CIM_ERROR_ASSOCIATORNAMES
 global CIM_ERROR_ENUMERATE
 global CIM_ERROR_GETINSTANCE
-global VIRSH_ERROR_DEFINE
 
 CIM_USER  = os.getenv("CIM_USER")
 CIM_PASS  = os.getenv("CIM_PASS")
@@ -50,7 +47,6 @@ CIM_TC    = os.getenv("CIM_TC")
 CIM_IP    = os.getenv("CIM_IP")
 CIM_PORT = "5988"
 NM = "TEST LOG"
-platform_sup = ["Xen", "KVM", "XenFV"]
 logging.basicConfig(filename='/dev/null')
 logger = logging.getLogger(NM)
 logging.PRINT = logging.DEBUG + 50
@@ -61,16 +57,6 @@ CIM_ERROR_ENUMERATE        = "Failed to enumerate the class of %s"
 CIM_ERROR_GETINSTANCE      = "Failed to get instance by the class of %s"
 CIM_ERROR_ASSOCIATORS      = "Failed to get associators information for %s"
 CIM_ERROR_ASSOCIATORNAMES  = "Failed to get associatornames according to %s"
-VIRSH_ERROR_DEFINE         = "Failed to define a domain with the name %s from virsh"
-
-parser = OptionParser()
-parser.add_option("-i", "--ip", dest="ip", default="localhost", 
-                  help="IP address of machine to test, default: localhost")
-parser.add_option("-v", "--virt", dest="virt", type="choice",
-                  choices=['Xen', 'KVM', 'XenFV', 'LXC'], default="Xen",
-                  help="Virt type, select from: 'Xen' & 'KVM' & 'XenFV' & 'LXC', default: Xen")
-parser.add_option("-d", "--debug-output", action="store_true", dest="debug",
-                  help="Duplicate the output to stderr")
 
 if not CIM_NS:
     CIM_NS = "root/cimv2"
@@ -114,29 +100,4 @@ def log_param(log_level=logging.ERROR, file_name="cimtest.log"):
 def log_bug(bug_num):
     logger.info("Known Bug:%s" % bug_num)
     print "Bug:<%s>" % bug_num
-
-def do_main(types=['Xen'], p=parser):
-    def do_type(f):
-        import sys
-        from ReturnCodes import SKIP, FAIL
-        (options, args) = p.parse_args()
-        if options.virt not in types:
-            return lambda:SKIP
-        else:
-            def do_try():
-                try:
-                    log_param()
-                    from VirtLib.utils import setup_ssh_key
-                    from XenKvmLib.test_doms import destroy_and_undefine_all
-                    setup_ssh_key()
-                    destroy_and_undefine_all(options.ip, options.virt)
-                    rc = f()
-                except Exception, e:
-                    logger.error('%s : %s' % (e.__class__.__name__, e))
-                    logger.error("%s" % traceback.print_exc())
-                    rc = FAIL
-                return rc
-            setattr(do_try, 'options', options)
-            return do_try
-    return do_type
 
