@@ -44,7 +44,6 @@ import sys
 from VirtLib import utils
 from XenKvmLib import vxml
 from XenKvmLib import enumclass
-from XenKvmLib import computersystem 
 from XenKvmLib import assoc
 from XenKvmLib.classes import get_class_basename
 from CimTest.Globals import logger
@@ -81,7 +80,8 @@ def main():
         # Instance of the HostSystem
             host_sys = host_sys[0]
 
-        cs = computersystem.enumerate(options.ip, options.virt)
+        keys = ['Name', 'CreationClassName']
+        cs = enumclass.enumerate(options.ip, 'ComputerSystem', keys, options.virt)
         if options.virt == 'Xen' or options.virt == 'XenFV':
             # Xen honors additional domain-0
             cs_list_len = 2

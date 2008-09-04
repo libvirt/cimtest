@@ -34,8 +34,9 @@ import sys
 from time import sleep
 from VirtLib import utils
 from XenKvmLib import vxml
-from XenKvmLib import computersystem 
+from XenKvmLib import enumclass 
 from XenKvmLib import assoc
+from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import get_host_info
 from XenKvmLib.classes import get_class_basename
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS, \
@@ -70,8 +71,12 @@ def poll_for_enabledstate_value(server, virt):
     try:
         for i in range(1, (timeout + 1)):
             sleep(1)
-            cs = computersystem.get_cs_class(virt)
-            dom_cs = cs(server, name=test_dom)
+            ccn = get_typed_class(virt, 'ComputerSystem')
+            keys = {
+                     'Name' : test_dom,
+                     'CreationClassName' : ccn 
+                   }
+            dom_cs = enumclass.getInstance(server, 'ComputerSystem', keys, virt) 
             if dom_cs.EnabledState == "" or dom_cs.CreationClassName == "" or \
                dom_cs.Name == "" or  dom_cs.RequestedState == "":
                 logger.error("Empty EnabledState field.")

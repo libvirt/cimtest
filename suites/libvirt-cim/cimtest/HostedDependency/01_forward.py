@@ -47,7 +47,6 @@ import sys
 import pywbem
 from VirtLib import utils
 from XenKvmLib import vxml
-from XenKvmLib import computersystem 
 from XenKvmLib import assoc
 from XenKvmLib import enumclass
 from XenKvmLib.classes import get_class_basename
@@ -84,9 +83,10 @@ def main():
         status = FAIL
         cxml.undefine(options.ip)
         return status
-
+    
+    keys = ['Name', 'CreationClassName']
     try: 
-        cs = computersystem.enumerate(options.ip, options.virt)
+        cs = enumclass.enumerate(options.ip, 'ComputerSystem', keys, options.virt)
     except Exception,detail:
         Globals.logger.error(Globals.CIM_ERROR_ENUMERATE, 'ComputerSystem')
         Globals.logger.error("Exception: %s", detail)
