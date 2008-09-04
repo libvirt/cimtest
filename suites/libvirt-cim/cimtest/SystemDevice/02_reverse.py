@@ -27,7 +27,7 @@
 import sys
 from VirtLib import utils
 from XenKvmLib import vxml
-from XenKvmLib import computersystem
+from XenKvmLib import enumclass
 from XenKvmLib import assoc
 from XenKvmLib import devices
 from CimTest.Globals import logger
@@ -92,8 +92,12 @@ def main():
                 cxml.destroy(options.ip)
                 cxml.undefine(options.ip)
                 return FAIL
-
-            system = computersystem.system_of(options.ip, systems[0])
+            
+            keys = {
+                    'Name': systems[0]['Name'],
+                    'CreationClassName': systems[0]['CreationClassName']
+                   }
+            system = enumclass.getInstance(options.ip, 'ComputerSystem', keys, options.virt)
         
             if system.Name == test_dom:
                 status = PASS
