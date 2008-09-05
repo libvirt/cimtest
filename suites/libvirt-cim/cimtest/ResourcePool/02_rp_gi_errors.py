@@ -36,9 +36,7 @@ from XenKvmLib.classes import get_typed_class
 from distutils.file_util import move_file
 from CimTest.ReturnCodes import PASS, SKIP
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
-from XenKvmLib.const import do_main
-from XenKvmLib.common_util import cleanup_restore, test_dpath, \
-create_diskpool_file
+from XenKvmLib.const import do_main, default_pool_name
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
@@ -95,11 +93,6 @@ def main():
     conn = assoc.myWBEMConnection('http://%s' % ip, (CIM_USER, CIM_PASS),
                                   CIM_NS)
 
-    # Verify DiskPool on machine
-    status = create_diskpool_file()
-    if status != PASS:
-        return status
-
     # Verify the Virtual Network on the machine.
     vir_network = net_list(ip, virt)
     if len(vir_network) > 0:
@@ -112,7 +105,6 @@ def main():
         if not ret:
             logger.error("Failed to create the Virtual Network '%s'",
                          test_network)
-            cleanup_restore(ip, virt)
             return SKIP
     netid = "%s/%s" % ("NetworkPool", test_network)
 
@@ -134,16 +126,13 @@ def main():
         ret_value = err_invalid_instid_keyname(conn, cn, instid)
         if ret_value != PASS:
             logger.error("------ FAILED: Invalid InstanceID Key Name.------")
-            cleanup_restore(ip, virt)
             return  ret_value
 
         ret_value = err_invalid_instid_keyvalue(conn, cn)
         if ret_value != PASS:
             logger.error("------ FAILED: Invalid InstanceID Key Value.------")
-            cleanup_restore(ip, virt)
             return ret_value
 
-    cleanup_restore(ip, virt)
     return PASS
 
 if __name__ == "__main__":

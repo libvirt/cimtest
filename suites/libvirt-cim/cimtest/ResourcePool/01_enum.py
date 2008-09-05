@@ -32,28 +32,20 @@ from XenKvmLib.classes import get_typed_class
 from XenKvmLib import vxml
 from CimTest import Globals
 from CimTest.Globals import logger
-from XenKvmLib.const import do_main
+from XenKvmLib.const import do_main, default_pool_name
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from VirtLib.live import net_list
 from XenKvmLib.vsms import RASD_TYPE_PROC, RASD_TYPE_MEM, RASD_TYPE_NET_ETHER, \
 RASD_TYPE_DISK 
-from XenKvmLib.common_util import cleanup_restore, test_dpath, \
-create_diskpool_file
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
-diskid = "%s/%s" % ("DiskPool", test_dpath)
 dp_cn = 'DiskPool'
 mp_cn = 'MemoryPool'
 pp_cn = 'ProcessorPool'
 np_cn = 'NetworkPool'
 
 def init_list(server, virt):
-    # Verify DiskPool on machine
-    status = create_diskpool_file()
-    if status != PASS:
-        return status, None
-
    # Verify the Virtual network on machine
     vir_network = net_list(server, virt)
     if len(vir_network) > 0:
@@ -68,7 +60,7 @@ def init_list(server, virt):
                                                            test_network)
             return SKIP, None
 
-    disk_instid = '%s/%s' % (dp_cn, test_dpath)
+    disk_instid = '%s/%s' % (dp_cn, default_pool_name)
     net_instid = '%s/%s' % (np_cn, test_network)
     mem_instid = '%s/0' % mp_cn
     proc_instid = '%s/0' % pp_cn
@@ -78,7 +70,7 @@ def init_list(server, virt):
             get_typed_class(virt, dp_cn) : [disk_instid, RASD_TYPE_DISK],
             get_typed_class(virt, np_cn) : [net_instid, RASD_TYPE_NET_ETHER]
             } 
-    return status, pool_list
+    return PASS, pool_list
 
 def print_error(fieldname="", ret_value="", exp_value=""):
     logger.error("%s Mismatch", fieldname)
@@ -113,6 +105,7 @@ def main():
         virt = "Xen"
     else:
         virt = main.options.virt
+
     status, pool_list = init_list(ip, virt)
     if status != PASS: 
         logger.error("Failed to initialise the list")
@@ -149,7 +142,6 @@ def main():
         return FAIL
     status = verify_fields(pool_list, netpool, get_typed_class(virt, np_cn))
     
-    cleanup_restore(ip, virt)
     return status
 
 if __name__ == "__main__":

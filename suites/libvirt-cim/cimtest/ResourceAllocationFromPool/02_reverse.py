@@ -31,11 +31,9 @@ from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
 from CimTest.Globals import logger
-from XenKvmLib.const import do_main
+from XenKvmLib.const import do_main, default_pool_name, default_network_name
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib import enumclass
-from XenKvmLib.common_util import cleanup_restore, create_diskpool_conf
-from XenKvmLib.const import default_network_name 
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 test_dom    = "RAFP_dom"
@@ -87,7 +85,7 @@ def init_list(test_disk, diskid, virt='Xen'):
            }
 
     disk = { 'rasd_id' : '%s/%s' % (test_dom, test_disk),
-             'pool_id' : diskid
+             'pool_id' : 'DiskPool/%s' % default_pool_name 
            }
 
     if virt == 'LXC':
@@ -170,12 +168,7 @@ def main():
         vsxml.undefine(server)
         return status
 
-    status, diskid = create_diskpool_conf(server, virt)
-    if status != PASS:
-        vsxml.undefine(server)
-        return status
-
-    cn_id_list = init_list(test_disk, diskid, options.virt)
+    cn_id_list = init_list(test_disk, default_pool_name, options.virt)
 
     for rasd_cn, id_info in cn_id_list.iteritems():
         status = get_rasdinst_verify_pool_from_RAFP(server, virt, vsxml, 
@@ -183,7 +176,6 @@ def main():
         if status != PASS:
             return status
 
-    cleanup_restore(server, virt)
     vsxml.undefine(server)    
     return status
 

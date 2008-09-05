@@ -31,10 +31,8 @@ from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.vxml import get_class 
 from CimTest import Globals
 from CimTest.Globals import logger
-from XenKvmLib.const import do_main
+from XenKvmLib.const import do_main, default_pool_name, default_network_name
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
-from XenKvmLib.common_util import cleanup_restore, create_diskpool_conf
-from XenKvmLib.const import default_network_name
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
@@ -120,11 +118,7 @@ def main():
         vsxml.undefine(options.ip)
         return status
     
-    status, diskid = create_diskpool_conf(options.ip, options.virt)
-    if status != PASS:
-        cleanup_restore(options.ip, options.virt)
-        vsxml.undefine(options.ip)
-        return status
+    diskp_id = "DiskPool/%s" % default_pool_name
 
     if options.virt == 'LXC':
         pool = { "MemoryPool" : {'InstanceID' : "MemoryPool/0"} }
@@ -132,7 +126,7 @@ def main():
     else:
         pool = { "MemoryPool"    : {'InstanceID' : "MemoryPool/0"},
                  "ProcessorPool" : {'InstanceID' : "ProcessorPool/0"},
-                 "DiskPool"      : {'InstanceID' : diskid},
+                 "DiskPool"      : {'InstanceID' : diskp_id},
                  "NetworkPool"   : {'InstanceID' : "NetworkPool/%s" \
                                      % test_npool }}
         rasd = { "MemoryPool"    : "%s/mem" % test_dom, 
@@ -150,7 +144,6 @@ def main():
         if status != PASS:
             break
 
-    cleanup_restore(options.ip, options.virt)
     vsxml.undefine(options.ip)
     return status 
         

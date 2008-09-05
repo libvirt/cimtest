@@ -60,17 +60,16 @@ from XenKvmLib import enumclass
 from VirtLib.live import virsh_version
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from CimTest.Globals import logger, CIM_ERROR_GETINSTANCE, CIM_ERROR_ASSOCIATORS
-from XenKvmLib.const import do_main
+from XenKvmLib.const import do_main, default_pool_name, default_network_name
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.common_util import cleanup_restore, create_diskpool_conf, \
-                                  print_field_error
-from XenKvmLib.const import default_network_name 
+from XenKvmLib.common_util import print_field_error
 
 platform_sup = ['Xen', 'KVM', 'XenFV', 'LXC']
 
-memid = "%s/%s" % ("MemoryPool", 0)
-procid = "%s/%s" % ("ProcessorPool", 0)
-test_npool = default_network_name
+memid = "MemoryPool/0"
+procid = "ProcessorPool/0"
+netid = "NetworkPool/%s" % default_network_name 
+diskid = "DiskPool/%s" % default_pool_name
 
 def get_or_bail(virt, ip, id, pool_class):
     """
@@ -83,7 +82,6 @@ def get_or_bail(virt, ip, id, pool_class):
     except Exception, detail:
         logger.error(CIM_ERROR_GETINSTANCE, '%s' % pool_class)
         logger.error("Exception: %s", detail)
-        cleanup_restore(ip, virt)
         sys.exit(FAIL)
     return instance 
 
@@ -132,20 +130,14 @@ def get_pool_details(virt, server):
     dpool = npool  = mpool  = ppool = None
     pool_set = []
     try :
-        status, diskid = create_diskpool_conf(server, virt)
-        if status != PASS:
-            return status, pool_set, None
-
-        dpool = get_pool_info(virt, server, diskid, poolname="DiskPool")
+        dpool = get_pool_info(virt, server, diskid, poolname="DiskPool") 
         mpool = get_pool_info(virt, server, memid, poolname= "MemoryPool")
         ppool = get_pool_info(virt, server, procid, poolname= "ProcessorPool")
 
-        netid = "%s/%s" % ("NetworkPool", test_npool)
         npool = get_pool_info(virt, server, netid, poolname= "NetworkPool")
         if dpool.InstanceID == None or mpool.InstanceID == None \
            or npool.InstanceID == None or ppool.InstanceID == None:
            logger.error("Get pool None") 
-           cleanup_restore(server, virt)
            return FAIL
         else:
            pool_set = [dpool, mpool, ppool, npool]      
@@ -204,12 +196,10 @@ def main():
 
     status, pool = get_pool_details(virt, server)
     if status != PASS:
-        cleanup_restore(server, virt)
         return FAIL
 
     status = verify_sdc_with_ac(virt, server, pool)
 
-    cleanup_restore(server, virt)
     return status
     
 if __name__ == "__main__":
