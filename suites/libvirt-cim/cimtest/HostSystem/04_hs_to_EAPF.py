@@ -51,7 +51,7 @@ from distutils.file_util import move_file
 from VirtLib import utils
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES, \
 CIM_ERROR_ASSOCIATORS
-from XenKvmLib.const import do_main
+from XenKvmLib.const import do_main, default_pool_name
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from XenKvmLib.assoc import AssociatorNames, Associators
 from XenKvmLib.common_util import get_host_info
@@ -59,7 +59,6 @@ from XenKvmLib.classes import get_typed_class
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.logicaldevices import verify_device_values
-from XenKvmLib.common_util import cleanup_restore, create_diskpool_conf
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
@@ -87,7 +86,7 @@ def pool_init_list(virt, pool_assoc, net_name, dp_InstID):
         npool =  get_typed_class(virt, 'NetworkPool')
         dpool =  get_typed_class(virt, 'DiskPool')
         ppool =  get_typed_class(virt, 'ProcessorPool')
-        exp_pllist[dpool] = dp_InstID
+        exp_pllist[dpool] = 'DiskPool/%s' % dp_InstID
         exp_pllist[npool] = '%s/%s' %('NetworkPool', net_name)
         exp_pllist[ppool] = 'ProcessorPool/0'
         exp_pllist[mpool] = 'MemoryPool/0'
@@ -199,7 +198,6 @@ def verify_eafp_values(server, in_pllist, virt, test_disk):
         except Exception, detail:
             logger.error(CIM_ERROR_ASSOCIATORS, an)
             logger.error("Exception: %s", detail)
-            cleanup_restore(server, virt)
             status = FAIL
     return status
 
@@ -234,12 +232,6 @@ def main():
     # Get the network pool info which is used by the VS.
     net_name = vsxml.xml_get_net_network()
 
-    status, dpool_name = create_diskpool_conf(server, virt)
-    if status != PASS:
-        logger.error("Failed to create diskpool")
-        vsxml.undefine(server)
-        return FAIL
-
     # Get the hostedResourcePool info first
     cn  = classname
     an  = get_typed_class(virt, "HostedResourcePool")
@@ -247,21 +239,18 @@ def main():
     status, pool = get_assocname_info(server, cn, an, qcn, host_name, virt)
     if status != PASS:
         vsxml.undefine(server)
-        cleanup_restore(server, virt=virt)
         return status
 
-    in_pllist = pool_init_list(virt, pool, net_name, dpool_name)
+    in_pllist = pool_init_list(virt, pool, net_name, default_pool_name)
     # One pool for each Device type, hence len should be 4
     exp_len = 4
     status = check_len(an, in_pllist, qcn, exp_len)
     if status != PASS:
         vsxml.undefine(server)
-        cleanup_restore(server, virt=virt)
         return FAIL
 
     status = verify_eafp_values(server, in_pllist, virt, test_disk)
     vsxml.undefine(server)
-    cleanup_restore(server, virt=virt)
     return status
 if __name__ == "__main__":
     sys.exit(main())
