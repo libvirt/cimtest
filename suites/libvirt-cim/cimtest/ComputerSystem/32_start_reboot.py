@@ -40,6 +40,7 @@
 
 import sys
 from VirtLib import utils
+from time import sleep
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
@@ -89,7 +90,7 @@ def main():
                 break
 
             status, dom_cs = poll_for_state_change(server, virt, default_dom, en_state,
-                                           timeout=10)
+                                                   timeout=10)
 
             if status != PASS or dom_cs.RequestedState != rq_state:
                 status = FAIL

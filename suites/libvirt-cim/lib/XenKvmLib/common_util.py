@@ -177,20 +177,24 @@ def poll_for_state_change(server, virt, dom, exp_state, timeout=30):
             'Name' : dom,
             'CreationClassName' : get_typed_class(virt, 'ComputerSystem')
            }
-    dom_cs = enumclass.getInstance(server, 'ComputerSystem', keys, virt)
 
     try:
         for i in range(1, (timeout + 1)):
-            sleep(1)
+            dom_cs = enumclass.getInstance(server, 'ComputerSystem', keys, 
+                                           virt)
             if dom_cs is None or dom_cs.Name != dom:
-                logger.error("CS instance not returned for %s." % dom)
-                return FAIL, dom_cs
+                continue
 
+            sleep(1)
             if dom_cs.EnabledState == exp_state:
                 break
 
     except Exception, detail:
         logger.error("Exception: %s" % detail)
+        return FAIL, dom_cs
+
+    if dom_cs is None or dom_cs.Name != dom:
+        logger.error("CS instance not returned for %s." % dom)
         return FAIL, dom_cs
 
     if dom_cs.EnabledState != exp_state:
