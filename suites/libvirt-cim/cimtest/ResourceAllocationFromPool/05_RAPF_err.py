@@ -105,7 +105,7 @@ def setup_env(server, virt, nettype='network'):
 
     vsxml_info = modify_net_name(server, virt, nettype, vsxml_info)
 
-    ret = vsxml_info.define(server)
+    ret = vsxml_info.cim_define(server)
     if not ret:
         Globals.logger.error("Failed to define the dom '%s' for '%s' type"
                              " interface", test_dom, nettype)

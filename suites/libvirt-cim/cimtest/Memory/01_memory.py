@@ -42,7 +42,7 @@ def main():
     options = main.options
     
     vsxml = get_class(options.virt)(test_dom, mem)
-    vsxml.define(options.ip)
+    vsxml.cim_define(options.ip)
     alloc_mem = int(vsxml.xml_get_mem())
     
     devid = "%s/mem" % test_dom

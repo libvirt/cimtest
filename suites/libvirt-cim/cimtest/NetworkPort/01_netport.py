@@ -64,7 +64,7 @@ def main():
     options = main.options
     
     vsxml = get_class(options.virt)(test_dom, mac=test_mac)
-    vsxml.define(options.ip)
+    vsxml.cim_define(options.ip)
 
     devid = "%s/%s" % (test_dom, test_mac)
     key_list = { 'DeviceID' : devid,

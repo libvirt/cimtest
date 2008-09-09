@@ -137,7 +137,7 @@ def main():
                      ]
 
     try:
-        ret = vsxml.define(server)
+        ret = vsxml.cim_define(server)
         if not ret:
             logger.error("Failed to Define the domain: %s", test_dom)
             return FAIL 
