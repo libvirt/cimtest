@@ -107,15 +107,17 @@ def get_proflist():
     return status, profiles_instid_list 
 
 def verify_fields(assoc_info, sys_prof_info):
-    fieldnames = ["InstanceID", "RegisteredOrganization", "RegisteredName", "RegisteredVersion"]
+    fieldnames = ["InstanceID", "RegisteredOrganization", 
+                  "RegisteredName", "RegisteredVersion"]
     for f in fieldnames:
         if assoc_info[f] != sys_prof_info[f]:
             print_field_error(f, assoc_info[f], sys_prof_info[f])
             return FAIL
+            
     return PASS
 
 def verify_ref_assoc_info(assoc_info, profilename):
-    status = PASS
+    status = FAIL
     profiles = profile_init_list()
     logger.info("Verifying profile: %s", profilename)
     for inst in assoc_info:

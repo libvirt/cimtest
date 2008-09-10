@@ -269,8 +269,6 @@ def profile_init_list():
                           "RegisteredVersion"       : "1.0.0a"
                       }
     gen_dev_prof   =  {
-                          "InstanceID"              : 
-                              "CIM:DSP1059-GenericDeviceResourceVirtualization-1.0.0",
                           "RegisteredOrganization"  : 2, 
                           "RegisteredName"          : "Generic Device Resource Virtualization",
                           "RegisteredVersion"       : "1.0.0"
@@ -282,10 +280,10 @@ def profile_init_list():
                           "RegisteredVersion"       : "1.0.0"
                       }
     vs_mig_prof   =  {
-                          "InstanceID"              : "CIM:DSP1081-VirtualSystemMigration-1.0",
+                          "InstanceID"              : "CIM:DSP1081-VirtualSystemMigration-0.8.1",
                           "RegisteredOrganization"  : 2, 
                           "RegisteredName"          : "Virtual System Migration",
-                          "RegisteredVersion"       : "1.0"
+                          "RegisteredVersion"       : "0.8.1"
                      }
      
     profiles = {
@@ -293,10 +291,14 @@ def profile_init_list():
                  'DSP1042'       : sys_prof_info,
                  'DSP1045'       : mem_res_prof,
                  'DSP1057'       : vs_prof,
-                 'DSP1059'       : gen_dev_prof,
                  'DSP1081'       : vs_mig_prof
                } 
-    
+    gdrv_list = ['DSP1059-GenericDeviceResourceVirtualization-1.0.0_d', 
+                 'DSP1059-GenericDeviceResourceVirtualization-1.0.0_n',
+                 'DSP1059-GenericDeviceResourceVirtualization-1.0.0_p' ]
+    for key in gdrv_list:
+        profiles[key] = gen_dev_prof.copy()
+        profiles[key]['InstanceID'] = 'CIM:' + key
     return profiles 
 
 def conf_file():
