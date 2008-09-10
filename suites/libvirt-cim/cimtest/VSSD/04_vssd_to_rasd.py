@@ -78,7 +78,7 @@ def setup_env(virt):
             return FAIL, vsxml_info
 
     try:
-        ret = vsxml_info.define(server)
+        ret = vsxml_info.cim_define(server)
         if not ret:
             logger.error("Failed to Define the domain: %s", test_dom)
             return FAIL, vsxml_info
