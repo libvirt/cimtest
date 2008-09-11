@@ -28,10 +28,10 @@
 
 import sys
 from XenKvmLib import enumclass
+from XenKvmLib.vxml import get_class
 from VirtLib import utils
 from VirtLib.live import bootloader
-from XenKvmLib.test_doms import test_domain_function, destroy_and_undefine_all
-from XenKvmLib.test_xml import testxml_bl
+from XenKvmLib.test_doms import destroy_and_undefine_all
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
 
@@ -45,9 +45,11 @@ def main():
     status = 1
     destroy_and_undefine_all(options.ip)
 
-    xmlfile = testxml_bl(test_dom, server = options.ip, gtype = 0)
+    virt_xml = get_class(options.virt)
+    xmlfile = virt_xml(test_dom)
+    xmlfile.set_bootloader(options.ip, gtype=0)
 
-    ret = test_domain_function(xmlfile, options.ip, "define")
+    ret = xmlfile.cim_define(options.ip)
     if not ret :
         logger.error("error while 'define' of VS")
         return 1
@@ -70,12 +72,11 @@ def main():
                 logger.error("Bootloader is not set for VS %s" % test_dom)
                 status = 1
 
-    except  BaseException, detail :
+    except Exception, detail :
         logger.error("Exception : %s" % detail)
         status = 1
     
-    test_domain_function(test_dom, options.ip, "undefine")
-
+    xmlfile.undefine(options.ip)
     return status
 
 if __name__ == "__main__":
