@@ -699,6 +699,7 @@ class LXCXML(VirtXML):
     def _os(self, os_init):
         os = self.get_node('/domain/os')
         self.add_sub_node(os, 'init', os_init)
+        self.add_sub_node(os, 'type', 'exe')
 
     def _devices(self, net_mac, net_type, net_name, tty_set):
         devices = self.get_node('/domain/devices')
