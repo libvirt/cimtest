@@ -25,8 +25,9 @@
 
 import sys
 import pywbem
-from VirtLib import live
+from time import sleep
 from XenKvmLib import devices
+from XenKvmLib import enumclass
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
@@ -35,17 +36,17 @@ sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom = "test_domain"
 def clean_system(host, virt='Xen'):
-    l = live.domain_list(host, virt)
-
-    if virt == "XenFV" or virt == "Xen":
-        if len(l) > 1:
-            return False 
-        else:
+    timer_count = 10
+    for count in range(0, timer_count):
+        keys = ['Name', 'CreationClassName']
+        l = enumclass.enumerate(host, 'ComputerSystem', keys, virt)
+        if len(l) == 0:
             return True
-    elif len(l) > 0:
-        return False
-    else:
-        return True
+        if virt == 'Xen' or virt == 'XenFV':
+            sleep(1)
+        else:
+            break
+    return False
 
 @do_main(sup_types)
 def main():
