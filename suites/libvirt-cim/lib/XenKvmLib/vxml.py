@@ -467,7 +467,7 @@ class VirtXML(Virsh, XMLClass):
 
 class VirtCIM:
     def __init__(self, virt, dom_name, disk_dev, disk_source,
-                 net_type, net_mac, vcpus, mem, mem_allocunits):
+                 net_type, net_name, net_mac, vcpus, mem, mem_allocunits):
         self.virt = virt
         self.domain_name = dom_name
         self.vssd = vsms.get_vssd_class(virt)(name=dom_name, virt=virt)
@@ -476,7 +476,8 @@ class VirtCIM:
                                               name=dom_name)
         self.nasd = vsms.get_nasd_class(virt)(type=net_type, 
                                               mac=net_mac,
-                                              name=dom_name)
+                                              name=dom_name,
+                                              virt_net=net_name)
         self.pasd = vsms.get_pasd_class(virt)(vcpu=vcpus, name=dom_name)
         self.masd = vsms.get_masd_class(virt)(megabytes=mem, 
                                               mallocunits=mem_allocunits,
@@ -545,7 +546,7 @@ class XenXML(VirtXML, VirtCIM):
         self._devices(disk_file_path, disk, ntype, mac, net_name)
 
         VirtCIM.__init__(self, 'Xen', test_dom, disk, disk_file_path, 
-                         ntype, mac, vcpus, mem, mem_allocunits)
+                         ntype, net_name, mac, vcpus, mem, mem_allocunits)
 
     def _os(self, os_kernel, os_initrd):
         os = self.get_node('/domain/os')
@@ -596,7 +597,7 @@ class KVMXML(VirtXML, VirtCIM):
             sys.exit(1)
         VirtXML.__init__(self, 'kvm', test_dom, set_uuid(), mem, vcpus)
         VirtCIM.__init__(self, 'KVM', test_dom, disk, disk_file_path,
-                         ntype, mac, vcpus, mem, mem_allocunits)
+                         ntype, net_name, mac, vcpus, mem, mem_allocunits)
         self._os()
         self._devices(const.KVM_default_emulator, ntype,
                       disk_file_path, disk, mac, net_name)
@@ -643,7 +644,7 @@ class XenFVXML(VirtXML, VirtCIM):
             sys.exit(1)
         VirtXML.__init__(self, 'xenfv', test_dom, set_uuid(), mem, vcpus)
         VirtCIM.__init__(self, 'XenFV', test_dom, disk, disk_file_path,
-                         ntype, mac, vcpus, mem, mem_allocunits)
+                         ntype, net_name, mac, vcpus, mem, mem_allocunits)
         self._features()
         self._os(const.XenFV_default_loader)
         self._devices(const.XenFV_default_emulator,

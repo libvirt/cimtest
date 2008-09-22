@@ -52,46 +52,19 @@ from XenKvmLib.test_doms import destroy_and_undefine_all
 from CimTest import Globals
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from CimTest.ReturnCodes import PASS, FAIL
-from XenKvmLib.const import do_main, platform_sup
+from XenKvmLib.const import do_main
 from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class
+from XenKvmLib.const import default_network_name
+from XenKvmLib.common_util import create_netpool_conf, destroy_netpool
 
 test_dom   = "RAPF_domain"
 test_mac   = "00:11:22:33:44:aa"
 test_vcpus = 1
+npool_name = default_network_name + str(random.randint(1, 100))
+sup_types = ['KVM', 'Xen', 'XenFV']
 
-def get_unique_interface(server, virt, nettype='network'):
-    interface = "wrong-int"
-    if nettype == 'bridge':
-        int_list = live.available_bridges(server) 
-    else:
-        int_list = live.net_list(server, virt)
-
-    while interface in int_list:
-        interface = interface + str(random.randint(1, 100))
-  
-    return interface
-
-def modify_net_name(server, virt, nettype, vsxml):
-    if nettype == 'bridge':
-        int_name = vsxml.xml_get_net_bridge()
-    else:
-        int_name = vsxml.xml_get_net_network()
-
-    if int_name == None:
-        devices = vsxml.get_node('/domain/devices')
-        vsxml.set_interface_details(devices, test_mac, nettype, virt)
-
-    int_name = get_unique_interface(server, virt, nettype)
-
-    if nettype == 'bridge':
-        vsxml.set_bridge_name(int_name)
-    else:
-        vsxml.set_net_name(int_name)
-
-    return vsxml
-
-def setup_env(server, virt, nettype='network'):
+def setup_env(server, virt, net_name, nettype='network'):
     vsxml_info = None
     if virt == "Xen":
         test_disk = "xvda"
@@ -101,14 +74,16 @@ def setup_env(server, virt, nettype='network'):
     virt_xml =  vxml.get_class(virt)
     vsxml_info = virt_xml(test_dom, vcpus = test_vcpus, 
                           mac = test_mac, disk = test_disk, 
-                          ntype = nettype)
-
-    vsxml_info = modify_net_name(server, virt, nettype, vsxml_info)
+                          ntype = nettype, net_name=net_name)
 
     ret = vsxml_info.cim_define(server)
     if not ret:
-        Globals.logger.error("Failed to define the dom '%s' for '%s' type"
-                             " interface", test_dom, nettype)
+        logger.error("Failed to define the dom '%s' for '%s' type"
+                      " interface", test_dom, nettype)
+        if virt != 'KVM':
+            status = destroy_netpool(server, virt, net_name)
+            if status != PASS:
+                logger.error("Failed to destroy the networkpool %s", net_name)
         return FAIL, vsxml_info
 
     return PASS, vsxml_info
@@ -196,31 +171,50 @@ def verify_rapf_err(server, virt, vsxml):
 
     return status 
 
-@do_main(platform_sup)
+@do_main(sup_types)
 def main():
     options = main.options
     server = options.ip
     virt = options.virt
     destroy_and_undefine_all(server)
-    in_list = [ 'bridge', 'network' ]
+    in_list =  'network' 
 
-    for interface in in_list:
-        # This is req bcs virsh does not support the defining a guest 
-        # when an invalid network poolname is passed.
-        if interface == 'network' and virt != 'KVM':
-            continue
-
-        status, vsxml = setup_env(server, virt, interface)
+    # libvirt does not allow to define a guest with invalid networkpool info
+    # for Xen and XenFV, but it does not restrict to do so for KVM.
+    # Hence passing wrong networkpool for KVM and a valid networkpool for 
+    # Xen and XenFV otherwise.
+    if virt == 'KVM':
+        int_name = 'wrong-int'
+    else:
+        status, int_name = create_netpool_conf(options.ip, options.virt,
+                                               use_existing=False,
+                                               net_name=npool_name)
         if status != PASS:
-            logger.error("Failed to setup the domain")
+            logger.error('Unable to create network pool')
+            return FAIL
+
+
+    # Since we cannot create a Xen/XenFV guest with invalid networkpool info,
+    # we first create a guest with valid networkpool info and then 
+    # then destroy the networkpool info as a work around to, verify if the 
+    # provider returns an exception for Xen/XenFV guest when its networkpool 
+    # does not exist anymore on the machine.
+    status, vsxml = setup_env(server, virt, int_name, in_list)
+    if status != PASS:
+        logger.error("Failed to setup the domain")
+        vsxml.undefine(server)
+        return status
+
+    if virt != 'KVM':
+        status = destroy_netpool(server, virt, int_name)
+        if status != PASS:
+            logger.error("Failed to destroy the virtual network %s", net_name)
             vsxml.undefine(server)
             return status
 
-        ret = verify_rapf_err(server, virt, vsxml)
-        if ret: 
-            logger.error("------FAILED: to verify the RAFP.------")
-            vsxml.undefine(server)
-            return ret
+    status = verify_rapf_err(server, virt, vsxml)
+    if status != PASS: 
+        logger.error("------FAILED: to verify the RAFP.------")
 
     vsxml.undefine(server)
     return status
