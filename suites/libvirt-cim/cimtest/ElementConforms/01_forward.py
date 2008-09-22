@@ -6,6 +6,7 @@
 #    Guolian Yun <yunguol@cn.ibm.com>
 #    Kaitlin Rupert <karupert@us.ibm.com>
 #    Veerendra Chandrappa <vechandr@in.ibm.com>
+#    Deepti B. Kalakeri<deeptik@linux.vnet.ibm.com>
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public
@@ -24,13 +25,18 @@
 
 # This tc is used to verify the EnabledState, HealthState, EnabledDefault and
 # the Classname are set appropriately for the results returned by the 
-# Xen_ElementConformsToProfile association for the Xen_RegisteredProfile class
-# and Xen_ManagedElement Class
+# ElementConformsToProfile association for the RegisteredProfile class
+# and ManagedElement Class
 # 
 #   "CIM:DSP1042-SystemVirtualization-1.0.0" ,
 #   "CIM:DSP1057-VirtualSystem-1.0.0a"
+#   "CIM:DSP1059-GenericDeviceResourceVirtualization-1.0.0_d"
+#   "CIM:DSP1059-GenericDeviceResourceVirtualization-1.0.0_n"
+#   "CIM:DSP1059-GenericDeviceResourceVirtualization-1.0.0_p"
+#   "CIM:DSP1045-MemoryResourceVirtualization-1.0.0"
+#   "CIM:DSP1081-VirtualSystemMigration-0.8.1"
 #
-# Date : 04-12-2007
+#                                                          Date : 04-12-2007
 
 import sys
 from VirtLib import utils, live
@@ -39,120 +45,192 @@ from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib import vxml
 from CimTest import Globals 
-from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS
+from XenKvmLib.common_util import print_field_error
+from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS, CIM_ERROR_ENUMERATE
 from XenKvmLib.const import do_main 
 from CimTest.ReturnCodes import PASS, FAIL
+from XenKvmLib.enumclass import enumerate
+from XenKvmLib.const import default_network_name, default_pool_name 
+
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 test_dom = "domU"
 
-def verify_cs(item, id):
-    if item['EnabledState'] != 2 and  \
-       item['EnabledDefault']  != 2 and  \
-       item['RequestedState']  != 12     :
-        logger.error("Values not set properly for VSP(ComputerSystem)")
+def pool_init(verify_list, pool_cn, pool_name, virt):
+    ccn = get_typed_class(virt, pool_cn)
+    instid = '%s/%s' %(pool_cn, pool_name)
+    verify_list[ccn]= {'InstanceID' : instid }
+    return verify_list
+   
+def  init_vs_pool_values(server, virt):
+    verify_ectp_list = { }
+    hs_ccn = get_typed_class(virt, 'HostSystem')
+    host = live.hostname(server)
+    cs_fields = {
+                  'CreationClassName'    : hs_ccn,
+                  'Name'                 : host
+                }
+
+    verify_ectp_list[hs_ccn] = cs_fields
+
+    cs_ccn = get_typed_class(virt, 'ComputerSystem')
+    verify_ectp_list[cs_ccn] = cs_fields.copy()
+    verify_ectp_list[cs_ccn]['CreationClassName']   = cs_ccn
+    verify_ectp_list[cs_ccn]['Name']   = test_dom
+
+    vs_ccn = get_typed_class(virt, 'VirtualSystemMigrationService')
+    verify_ectp_list[vs_ccn] = cs_fields.copy()
+    verify_ectp_list[vs_ccn]['CreationClassName']   = vs_ccn
+    verify_ectp_list[vs_ccn]['SystemCreationClassName']   =  hs_ccn
+    verify_ectp_list[vs_ccn]['SystemName']   =  host
+    verify_ectp_list[vs_ccn]['Name']   =  'MigrationService'
+
+    verify_ectp_list = pool_init(verify_ectp_list, 'DiskPool', 
+                                 default_pool_name, virt)
+    verify_ectp_list = pool_init(verify_ectp_list, 'NetworkPool', 
+                                 default_network_name, virt)
+    verify_ectp_list = pool_init(verify_ectp_list, 'ProcessorPool', 0, virt)
+    verify_ectp_list = pool_init(verify_ectp_list, 'MemoryPool', 0, virt)
+
+                       
+    return verify_ectp_list
+
+def verify_fields(assoc_val, pllst_index, vs_pool_values):
+    try:
+        field_names  = vs_pool_values[pllst_index].keys()
+        values = vs_pool_values[pllst_index]
+        for field in field_names:
+            if values[field] != assoc_val[field]:
+                print_field_error(field,  assoc_val[field], values[field]) 
+                return FAIL
+    except Exception, details:
+        logger.error("Exception: In fn verify_fields() %s", details)
+        return FAIL
+      
+    return PASS
+
+def verify_cs_hs_mig_fields(assoc_info, vs_pool_values):
+    try:
+        pllst_index = assoc_info[0]['CreationClassName']
+        assoc_val   = None 
+        if 'HostSystem' in pllst_index or \
+           'VirtualSystemMigrationService' in pllst_index:
+            if len(assoc_info) != 1:
+                logger.error("'%s' returned '%d' records, expected 1", 
+                              pllst_index, len(assoc_info)) 
+                return FAIL
+            assoc_val = assoc_info[0]
+        else: 
+            # For ComputerSystem info
+            for inst in assoc_info:
+                if inst['Name'] == test_dom:
+                    assoc_val = inst
+                    break
+    except Exception, details:
+        logger.error("Exception: In fn verify_cs_hs_mig_fields() %s", details)
         return FAIL
 
-    else:
-        logger.info("1. Property values for %s and domain %s is "  %  
-                    (id, item['Name']))
-        logger.info("EnabState = %d EnabDefault = %d ReqSt = %d" % 
-                    (item['EnabledState'], item['EnabledDefault'], 
-                    item['RequestedState'] ))
+    if assoc_val == None:
+       return FAIL
 
-    return PASS 
+    return verify_fields(assoc_val, pllst_index, vs_pool_values)
 
-def verify_host(item, id):
-    if item['EnabledState'] != 5 and \
-       item['EnabledDefault']  != 2 and \
-       item['RequestedState']  != 12    :
-        logger.error("Values not set properly for the the SVP (HostSystem)")
-        return FAIL
+def get_proflist(server, reg_classname, virt):
+    profiles_instid_list = []
+    status = PASS
+    try: 
+        key_list = ["InstanceID"]
+        proflist = enumerate(server, reg_classname, key_list, virt) 
+        if len(proflist) < 7:
+            logger.error("'%s' returned '%d' '%s' objects, expected atleast 7", 
+                         reg_classname, len(proflist), 'Profile')
+            status = FAIL
 
-    else:
-        logger.info("2. Values for %s and host %s is" %
-                    (id, item['Name']))
-        logger.info("EnabState = %d EnabDefault = %d ReqSt = %d" %
-                     (item['EnabledState'], item['EnabledDefault'], 
-                     item['RequestedState'] ))
+    except Exception, detail:
+        logger.error(CIM_ERROR_ENUMERATE, reg_classname)
+        logger.error("Exception: %s", detail)
+        status = FAIL
 
-    return PASS 
+    if status != PASS:
+        return status, profiles_instid_list
+
+    profiles_instid_list = [ profile.InstanceID for profile in proflist ] 
+
+    return status, profiles_instid_list 
+
+
+def verify_ectp_assoc(server, virt):
+    reg_classname = "RegisteredProfile"
+    an = "ElementConformsToProfile"
+
+    status, inst_lst = get_proflist(server, reg_classname, virt)
+    if status != PASS:
+        return status
+
+    verify_ectp_list = init_vs_pool_values(server, virt)
+    for devid in inst_lst :
+        logger.info("Verifying '%s' with '%s'", an, devid)
+        try:
+            assoc_info = assoc.Associators(server, 
+                                           an, 
+                                           reg_classname,
+                                           virt,
+                                           InstanceID = devid)  
+            if len(assoc_info) < 1:
+                status = FAIL
+                logger.error(" '%s' returned (%d) '%s' objects", an, 
+                             len(assoc_info), reg_classname)
+                break
+
+            if 'DSP1059' in devid or 'DSP1045' in devid:
+                instid        = assoc_info[0]['InstanceID']
+                index, other  = instid.split("/")
+                cn = get_typed_class(virt, index)
+                status = verify_fields(assoc_info[0], cn, verify_ectp_list)
+            else:
+                ccn = assoc_info[0]['CreationClassName']
+                status = verify_cs_hs_mig_fields(assoc_info, verify_ectp_list)
+
+            if status != PASS:
+                break
+
+        except Exception, detail:
+            logger.error(CIM_ERROR_ASSOCIATORS, an)
+            logger.error("Exception: %s" % detail)
+            status = FAIL
+    return status
 
 @do_main(sup_types)
 def main():
     options = main.options
-
+    server  = options.ip
+    virt    = options.virt
+  
     status = PASS
     destroy_and_undefine_all(options.ip, options.virt)
 
     virt_xml = vxml.get_class(options.virt)
     cxml = virt_xml(test_dom)
-    ret = cxml.define(options.ip)
+    ret = cxml.cim_define(server)
     if not ret:
         logger.error('Unable to define domain %s' % test_dom)
         return FAIL
 
+    ret = cxml.start(server)
+    if not ret:
+        cxml.undefine(server)
+        logger.error('Unable to start domain %s' % test_dom)
+        return FAIL
+
+
     prev_namespace = Globals.CIM_NS
     Globals.CIM_NS = 'root/interop'
-    host = live.hostname(options.ip)
 
-    inst_lst = {
-              "InstID1"  : "CIM:DSP1042-SystemVirtualization-1.0.0" ,
-              "InstID2"  : "CIM:DSP1057-VirtualSystem-1.0.0a"
-             }
-    hs = get_typed_class(options.virt, "HostSystem")
-    cs = get_typed_class(options.virt, "ComputerSystem")
+    status = verify_ectp_assoc(server, virt)
 
-    devlist = [  
-              hs , \
-              cs
-             ]
-
-    for args, devid in inst_lst.items() :
-        try:
-            assoc_info = assoc.Associators(options.ip, 
-                                           "ElementConformsToProfile",
-                                           "RegisteredProfile",
-                                           options.virt,
-                                           InstanceID = devid)  
-            if len(assoc_info) < 1:
-                status = FAIL
-                logger.error("ElementConformsToProfile returned %i\
-                             RegisteredProfile objects" % len(assoc_info))
-                break
-
-            count = 0
-            for info in assoc_info:
-                if info['CreationClassName'] == cs :
-                    if info['Name'] == 'domU' :
-                            count = count + 1
-                            verify_cs(info, devid)
-
-                elif info['CreationClassName'] == hs and \
-                     info['Name'] == host:
-                        count = count + 1
-                        verify_host(info, devid)
-
-                else:
-                    status = FAIL
-                    logger.error("CreationClassName Mismatch")
-                    logger.error("Returned %s instead of %s or %s" % \
-                           (item['CreationClassName'],  devlist[0], devlist[1]))
-
-            exp_count = 1
-            if count != exp_count:
-                status = FAIL
-                logger.error("Expected to verify %d instances, not %d." % 
-                             exp_count, count)
-
-
-        except Exception, detail:
-            logger.error(CIM_ERROR_ASSOCIATORS, 'ElementConformsToProfile')
-            logger.error("Exception: %s" % detail)
-            status = FAIL
-
-    cxml.undefine(options.ip)
     Globals.CIM_NS = prev_namespace
+    cxml.destroy(server)
+    cxml.undefine(server)
     return status
 
 if __name__ == "__main__":
