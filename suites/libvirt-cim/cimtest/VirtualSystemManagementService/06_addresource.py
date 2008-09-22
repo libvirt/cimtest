@@ -34,6 +34,7 @@ from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import FAIL, PASS
 from XenKvmLib import vsms_util
 from XenKvmLib.const import default_network_name 
+from XenKvmLib.common_util import create_netpool_conf, destroy_netpool
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 default_dom = 'rstest_domain'
@@ -41,7 +42,8 @@ nmac = '99:aa:bb:cc:ee:ff'
 ntype = 'network'
 npool_name = default_network_name + str(random.randint(1, 100)) 
 
-def cleanup_env(ip, virt, cxml):
+def cleanup_env(ip, virt, cxml, net_name):
+    destroy_netpool(ip, virt, net_name)
     cxml.destroy(ip)
     cxml.undefine(ip)
 
@@ -68,13 +70,21 @@ def main():
                   'src_path' : cxml.secondary_disk_path
                 }
 
+    status, net_name = create_netpool_conf(options.ip, options.virt,
+                                           use_existing=False,
+                                           net_name=npool_name)
+    if status != PASS:
+        logger.error('Unable to create network pool')
+        return FAIL
+
+
     nasd = vsms.get_nasd_class(options.virt)(type=ntype,
                                              mac=nmac,
                                              name=default_dom,
-                                             virt_net=npool_name)
+                                             virt_net=net_name)
 
     net_attr = { 'ntype' : ntype,
-                 'net_name' : npool_name,
+                 'net_name' : net_name,
                  'nmac' : nmac
                }
 
@@ -92,13 +102,13 @@ def main():
         ret = cxml.define(options.ip)
         if not ret:
             logger.error("Failed to define the dom: %s", default_dom)
-            cleanup_env(options.ip, options.virt, cxml)
+            cleanup_env(options.ip, options.virt, cxml, net_name)
             return FAIL
         if case == "start":
             ret = cxml.start(options.ip)
             if not ret:
                 logger.error("Failed to start the dom: %s", default_dom)
-                cleanup_env(options.ip, options.virt, cxml)
+                cleanup_env(options.ip, options.virt, cxml, net_name)
                 return FAIL
 
         status = vsms_util.add_disk_res(options.ip, service, cxml, vssd_ref,
@@ -111,7 +121,7 @@ def main():
         if status != PASS:
             break
 
-    cleanup_env(options.ip, options.virt, cxml)
+    cleanup_env(options.ip, options.virt, cxml, net_name)
 
     return status
 
