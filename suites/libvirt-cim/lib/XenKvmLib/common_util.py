@@ -136,7 +136,7 @@ def verify_err_desc(exp_rc, exp_desc, err_no, err_desc):
         return PASS
     else:
         logger.error("Unexpected rc code %s and description %s\n", 
-                      (err_no, err_desc))
+                     err_no, err_desc)
         return FAIL
 
 def call_request_state_change(domain_name, ip, rs, time, virt='Xen'):
