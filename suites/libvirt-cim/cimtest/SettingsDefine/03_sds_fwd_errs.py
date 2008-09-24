@@ -161,30 +161,30 @@ test_mac = "00:11:22:33:44:aa"
 test_vcpus = 1
 
 expr_values = {
-    "INVALID_DevID_Keyname"   : { 'rc'   : pywbem.CIM_ERR_FAILED, \
-                     'desc' : 'No DeviceID specified' }, \
-    "INVALID_DevID_Keyval"    : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                     'desc' : 'No such instance (INVALID_DevID_Keyval)'}, \
-    "INVALID_CCName_Keyname"  : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                     'desc' : 'No such instance (CreationClassName)'}, \
-    "INVALID_CCName_Keyval"   : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                     'desc' : 'No such instance (CreationClassName)'}, \
-    "INVALID_SCCName_Keyname" : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                     'desc' : 'No such instance (SystemCreationClassName)'}, \
-    "INVALID_SCCName_Keyval"  : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                     'desc' : 'No such instance (SystemCreationClassName)'}, \
-    "INVALID_SysName_Keyname" : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                     'desc' : 'No such instance (SystemName)'}, \
-    "INVALID_SysName_Keyval"  : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
+    "INVALID_DevID_Keyname"   : { 'rc'   : pywbem.CIM_ERR_FAILED, 
+                     'desc' : 'No DeviceID specified' }, 
+    "INVALID_DevID_Keyval"    : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
+                     'desc' : 'No such instance (bad id INVALID_DevID_Keyval)'}, 
+    "INVALID_CCName_Keyname"  : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
+                     'desc' : 'No such instance (CreationClassName)'}, 
+    "INVALID_CCName_Keyval"   : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
+                     'desc' : 'No such instance (CreationClassName)'}, 
+    "INVALID_SCCName_Keyname" : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
+                     'desc' : 'No such instance (SystemCreationClassName)'}, 
+    "INVALID_SCCName_Keyval"  : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
+                     'desc' : 'No such instance (SystemCreationClassName)'}, 
+    "INVALID_SysName_Keyname" : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
+                     'desc' : 'No such instance (SystemName)'}, 
+    "INVALID_SysName_Keyval"  : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
                      'desc' : 'No such instance (SystemName)'}
 }
 
 def get_name_val(classname, device_id, sccn):
     devid = "%s/%s" % (test_dom, device_id)
     name_val = [
-                'DeviceID'                , devid, \
-                'CreationClassName'       , classname, \
-                'SystemCreationClassName' , sccn, \
+                'DeviceID'                , devid, 
+                'CreationClassName'       , classname, 
+                'SystemCreationClassName' , sccn, 
                 'SystemName'              , test_dom
                ]
     return name_val
@@ -197,8 +197,8 @@ def try_invalid_assoc(classname, name_val, i, field, virt):
         k = j * 2
         keys[name_val[k]] = name_val[k+1]
     ac_classname = get_typed_class(virt, 'SettingsDefineState')
-    ret_val = try_assoc(conn, classname, ac_classname, keys, field_name=field, \
-                              expr_values=expr_values[field], bug_no='')
+    ret_val = try_assoc(conn, classname, ac_classname, keys, field_name=field, 
+                        expr_values=expr_values[field], bug_no='')
     if ret_val != PASS:
         logger.error("------ FAILED: %s------" % field)
     name_val[i] = temp
@@ -227,8 +227,8 @@ def main():
         return FAIL
 
     global conn
-    conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, \
-                                                        CIM_PASS), CIM_NS)
+    conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, 
+                                  CIM_PASS), CIM_NS)
     if options.virt == 'LXC':
         class_id = {get_typed_class(options.virt, 'Memory')      : 'mem'}
     else:
@@ -240,9 +240,9 @@ def main():
                    }
 
     tc_scen = [
-                'INVALID_DevID_Keyname',   'INVALID_DevID_Keyval', \
-                'INVALID_CCName_Keyname',  'INVALID_CCName_Keyval', \
-                'INVALID_SCCName_Keyname', 'INVALID_SCCName_Keyval', \
+                'INVALID_DevID_Keyname',   'INVALID_DevID_Keyval', 
+                'INVALID_CCName_Keyname',  'INVALID_CCName_Keyval', 
+                'INVALID_SCCName_Keyname', 'INVALID_SCCName_Keyval', 
                 'INVALID_SysName_Keyname', 'INVALID_SysName_Keyval'
               ]
 

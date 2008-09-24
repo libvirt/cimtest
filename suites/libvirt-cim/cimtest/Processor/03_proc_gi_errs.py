@@ -141,7 +141,8 @@ expr_values = {
     "invalid_devid_keyname"  : {'rc'   : pywbem.CIM_ERR_FAILED, 
                                 'desc' : "No DeviceID specified" }, 
     "invalid_devid_keyvalue" : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
-                                'desc' : "No such instance (INVALID_DevID_Keyvalue)" }, 
+                                'desc' : "No such instance "\
+                                         "(bad id INVALID_DevID_Keyvalue)" }, 
     "invalid_sccname"        : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
                                 'desc' : "No such instance (SystemCreationClassName)" }, 
     "invalid_sysname"        : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
@@ -161,8 +162,8 @@ def try_invalid_gi(i, field1, field2):
         k = j * 2
         keys[name_val[k]] = name_val[k+1]
 
-    ret_value = try_getinstance(conn, classname, keys, field_name=field1, \
-                             expr_values=expr_values[field2], bug_no="")
+    ret_value = try_getinstance(conn, classname, keys, field_name=field1, 
+                                expr_values=expr_values[field2], bug_no="")
     if ret_value != PASS:
         logger.error("------ FAILED: %s------" % field1)
     name_val[i] = temp

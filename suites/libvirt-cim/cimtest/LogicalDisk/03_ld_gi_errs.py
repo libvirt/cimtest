@@ -138,15 +138,16 @@ from XenKvmLib.const import do_main
 sup_types = ['Xen', 'KVM', 'XenFV']
 
 expr_values = {
-    "invalid_ccname"         : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                'desc' : "No such instance (CreationClassName)" }, \
-    "invalid_devid_keyname"  : {'rc'   : pywbem.CIM_ERR_FAILED, \
-                                'desc' : "No DeviceID specified" }, \
-    "invalid_devid_keyvalue" : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                'desc' : "No such instance (INVALID_DevID_Keyvalue)" },\
-    "invalid_sccname"        : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                'desc' : "No such instance (SystemCreationClassName)" },\
-    "invalid_sysname"        : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
+    "invalid_ccname"         : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
+                                'desc' : "No such instance (CreationClassName)" }, 
+    "invalid_devid_keyname"  : {'rc'   : pywbem.CIM_ERR_FAILED, 
+                                'desc' : "No DeviceID specified" }, 
+    "invalid_devid_keyvalue" : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
+                                'desc' : "No such instance "\
+                                         "(bad id INVALID_DevID_Keyvalue)" },
+    "invalid_sccname"        : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
+                                'desc' : "No such instance (SystemCreationClassName)" },
+    "invalid_sysname"        : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
                                 'desc' : "No such instance (SystemName)" }
               }
 
@@ -157,13 +158,13 @@ def try_invalid_gi(i, field1, field2):
     temp = name_val[i]
     name_val[i] = field1
     keys = {
-                name_val[0] : name_val[1], \
-                name_val[2] : name_val[3], \
-                name_val[4] : name_val[5], \
+                name_val[0] : name_val[1], 
+                name_val[2] : name_val[3], 
+                name_val[4] : name_val[5], 
                 name_val[6] : name_val[7]
             }
-    ret_value = try_getinstance(conn, classname, keys, field_name=field1, \
-                             expr_values=expr_values[field2], bug_no="")
+    ret_value = try_getinstance(conn, classname, keys, field_name=field1, 
+                                expr_values=expr_values[field2], bug_no="")
     if ret_value != PASS:
         logger.error("------ FAILED: %s------" % field1)
     name_val[i] = temp
@@ -208,19 +209,19 @@ def main():
 
     global name_val
     name_val = [
-                'CreationClassName',       disk.CreationClassName, \
-                'DeviceID',                disk.DeviceID, \
-                'SystemCreationClassName', disk.SystemCreationClassName, \
+                'CreationClassName',       disk.CreationClassName, 
+                'DeviceID',                disk.DeviceID, 
+                'SystemCreationClassName', disk.SystemCreationClassName, 
                 'SystemName',              disk.SystemName
               ]
 
-    tc_scen = { 'INVALID_CCName_Keyname'   : 'invalid_ccname', \
-                'INVALID_CCName_Keyvalue'  : 'invalid_ccname', \
-                'INVALID_DevID_Keyname'    : 'invalid_devid_keyname', \
-                'INVALID_DevID_Keyvalue'   : 'invalid_devid_keyvalue', \
-                'INVALID_SCCName_Keyname'  : 'invalid_sccname', \
-                'INVALID_SCCName_Keyvalue' : 'invalid_sccname', \
-                'INVALID_SysName_Keyname'  : 'invalid_sysname', \
+    tc_scen = { 'INVALID_CCName_Keyname'   : 'invalid_ccname', 
+                'INVALID_CCName_Keyvalue'  : 'invalid_ccname', 
+                'INVALID_DevID_Keyname'    : 'invalid_devid_keyname', 
+                'INVALID_DevID_Keyvalue'   : 'invalid_devid_keyvalue', 
+                'INVALID_SCCName_Keyname'  : 'invalid_sccname', 
+                'INVALID_SCCName_Keyvalue' : 'invalid_sccname', 
+                'INVALID_SysName_Keyname'  : 'invalid_sysname', 
                 'INVALID_SysName_Keyvalue' : 'invalid_sysname'
               }
 
