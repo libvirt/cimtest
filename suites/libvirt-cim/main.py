@@ -27,6 +27,7 @@ import os
 import sys
 sys.path.append('../../lib')
 import TestSuite
+from CimTest.Globals import logger, log_param
 import commands
 from VirtLib import groups
 import ConfigParser
@@ -189,6 +190,7 @@ def main():
             return 1
          
     testsuite = TestSuite.TestSuite(log=True)
+    log_param(file_name=testsuite.log_file)
    
     set_python_path()
 
@@ -214,6 +216,7 @@ def main():
     status = setup_env(options.ip, options.virt)
     if status != PASS:
         print "Please check your environment.\n"
+        testsuite.finish()
         return 1
 
     print "\nTesting " + options.virt + " hypervisor"

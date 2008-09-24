@@ -428,10 +428,11 @@ def create_netpool_conf(server, virt, use_existing=False,
                 test_network = vir_network[0]
 
         if test_network == None:
-            cmd = "virsh -c %s net-list --all | grep %s" % \
+            cmd = "virsh -c %s net-list --all | grep -w %s" % \
                   (utils.virt2uri(virt), net_name)
             ret, out = utils.run_remote(server, cmd)
-            if out != "":
+            # If success, network pool with name net_name already exists
+            if ret == 0:
                 logger.error("Network pool with name '%s' already exists",
                               net_name)
                 return FAIL, "Unknown" 
