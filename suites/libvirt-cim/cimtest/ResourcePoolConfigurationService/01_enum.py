@@ -25,6 +25,7 @@
 import sys
 from XenKvmLib import enumclass
 from XenKvmLib import rpcs
+from XenKvmLib.common_util import check_sblim
 from CimTest import Globals
 from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import logger
@@ -39,12 +40,16 @@ def main():
     server = options.ip
     classname =  get_typed_class(options.virt, "ResourcePoolConfigurationService")
     keys = ['Name', 'CreationClassName']
-    try:
-        host_sys = enumclass.enumerate(server, 'HostSystem', keys, options.virt)[0]
-    except Exception:
-        host_cn = get_typed_class(options.virt, "HostSystem")
-        logger.error(Globals.CIM_ERROR_ENUMERATE % host_cn)
-        return FAIL
+    status, linux_cs = check_sblim(options.ip, options.virt)
+    if status == PASS:
+        host_sys = linux_cs
+    else:
+        try:
+            host_sys = enumclass.enumerate(server, 'HostSystem', keys, options.virt)[0]
+        except Exception:
+            host_cn = get_typed_class(options.virt, "HostSystem")
+            logger.error(Globals.CIM_ERROR_ENUMERATE % host_cn)
+            return FAIL
 
     try:
         rpcservice = rpcs.enumerate(server, classname)

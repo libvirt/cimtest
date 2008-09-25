@@ -29,6 +29,7 @@ import sys
 import pywbem
 from CimTest.ReturnCodes import PASS
 from XenKvmLib import assoc
+from XenKvmLib.common_util import check_sblim
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from XenKvmLib.common_util import get_host_info, try_getinstance
 from XenKvmLib.const import do_main
@@ -237,10 +238,15 @@ def main():
     conn = assoc.myWBEMConnection('http://%s' % options.ip, 
                                   (CIM_USER, CIM_PASS), CIM_NS)
     virt = options.virt
-    status, hostname, sccname = get_host_info(server, virt)
-    if status != PASS:
-        logger.error("Problem getting host information")
-        return status
+    status, linux_cs = check_sblim(options.ip, options.virt)
+    if status == PASS:
+        hostname = linux_cs.Name
+        sccname = linux_cs.CreationClassName
+    else:
+        status, hostname, sccname = get_host_info(server, virt)
+        if status != PASS:
+            logger.error("Problem getting host information")
+            return status
     classname = get_typed_class(virt, 'ResourcePoolConfigurationService')
     ret_value = err_invalid_ccname_keyname(conn, classname, hostname, sccname, \
                                                  field='INVALID_CCName_KeyName') 
