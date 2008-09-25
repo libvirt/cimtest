@@ -28,6 +28,7 @@
 import sys
 import pywbem
 from XenKvmLib import assoc
+from XenKvmLib.common_util import check_sblim
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from CimTest.ReturnCodes import PASS
 from XenKvmLib.common_util import try_getinstance
@@ -231,7 +232,12 @@ def main():
     conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, CIM_PASS), CIM_NS)
     ccn  = get_typed_class(options.virt, "VirtualSystemSnapshotService")
     name = "SnapshotService"
-    status, sys_name, sccn = get_host_info(options.ip, options.virt)
+    status, linux_cs = check_sblim(options.ip, options.virt)
+    if status == PASS:
+        sys_name = linux_cs.Name
+        sccn = linux_cs.CreationClassName
+    else:
+        status, sys_name, sccn = get_host_info(options.ip, options.virt)
     if status != PASS:
         return status
     field = 'INVALID_CCName'

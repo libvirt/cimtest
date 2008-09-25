@@ -23,6 +23,7 @@
 #                                                         Date: 25-03-2008
 import sys
 from XenKvmLib import enumclass
+from XenKvmLib.common_util import check_sblim
 from CimTest.Globals import CIM_ERROR_ENUMERATE, logger
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.const import do_main
@@ -40,9 +41,14 @@ def main():
     # Expected results from enumeration
     cn     =  get_typed_class(options.virt, "VirtualSystemSnapshotService")
     Name   = 'SnapshotService'
-    status, host_name, classname = get_host_info(options.ip, options.virt)
-    if status != PASS:
-        return status
+    status, linux_cs = check_sblim(options.ip, options.virt)
+    if status == PASS:
+        host_name = linux_cs.Name
+        classname = linux_cs.CreationClassName
+    else:
+        status, host_name, classname = get_host_info(options.ip, options.virt)
+        if status != PASS:
+            return status
     try:
         vs_sservice = enumclass.enumerate_inst(options.ip,
                                                "VirtualSystemSnapshotService",
