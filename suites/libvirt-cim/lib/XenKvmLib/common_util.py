@@ -27,7 +27,8 @@ from time import sleep
 from distutils.file_util import move_file
 from XenKvmLib.test_xml import * 
 from XenKvmLib.test_doms import * 
-from XenKvmLib import vsms 
+from XenKvmLib import vsms
+from CimTest import Globals 
 from XenKvmLib import enumclass 
 from pywbem.cim_obj import CIMInstanceName
 from XenKvmLib.devices import CIM_Instance
@@ -477,4 +478,23 @@ def libvirt_cached_data_poll(ip, virt, dom_name):
 
             sleep(1)
             
-    return cs 
+    return cs
+
+def check_sblim(server, virt='Xen'):
+    status = FAIL
+    Globals.CIM_NS = 'root/cimv2'
+    keys = ['Name', 'CreationClassName']
+    linux_cs = None
+    try:
+        linux = enumclass.enumerate(server, 'ComputerSystem', keys, 'Linux')
+        if len(linux) == 1:
+            status = PASS
+            linux_cs = linux[0]
+        else:
+            logger.info("Enumerate of Linux_ComputerSystem return NULL")
+    except Exception, detail:
+        logger.error(CIM_ERROR_ENUMERATE, 'Linux_ComputerSystem')
+        logger.error("Exception: %s", detail)
+
+    Globals.CIM_NS = 'root/virt'
+    return status, linux_cs 

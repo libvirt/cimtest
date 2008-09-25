@@ -64,6 +64,23 @@ class CIM_MyClass(CIM_Instance):
         else:
             return CimExt._Method(self.__invoke, attr)
 
+class Linux_ComputerSystem(CIM_Instance):
+    def __init__(self, server, keys):
+        conn = pywbem.WBEMConnection('http://%s' % server,
+                                     (Globals.CIM_USER, Globals.CIM_PASS),
+                                     Globals.CIM_NS)
+
+        try:
+            classname = self.__class__.__name__
+            ref = CIMInstanceName(classname,
+                                  keybindings=keys)
+            inst = conn.GetInstance(ref)
+        except pywbem.CIMError, arg:
+            raise arg
+
+        CIM_Instance.__init__(self, inst)
+
+
 class CIM_ComputerSystem(CIM_MyClass):
     pass
 

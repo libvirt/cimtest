@@ -22,10 +22,6 @@
 virt_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 def get_typed_class(virt, basename):
-    if virt not in virt_types:
-        if virt != "Virt" and basename != "MigrationJob":
-            raise ValueError('Invalid class type')
-
     if basename == None or basename == '':
         raise ValueError('Invalide class base name')
 
