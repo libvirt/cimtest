@@ -210,18 +210,32 @@ def get_host_info(server, virt="Xen"):
     host_name = ''
     host_ccn  = ''
     keys = ['Name', 'CreationClassName']
-    try :
-        host_sys = enumclass.enumerate(server, 'HostSystem', keys, virt)
-        if host_sys[0].Name == "":
+
+    try:
+
+        # This following modification is req to accomadate the 
+        # sblim-base-provider provider related changes
+
+        ret, linux_cs = check_sblim(server)
+        host_info = enumclass.enumerate(server, 'HostSystem', keys, virt)
+        if ret == PASS:
+            host_sys = linux_cs
+        elif len(host_info) == 1:
+            host_sys = host_info[0]
+        else:
+            logger.error("Error in getting HostSystem information, Exiting...")
+            return FAIL,  host_name, host_ccn
+
+        if host_sys.Name == "":
             logger.error("HostName seems to be empty")
             status = FAIL
         else:
-        # Instance of the HostSystem
-            host_sys = host_sys[0]
+            # Instance of the HostSystem
             host_ccn = host_sys.CreationClassName
             host_name = host_sys.Name
-    except Exception, detail:
-        logger.error(CIM_ERROR_ENUMERATE, 'HostSystem')
+
+    except Exception,detail:
+        logger.error(CIM_ERROR_ENUMERATE, 'Hostsystem')
         logger.error("Exception: %s", detail)
         status = FAIL
     return status, host_name, host_ccn
