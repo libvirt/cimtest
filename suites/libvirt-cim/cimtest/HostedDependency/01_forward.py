@@ -31,7 +31,7 @@
 #
 # The output should be a single record and it will look something like this:
 # localhost:5988/root/virt:Xen_HostSystem.CreationClassName="Xen_HostSystem",
-# Name="mx3650b.in.ibm.com"
+# Name="x3650"
 # ......
 # -CommunicationStatus
 # -CreationClassName="Xen_HostSystem"
@@ -50,9 +50,10 @@ from XenKvmLib import vxml
 from XenKvmLib import assoc
 from XenKvmLib import enumclass
 from XenKvmLib.classes import get_class_basename
-from CimTest import Globals
+from CimTest.Globals import CIM_ERROR_ENUMERATE, CIM_ERROR_ASSOCIATORS, logger
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
+from XenKvmLib.common_util import get_host_info
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
@@ -62,81 +63,78 @@ test_mac = "00:11:22:33:44:55"
 @do_main(sup_types)
 def main():
     options = main.options
+    server = options.ip
+    virt   = options.virt
     status = PASS
 
-    virtxml = vxml.get_class(options.virt)
-    if options.virt == "LXC":
+    virtxml = vxml.get_class(virt)
+    if virt == "LXC":
         cxml = virtxml(test_dom)
     else:
         cxml = virtxml(test_dom, mac = test_mac)
-    ret = cxml.define(options.ip)
+    ret = cxml.define(server)
     if not ret:
-        Globals.logger.error("Failed to Create the dom: %s", test_dom)
+        logger.error("Failed to define the dom: %s", test_dom)
         status = FAIL
         return status
-    keys = ['Name', 'CreationClassName']
-    try:
-        host = enumclass.enumerate(options.ip, 'HostSystem', keys, options.virt)[0]
-    except Exception,detail:
-        Globals.logger.error(Globals.CIM_ERROR_ENUMERATE, 'Hostsystem')
-        Globals.logger.error("Exception: %s", detail)
-        status = FAIL
-        cxml.undefine(options.ip)
+
+    status, host_name, host_ccn = get_host_info(server, virt)
+    if status != PASS:
+        cxml.undefine(server)
         return status
-    
+
     keys = ['Name', 'CreationClassName']
     try: 
-        cs = enumclass.enumerate(options.ip, 'ComputerSystem', keys, options.virt)
+        cs = enumclass.enumerate(server, 'ComputerSystem', keys, virt)
     except Exception,detail:
-        Globals.logger.error(Globals.CIM_ERROR_ENUMERATE, 'ComputerSystem')
-        Globals.logger.error("Exception: %s", detail)
-        status = FAIL
-        cxml.undefine(options.ip)
-        return status
+        logger.error(CIM_ERROR_ENUMERATE, 'ComputerSystem')
+        logger.error("Exception: %s", detail)
+        cxml.undefine(server)
+        return FAIL
     
     hs_cn = "HostedDependency"
     try:
         for system in cs:
             ccn = get_class_basename(system.CreationClassName)
-            hs = assoc.Associators(options.ip, hs_cn, ccn, options.virt,
+            hs = assoc.Associators(server, hs_cn, ccn, virt,
                                    CreationClassName=system.CreationClassName,
                                    Name=system.name)
 
             if not hs:
-                cxml.undefine(options.ip)
-                Globals.logger.error("HostName seems to be empty")
+                cxml.undefine(server)
+                logger.error("HostName seems to be empty")
                 status = FAIL
                 break
 
             if len(hs) != 1:
                 test =  "(len(hs), system.name)"
-                Globals.logger.error("HostedDependency returned %i HostSystem \
-objects for domain '%s'", len(hs), system.name)
+                logger.error("'%s' returned %i HostSystem " 
+                             "objects for domain '%s'", 
+                              hs_cn, len(hs), system.name)
                 status = FAIL
                 break
 
             cn = hs[0]["CreationClassName"]
             sn = hs[0]["Name"]
 
-            if cn != host.CreationClassName:
-                Globals.logger.error("CreationClassName does not match")
+            if cn != host_ccn:
+                logger.error("CreationClassName does not match")
                 status = FAIL
                 
-            if sn != host.Name:
-                Globals.logger.error("Name does not match")
+            if sn != host_name:
+                logger.error("Name does not match")
                 status = FAIL
 
-            if status != 0:
+            if status != PASS:
                 break
             
     except Exception,detail:
-        Globals.logger.error(Globals.CIM_ERROR_ASSOCIATORS, hs_cn)
-        Globals.logger.error("Exception: %s", detail)
-        status = FAIL
-        cxml.undefine(options.ip)
-        return status
+        logger.error(CIM_ERROR_ASSOCIATORS, hs_cn)
+        logger.error("Exception: %s", detail)
+        cxml.undefine(server)
+        return FAIL
 
-    cxml.undefine(options.ip)
+    cxml.undefine(server)
     return status
     
 if __name__ == "__main__":
