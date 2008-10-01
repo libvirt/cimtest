@@ -29,7 +29,7 @@
 # Example cli command is 
 # wbemcli ain -ac Xen_HostedDependency 
 # 'http://localhost:5988/root/virt:
-# Xen_HostSystem.CreationClassName="Xen_HostSystem",Name="mx3650b.in.ibm.com"'
+# Xen_HostSystem.CreationClassName="Xen_HostSystem",Name="3650b"'
 #
 # For which we get the following output
 # localhost:5988/root/virt:Xen_ComputerSystem.
@@ -45,44 +45,53 @@ from VirtLib import utils
 from XenKvmLib import vxml
 from XenKvmLib import enumclass
 from XenKvmLib import assoc
-from XenKvmLib.classes import get_class_basename
+from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
-from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
+from XenKvmLib.common_util import get_host_info, call_request_state_change
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom = "hd_domain"
 test_mac = "00:11:22:33:44:55"
+TIME = "00000000000000.000000:000"
+bug_sblim = "00007"
 
 @do_main(sup_types)
 def main():
     options = main.options
+    virt = options.virt
+    server = options.ip
     status = PASS
 
-    virtxml = vxml.get_class(options.virt)
-    if options.virt == "LXC":
+    virtxml = vxml.get_class(virt)
+    if virt == "LXC":
        cxml = virtxml(test_dom)
     else:
        cxml = virtxml(test_dom, mac = test_mac)
-    ret = cxml.create(options.ip)
 
+    ret = cxml.cim_define(server)
     if not ret:
-        logger.error("ERROR: Failed to Create the dom: %s" % test_dom)
-        status = FAIL
-        return status
-    keys = ['Name', 'CreationClassName']
+        logger.error("Failed to define the dom: %s" % test_dom)
+        return FAIL
+
+    rc = call_request_state_change(test_dom, server, 2, TIME, virt)
+    if rc != 0:
+        logger.error("Failed to start the dom: %s" % test_dom)
+        cxml.undefine(server)
+        return FAIL
+
     try:
-        host_sys = enumclass.enumerate(options.ip, 'HostSystem', keys, options.virt)
-        if host_sys[0].Name == "":
-            raise Exception("HostName seems to be empty")
-        else:
-        # Instance of the HostSystem
-            host_sys = host_sys[0]
+        status, host_name, host_ccn = get_host_info(server, virt)
+        if status != PASS:
+            cxml.destroy(server)
+            cxml.undefine(server)
+            return status
 
         keys = ['Name', 'CreationClassName']
-        cs = enumclass.enumerate(options.ip, 'ComputerSystem', keys, options.virt)
-        if options.virt == 'Xen' or options.virt == 'XenFV':
+        cs = enumclass.enumerate(server, 'ComputerSystem', keys, virt)
+        if virt == 'Xen' or options.virt == 'XenFV':
             # Xen honors additional domain-0
             cs_list_len = 2
         else:
@@ -94,19 +103,23 @@ def main():
         # ComputerSystem.EnumerateInstances()
         cs_names = [x.name for x in cs]
 
+        assoc_cn = get_typed_class(virt, "HostedDependency")   
+         
         # Get a list of ComputerSystem instances from the HostSystem instace
-        host_ccn = host_sys.CreationClassName
-        systems = assoc.AssociatorNames(options.ip, "HostedDependency",
-                                        get_class_basename(host_ccn), 
-                                        options.virt,
+        systems = assoc.AssociatorNames(server, assoc_cn, host_ccn,
                                         CreationClassName=host_ccn,
-                                        Name=host_sys.Name)
+                                        Name=host_name)
+
 
         # Compare each returned instance to make sure it's in the list
         # that ComputerSystem.EnumerateInstances() returned
         if len(systems) < 1:
-            raise Exception("HostedDependency returned %d, expected at least 1" %
-                            len(systems))
+            logger.error("HostedDependency returned %d, expected at least 1",
+                          len(systems))
+            cxml.destroy(server)
+            cxml.undefine(server)
+            return XFAIL_RC(bug_sblim)
+            
 
         ccn = cs[0].CreationClassName
         for guest in systems:
@@ -119,7 +132,7 @@ def main():
 
         # checking the CreationClassName returned is Xen_ComputerSystem
             if ccn != guest["CreationClassName"]:
-                logger.error("ERROR: CreationClassName does not match")
+                logger.error("CreationClassName does not match")
                 status = FAIL
 
         # Go through anything remaining in the
@@ -131,15 +144,12 @@ def main():
                          guest["Name"])
             status = FAIL
             
-    except (UnboundLocalError, NameError), detail:
-        logger.error("Exception: %s" % detail)
-    
     except Exception, detail:
-        logger.error(detail)
+        logger.error("Exception: %s", detail)
         status = FAIL
 
-    cxml.destroy(options.ip)
-    cxml.undefine(options.ip)
+    cxml.destroy(server)
+    cxml.undefine(server)
     return status
 
 if __name__ == "__main__":
