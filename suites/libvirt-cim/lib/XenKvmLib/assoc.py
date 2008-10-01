@@ -30,68 +30,44 @@ from XenKvmLib.classes import get_typed_class
 from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import logger
 
-def AssociatorNames(host, basetype, baseobj, virt="Xen", **keys):
+def AssociatorNames(host, assoc_cn, classname, **keys):
     '''Resolve the association specified by @type, given the
     known @obj and @keys. 
     Return a list of CIMInstanceName objects, if an valid
     @keys is provided, or CIMClassName objects, if no 
     @keys is provided, or None on failure'''
 
-    #FIXME - Remove once all tests are converted for KVM
-    basetype = "%s" % basetype
-    type = basetype.split('_')
-    if len(type) == 2:
-        basetype = type[1]
-
-    obj = baseobj.split('_')
-    if len(type) == 2:
-        baseobj = obj[1]
-
-    type = get_typed_class(virt, basetype)
-    obj = get_typed_class(virt, baseobj)
     conn = myWBEMConnection('http://%s' % host,
                             (Globals.CIM_USER, Globals.CIM_PASS),
                             Globals.CIM_NS)
-    instanceref = CIMInstanceName(obj, keybindings=keys)
+    instanceref = CIMInstanceName(classname, keybindings=keys)
     
     names = []
 
     try:
-        names = conn.AssociatorNames(instanceref, AssocClass=type)
+        names = conn.AssociatorNames(instanceref, AssocClass=assoc_cn)
     except pywbem.CIMError, arg:
         print arg[1]
         return names
     
     return names
 
-def Associators(host, basetype, baseobj, virt="Xen", **keys):
+def Associators(host, assoc_cn, classname, **keys):
     '''Resolve the association specified by @type, given the
     known @obj and @keys. 
     Return a list of CIMInstanceName objects, if an valid
     @keys is provided, or CIMClassName objects, if no 
     @keys is provided, or None on failure'''
 
-    #FIXME - Remove once all tests are converted for KVM
-    basetype = "%s" % basetype
-    type = basetype.split('_')
-    if len(type) == 2:
-        basetype = type[1]
-
-    obj = baseobj.split('_')
-    if len(obj) == 2:
-        baseobj = obj[1]
-
-    type = get_typed_class(virt, basetype)
-    obj = get_typed_class(virt, baseobj)
     conn = myWBEMConnection('http://%s' % host,
                             (Globals.CIM_USER, Globals.CIM_PASS),
                             Globals.CIM_NS)
-    instanceref = CIMInstanceName(obj, keybindings=keys)
+    instanceref = CIMInstanceName(classname, keybindings=keys)
     
     names = []
 
     try:
-        names = conn.Associators(instanceref, AssocClass=type)
+        names = conn.Associators(instanceref, AssocClass=assoc_cn)
     except pywbem.CIMError, arg:
         print arg[1]
 
