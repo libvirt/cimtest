@@ -49,7 +49,7 @@
 
 import sys
 from VirtLib import utils
-from XenKvmLib.enumclass import getInstance 
+from XenKvmLib.enumclass import GetInstance
 from XenKvmLib.assoc import Associators, compare_all_prop
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS
@@ -62,13 +62,13 @@ sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 test_dom = "esd_dom"
 vmac = "00:11:22:33:44:aa"
 
-def get_inst(ip, virt, cn, key):
+def get_inst(ip, cn, key):
     inst = None 
 
     try:
         key_list = {"InstanceID" : key }
 
-        inst = getInstance(ip, cn, key_list, virt)
+        inst = GetInstance(ip, cn, key_list)
 
     except Exception, details:
         logger.error("Exception %s" % details)
@@ -143,7 +143,8 @@ def main():
     inst_list = {}
 
     for cn, k in keys.iteritems():
-        inst_list[cn] = get_inst(options.ip, options.virt, cn, k)
+        classname = get_typed_class(options.virt, cn);
+        inst_list[cn] = get_inst(options.ip, classname, k)
         if inst_list[cn] is None:
             cxml.undefine(options.ip)
             return FAIL 
