@@ -26,42 +26,40 @@
 #
 
 import sys
-from VirtLib.live import virsh_version
-from XenKvmLib import enumclass
+from XenKvmLib.enumclass import EnumInstances 
 from XenKvmLib.const import do_main, platform_sup
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from CimTest.ReturnCodes import PASS, FAIL
-from XenKvmLib.const import default_pool_name
+from XenKvmLib.common_util import cleanup_restore 
+from XenKvmLib.classes import get_typed_class
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
-def enum_pools_and_ac(ip, virt, cn):
+def enum_pools_and_ac(ip, ac_cn, p_names):
     pools = {}
     ac = []
 
-    pt = ['MemoryPool', 'ProcessorPool', 'DiskPool', 'NetworkPool']
-
     try:
-        key = ["InstanceID"]
-        ac = enumclass.enumerate(ip, cn, key, virt)
+        ac = EnumInstances(ip, ac_cn)
 
-        for p in pt:
-            enum_list = enumclass.enumerate(ip, p, key, virt)
+        for p_cn in p_names:
+            
+            enum_list = EnumInstances(ip, p_cn)
 
             if len(enum_list) < 1:
-                logger.error("%s did not return any instances" % p)
+                logger.error("%s did not return any instances" % p_cn)
                 return pools, ac 
 
             for pool in enum_list:
                 pools[pool.InstanceID] = pool 
 
     except Exception, details:
-        logger.error(CIM_ERROR_ENUMERATE, cn)
+        logger.error(CIM_ERROR_ENUMERATE, ac_cn)
         logger.error(details)
         return pools, ac 
 
     if len(ac) != len(pools):
-        logger.error("%s returned %s instances, expected %s" % (cn, len(ac), 
+        logger.error("%s returned %s instances, expected %s" % (ac_cn, len(ac), 
                      len(pools)))
     return pools, ac 
 
@@ -85,9 +83,13 @@ def compare_pool_to_ac(ac, pools, cn):
 def main():
     options = main.options
 
-    cn = 'AllocationCapabilities'
+    cn = get_typed_class(options.virt, 'AllocationCapabilities')
+    pt = [get_typed_class(options.virt, 'MemoryPool'), 
+          get_typed_class(options.virt, 'ProcessorPool'), 
+          get_typed_class(options.virt, 'DiskPool'), 
+          get_typed_class(options.virt, 'NetworkPool')]
 
-    pools, ac = enum_pools_and_ac(options.ip, options.virt, cn)
+    pools, ac = enum_pools_and_ac(options.ip, cn, pt)
     if len(pools) < 4:
         logger.error("Only %d pools returned, expected at least 4" % len(pools))
         cleanup_restore(options.ip, options.virt)
