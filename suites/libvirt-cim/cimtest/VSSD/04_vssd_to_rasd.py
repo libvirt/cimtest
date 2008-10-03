@@ -145,12 +145,14 @@ def get_rasd_values_from_vssdc_assoc(vssd_values):
     qcn       = vssd_values[0].classname
     assoc_cname = get_typed_class(virt, 'VirtualSystemSettingDataComponent')
     try:
-        vssdc_assoc_info = assoc.Associators(server, assoc_cname, qcn, virt, InstanceID = instIdval)
+        vssdc_assoc_info = assoc.Associators(server, assoc_cname, qcn, 
+                                             InstanceID = instIdval)
         if len(vssdc_assoc_info) == 1 and \
            vssdc_assoc_info[0].classname == 'LXC_MemResourceAllocationSettingData':
            logger.info("%s returned expect objects" % assoc_cname)
         elif len(vssdc_assoc_info) < 4:
-            logger.error("%s returned %i %s objects, expected 4" % (assoc_cname, len(vssdc_assoc_info), qcn))
+            logger.error("%s returned %i %s objects, expected 4", 
+                         assoc_cname, len(vssdc_assoc_info), qcn)
             status = FAIL
             
     except  Exception, details:

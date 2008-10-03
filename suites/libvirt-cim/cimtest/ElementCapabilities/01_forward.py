@@ -31,6 +31,7 @@ from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES, \
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from XenKvmLib.enumclass import enumerate
+from XenKvmLib.common_util import get_host_info
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
@@ -60,22 +61,21 @@ def main():
     options = main.options
     server = options.ip
     virt = options.virt
-    keys = ['Name', 'CreationClassName']
-    try:
-        host_sys = enumclass.enumerate(server, 'HostSystem', keys, virt)[0]
-    except Exception:
-        logger.error(CIM_ERROR_ENUMERATE, get_typed_class(virt, 'HostSystem'))
-        return FAIL
+
+    status, host_name, host_ccn = get_host_info(server, virt)
+    if status != PASS:
+        logger.error("Failed to get host info")
+        return status
+
 
     try:
+        an = get_typed_class(virt, "ElementCapabilities")
         elc = assoc.AssociatorNames(server,
-                                     "ElementCapabilities",
-                                     "HostSystem", 
-                                     virt,
-                                     Name = host_sys.Name,
-                                     CreationClassName = host_sys.CreationClassName)
+                                    an, host_ccn,
+                                    Name = host_name,
+                                    CreationClassName = host_ccn)
     except Exception:
-        logger.error(CIM_ERROR_ASSOCIATORNAMES % host_sys.Name)
+        logger.error(CIM_ERROR_ASSOCIATORNAMES, an)
         return FAIL
 
 
@@ -107,10 +107,7 @@ def main():
     for system in cs:  
         try:
 	    elec = assoc.AssociatorNames(server,
-                                         "ElementCapabilities",
-                                         "ComputerSystem",
-                                         virt,
-                                         Name = system,
+                                         an, ccn, Name = system,
                                          CreationClassName = ccn)
   	except Exception:
             logger.error(CIM_ERROR_ASSOCIATORNAMES % system)

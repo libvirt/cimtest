@@ -69,8 +69,8 @@ def get_vssd_ref(ip, virt):
 
     cn = "ComputerSystem"
     ccn = get_typed_class(virt, cn)
-    vssd = AssociatorNames(ip, 'SettingsDefineState', cn, virt=virt,
-                           Name = test_dom, CreationClassName = ccn)
+    an = get_typed_class(virt, 'SettingsDefineState')
+    vssd = AssociatorNames(ip, an, ccn, Name = test_dom, CreationClassName = ccn)
 
     if len(vssd) != 1:
         logger.error("Returned %i vssd insts for '%s'", len(vssd), test_dom)

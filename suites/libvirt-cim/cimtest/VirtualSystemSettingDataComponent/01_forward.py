@@ -167,7 +167,7 @@ def main():
         an = get_typed_class(options.virt, 'VirtualSystemSettingDataComponent')
         for rasd_cname, prop in prop_list.iteritems():
             assoc_info = assoc.Associators(options.ip, an, rasd_cname,
-                                           options.virt, InstanceID = prop)
+                                           InstanceID = prop)
             # Verify the association fields returned for particular rasd_cname.
             status = assoc_values(options.ip, assoc_info, rasd_cname, an, 
                                   vssd)

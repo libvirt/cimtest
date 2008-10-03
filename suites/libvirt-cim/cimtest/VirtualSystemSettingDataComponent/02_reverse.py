@@ -156,10 +156,9 @@ def main():
         instIdval = "%s:%s" % (options.virt, test_dom)
     
     try:
-        assoc_info = assoc.AssociatorNames(options.ip,
-                                           'VirtualSystemSettingDataComponent',
-                                           'VirtualSystemSettingData',
-                                           options.virt,
+        an = get_typed_class(options.virt, 'VirtualSystemSettingDataComponent')
+        cn = get_typed_class(options.virt, 'VirtualSystemSettingData')
+        assoc_info = assoc.AssociatorNames(options.ip, an, cn,
                                            InstanceID = instIdval)
         status = assoc_values(options.ip, assoc_info, options.virt)
     except  Exception, detail :

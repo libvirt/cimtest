@@ -160,8 +160,8 @@ def get_proflist(server, reg_classname, virt):
 
 
 def verify_ectp_assoc(server, virt):
-    reg_classname = "RegisteredProfile"
-    an = "ElementConformsToProfile"
+    reg_classname = get_typed_class(virt, "RegisteredProfile")
+    an = get_typed_class(virt,"ElementConformsToProfile")
 
     status, inst_lst = get_proflist(server, reg_classname, virt)
     if status != PASS:
@@ -174,7 +174,6 @@ def verify_ectp_assoc(server, virt):
             assoc_info = assoc.Associators(server, 
                                            an, 
                                            reg_classname,
-                                           virt,
                                            InstanceID = devid)  
             if len(assoc_info) < 1:
                 status = FAIL
