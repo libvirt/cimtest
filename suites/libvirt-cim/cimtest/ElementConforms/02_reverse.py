@@ -143,10 +143,10 @@ def main():
         for item in inst_list:  
             cn = item.CreationClassName
             name = item.Name
+            an = get_typed_class(options.virt, "ElementConformsToProfile")
             profs = assoc.Associators(options.ip,
-                                      "ElementConformsToProfile",
+                                      an,
                                       cn,
-                                      options.virt, 
                                       CreationClassName=cn,
                                       Name=name)
             if len(profs) != 1:
