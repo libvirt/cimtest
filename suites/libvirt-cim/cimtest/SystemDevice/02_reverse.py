@@ -33,6 +33,7 @@ from XenKvmLib import devices
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL 
+from XenKvmLib.common_util import get_typed_class
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
@@ -70,12 +71,13 @@ def main():
                 continue
 
             try:
-                systems = assoc.AssociatorNames(options.ip,
-                                "SystemDevice", items, virt=options.virt,
-                                DeviceID=dev.DeviceID,
-                                CreationClassName=dev.CreationClassName,
-                                SystemName=dev.SystemName,
-                                SystemCreationClassName=dev.SystemCreationClassName)
+                an = get_typed_class(options.virt, "SystemDevice")
+                cn = dev.CreationClassName
+                systems = assoc.AssociatorNames(options.ip, an, cn, 
+                                                DeviceID=dev.DeviceID,
+                                                CreationClassName=cn,
+                                                SystemName=dev.SystemName,
+                                                SystemCreationClassName=dev.SystemCreationClassName)
             except Exception, detail:
                 logger.error("Exception: %s" % detail)
                 cxml.destroy(options.ip)

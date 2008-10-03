@@ -64,7 +64,6 @@ def main():
     cs_classname = get_typed_class(options.virt, 'ComputerSystem')
 
     devs = assoc.AssociatorNames(options.ip, sd_classname, cs_classname,
-                                 virt=options.virt,
                                  Name=test_dom, CreationClassName=cs_classname)
     if devs == None:
         logger.error("System association failed")

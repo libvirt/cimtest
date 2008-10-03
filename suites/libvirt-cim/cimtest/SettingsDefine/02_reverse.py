@@ -74,10 +74,10 @@ def call_assoc(ip, inst, exp_id, ccn, virt):
         return FAIL
 
     try:
-        associnf = assoc.Associators(ip, 'SettingsDefineState',
-                                     ccn, virt,
-                                     InstanceID = exp_id)
-    except  BaseException, detail :
+        an = get_typed_class(virt, 'SettingsDefineState')
+        ccn = get_typed_class(virt, ccn)
+        associnf = assoc.Associators(ip, an, ccn, InstanceID = exp_id)
+    except  Exception, detail :
         logger.error("Exception  %s "  % detail)
         logger.error("Error while associating Xen_SettingsDefineState with %s" %
                      ccn)
@@ -108,7 +108,7 @@ def VSSDCAssoc(ip, assocn, virt):
                 logger.error("Mistmatching value for VSSDComponent association")
                 break  
 
-    except  BaseException, detail :
+    except  Exception, detail :
         logger.error("Exception in VSSDCAssoc function: %s" % detail)
         status = FAIL
 
@@ -142,7 +142,7 @@ def SettingsDefineStateAssoc(ip, associnfo_setDef, virt):
                 logger.error("Mistmatching value for SettingsDefineState assoc")
                 break  
 
-    except  BaseException, detail :
+    except  Exception, detail :
         logger.error("Exception in SettingsDefineStateAssoc function: %s" 
                      % detail)
         status = FAIL
@@ -201,12 +201,11 @@ def main():
 
     try:
         assocn = assoc.AssociatorNames(options.ip, vssdc_cn, vssd_cn,
-                                       virt = options.virt,
                                        InstanceID = instIdval)
             
         status = VSSDCAssoc(options.ip, assocn, options.virt)
 
-    except  BaseException, detail :
+    except  Exception, detail :
         logger.error(Globals.CIM_ERROR_ASSOCIATORS, vssdc_cn)
         logger.error("Exception : %s" % detail)
         status = FAIL 

@@ -111,9 +111,8 @@ def main():
     for cn in logelelst.keys():
         try:
             ccn = get_typed_class(options.virt, cn)
-            assoc_info = assoc.AssociatorNames(options.ip, 
-                                               'SettingsDefineState',
-                                               cn, virt=options.virt,
+            an = get_typed_class(options.virt, 'SettingsDefineState')
+            assoc_info = assoc.AssociatorNames(options.ip, an, ccn, 
                                                DeviceID = logelelst[cn],
                                                CreationClassName = ccn,
                                                SystemName = test_dom,
