@@ -94,11 +94,12 @@ def main():
     if options.virt == "XenFV":
         options.virt = "Xen"
     try:
+        an = get_typed_class(options.virt, vssdc_cn)
+        cn = get_typed_class(options.virt, vssd_cn)
         instid = '%s:%s' % (options.virt, test_dom)
-        rasd_list = assoc.Associators(options.ip, vssdc_cn, vssd_cn,
-                                      options.virt, InstanceID=instid)
+        rasd_list = assoc.Associators(options.ip, an, cn, InstanceID=instid)
     except Exception:
-        logger.error(CIM_ERROR_ASSOCIATORS, vssdc_cn)
+        logger.error(CIM_ERROR_ASSOCIATORS, an)
         cxml.destroy(options.ip)
         cxml.undefine(options.ip)
         return FAIL

@@ -83,21 +83,22 @@ def get_inst(ip, virt, cn, key):
 
 def test_assoc(host, acn, cn, virt, inst):
     id = inst.InstanceID
-
+    acn = get_typed_class(virt, acn)
+    cn = get_typed_class(virt, cn)
     try:
-        ret_inst = Associators(host, acn, cn, virt, InstanceID=id)
+        ret_inst = Associators(host, acn, cn, InstanceID=id)
 
     except Exception:
         logger.error(CIM_ERROR_ASSOCIATORS, acn)
         return FAIL
 
     if len(ret_inst) != 1:
-        logger.error("%s returned %i %s instances" % (an, len(ret_inst), cn))
+        logger.error("%s returned %i %s instances", acn, len(ret_inst), cn)
         return FAIL
 
     ret_id = ret_inst[0]['InstanceID']
     if ret_id != id:
-        logger.error("%s returned %s inst with wrong id %s" % (acn, cn, ret_id))
+        logger.error("%s returned %s inst with wrong id %s", acn, cn, ret_id)
         return FAIL
 
     status = compare_all_prop(ret_inst[0], inst)
