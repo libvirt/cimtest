@@ -154,7 +154,6 @@ def get_assocname_info(server, cn, an, qcn, hostname, virt):
         assoc_info = AssociatorNames(server,
                                          an,
                                          cn,
-                                       virt,
                        CreationClassName=cn,
                             Name = hostname)
         if len(assoc_info) < 1:
@@ -184,7 +183,7 @@ def verify_eafp_values(server, in_pllist, virt, test_disk):
     for cn,  instid in sorted(in_pllist.items()):
         qcn = cn
         try:
-            assoc_info = Associators(server, an, cn, virt, InstanceID = instid)  
+            assoc_info = Associators(server, an, cn, InstanceID = instid)  
             inst_list = get_inst_for_dom(assoc_info)
             status = check_len(an, inst_list, qcn, exp_len)
             if status != PASS:

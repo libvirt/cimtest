@@ -119,7 +119,6 @@ def get_assoc_info(server, cn, an, qcn, name, vsxml, virt="Xen"):
         assoc_info = AssociatorNames(server,
                                      an,
                                      cn,
-                                     virt,
                                      CreationClassName = cn,
                                      Name = name)
         if len(assoc_info) < 1:
@@ -157,7 +156,6 @@ def verify_RASD_values(server, sd_assoc_info, vsxml, virt="Xen"):
             assoc_info = Associators(server,
                                      an,
                                      cn,
-                                     virt,
                                      DeviceID = devid,
                                      CreationClassName = cn,
                                      SystemName = test_dom,

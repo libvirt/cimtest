@@ -128,7 +128,6 @@ def get_hostrespool(server, hostsys, clsname, virt="Xen"):
         assoc_info = Associators(server,
                                  an1,
                                  ccn1,
-                                 virt,
                                  CreationClassName = clsname,
                                  Name = hostsys)
         if len(assoc_info) < 4:
@@ -167,10 +166,9 @@ def get_alloccap(server, devpool, virt="Xen"):
     for inst in devpool:
         try:
             assoc_info = Associators(server,
-                                 an,
-                                 inst.classname,
-                                 virt,
-                                 InstanceID = inst['InstanceID'])
+                                     an,
+                                     inst.classname,
+                                     InstanceID = inst['InstanceID'])
 
             if len(assoc_info) < 1:
                 logger.error("ElementCapabilities has returned %i objects", len(assoc_info))
@@ -221,7 +219,6 @@ def get_rasddetails(server, alloccap, virt="Xen"):
             assoc_info = Associators(server,
                                      an,
                                      ccn,
-                                     virt,
                                      InstanceID = ap['InstanceID'])
 
             if len(assoc_info) != 4:

@@ -85,9 +85,11 @@ def get_assocnames_info(server, cn, an, qcn, name):
     status = PASS
     assoc_info = []
     try:
-        assoc_info = AssociatorNames(server, an, cn, virt, Name = name, CreationClassName = cn)
+        assoc_info = AssociatorNames(server, an, cn, Name = name, 
+                                     CreationClassName = cn)
         if len(assoc_info) < 0 :
-            logger.error("%s returned %i %s objects, expected atleast 3", an, len(assoc_info), qcn)
+            logger.error("%s returned %i %s objects, expected atleast 3", 
+                         an, len(assoc_info), qcn)
             status = FAIL
     except Exception, detail:
         print_err(CIM_ERROR_ASSOCIATORNAMES, detail, an)
@@ -120,8 +122,10 @@ def get_vsmcap_from_ec(vsms_list):
     sccn = vsms_info['SystemCreationClassName']
     assoc_info = []
     try:
-        assoc_info = AssociatorNames(server, assoc_name, cn, virt, CreationClassName = cn, 
-                                     SystemName = sn, Name = name, SystemCreationClassName = sccn)
+        assoc_info = AssociatorNames(server, assoc_name, cn, 
+                                     CreationClassName = cn, 
+                                     SystemName = sn, Name = name, 
+                                     SystemCreationClassName = sccn)
         if len(assoc_info) != 1:
             logger.error("%s returned %i %s objects, expected only 1", assoc_name, len(assoc_info), req_cn)
             status = FAIL
@@ -139,10 +143,11 @@ def get_vsmsd_from_sdc(vsmsd_list):
     instid = vsmsd_info['InstanceID']
     assoc_info = []
     try:
-        assoc_info = Associators(server, assoc_name, cn, virt, CreationClassName = cn, 
-                                                                  InstanceID = instid)
+        assoc_info = Associators(server, assoc_name, cn, 
+                                 CreationClassName = cn, InstanceID = instid)
         if len(assoc_info) != 1:
-            logger.error("%s returned %i %s objects, expected only 1", assoc_name, len(assoc_info), req_cn)
+            logger.error("%s returned %i %s objects, expected only 1", 
+                         assoc_name, len(assoc_info), req_cn)
             status = FAIL
 
     except Exception, detail:
