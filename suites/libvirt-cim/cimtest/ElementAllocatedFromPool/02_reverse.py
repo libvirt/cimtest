@@ -137,7 +137,7 @@ def verify_eafp_values(server, virt, in_pllist, test_disk):
     an = get_typed_class(virt, "ElementAllocatedFromPool")
     for cn, instid in sorted(in_pllist.iteritems()):
         try:
-            assoc_info = Associators(server, an, cn, virt, InstanceID = instid)
+            assoc_info = Associators(server, an, cn, InstanceID = instid)
             assoc_inst_list = get_inst_for_dom(assoc_info)
             if len(assoc_inst_list) < 1 :
                 logger.error("'%s' with '%s' did not return any records for"
