@@ -88,7 +88,6 @@ def get_assoc_info(server, cn, an, qcn, name, virt="Xen"):
         assoc_info = AssociatorNames(server,
                                          an,
                                          cn,
-                                       virt,
                      CreationClassName = cn,
                                 Name = name,)
         if len(assoc_info) < 1:
@@ -112,7 +111,6 @@ def get_association_info(server, service_fieldname, cn, an, qcn, virt="Xen"):
         assoc_info = AssociatorNames(server,
                                          an,
                                          cn,
-                                       virt,
                      CreationClassName = cn,
                                 Name = name,
             SystemCreationClassName=sccname,
