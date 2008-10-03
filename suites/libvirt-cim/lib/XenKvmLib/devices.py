@@ -137,13 +137,10 @@ def device_of(server, key_list):
     return t(server, key_list)
 
 def get_dom_devs(vs_type, ip, dom_name):
-    cn = "ComputerSystem"
-
-    devs = assoc.AssociatorNames(ip, "SystemDevice",
-                                 cn,
-                                 vs_type,
-                                 Name=dom_name,
-                                 CreationClassName= get_typed_class(vs_type, cn))
+    cn = get_typed_class(vs_type, "ComputerSystem")
+    an = get_typed_class(vs_type, "SystemDevice")
+    devs = assoc.AssociatorNames(ip, an, cn, Name=dom_name,
+                                 CreationClassName= cn)
     if devs == None:
         Globals.logger.error("System association failed")
         return 1
