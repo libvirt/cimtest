@@ -116,8 +116,9 @@ def get_rasd_instance(server, virt, key_list, cn):
 def verify_pool_from_RAFP(server, virt, inst, pool_id, cn):
     pool = []
     try:
-        pool = assoc.AssociatorNames(server, "ResourceAllocationFromPool",
-                                     cn, virt, InstanceID = inst.InstanceID)
+        an = get_typed_class(virt, "ResourceAllocationFromPool")
+        cn = get_typed_class(virt, cn)
+        pool = assoc.AssociatorNames(server, an, cn, InstanceID=inst.InstanceID)
     except Exception:
         logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES, inst.InstanceID)
         return FAIL

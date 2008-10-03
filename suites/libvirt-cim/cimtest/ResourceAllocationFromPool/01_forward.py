@@ -86,10 +86,10 @@ def get_instance(server, pool, list, virt='Xen'):
 
 def verify_rasd(server, assoc_cn, cn, virt, list, rasd):
     try:
+        assoc_cn = get_typed_class(virt, assoc_cn)
         data = assoc.AssociatorNames(server,
                                      assoc_cn,
-                                     cn,
-                                     virt,
+                                     get_typed_class(virt, cn),
                                      InstanceID=list)
     except Exception:
         logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % cn)

@@ -138,7 +138,7 @@ def get_refprof_verify_info(proflist):
     for instid in proflist:
         try:
             assoc_info = Associators(server, assoc_name, reg_classname, 
-                                     virt, InstanceID = instid, 
+                                     InstanceID = instid, 
                                      CreationClassName = reg_classname)
             if len(assoc_info) < 1:
                 logger.error("%s returned %i %s objects, expected atleast 1", 

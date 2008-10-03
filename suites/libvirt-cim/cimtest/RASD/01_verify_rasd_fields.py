@@ -113,15 +113,17 @@ def assoc_values(assoc_info, xml, disk, virt="Xen"):
 @do_main(sup_types)
 def main():
     options = main.options
+    virt = options.virt
     status = PASS 
+
     destroy_and_undefine_all(options.ip)
-    if options.virt == 'Xen':
+    if virt == 'Xen':
         test_disk = 'xvda'
     else:
         test_disk = 'hda'
 
-    virt_xml = vxml.get_class(options.virt)
-    if options.virt == 'LXC':
+    virt_xml = vxml.get_class(virt)
+    if virt == 'LXC':
         cxml = virt_xml(test_dom)
     else:
         cxml = virt_xml(test_dom, mem=test_mem, vcpus = test_vcpus,
@@ -133,21 +135,20 @@ def main():
     if status == 1: 
         destroy_and_undefine_all(options.ip)
         return FAIL
-    if options.virt == "XenFV":
+    if virt == "XenFV":
         instIdval = "Xen:%s" % test_dom
     else:
-        instIdval = "%s:%s" % (options.virt, test_dom)
+        instIdval = "%s:%s" % (virt, test_dom)
 
-    vssdc_cn = 'VirtualSystemSettingDataComponent'
-    vssd_cn = 'VirtualSystemSettingData'
+    vssdc_cn = get_typed_class(virt, 'VirtualSystemSettingDataComponent')
+    vssd_cn = get_typed_class(virt, 'VirtualSystemSettingData')
     try:
         assoc_info = assoc.Associators(options.ip, vssdc_cn, vssd_cn, 
-                                       options.virt,
                                        InstanceID = instIdval)
-        status = assoc_values(assoc_info, cxml, test_disk, options.virt)
+        status = assoc_values(assoc_info, cxml, test_disk, virt)
     except  Exception, details:
         logger.error(Globals.CIM_ERROR_ASSOCIATORS, 
-                     get_typed_class(options.virt, vssdc_cn))
+                     get_typed_class(virt, vssdc_cn))
         logger.error("Exception : %s" % details)
         status = FAIL 
     
