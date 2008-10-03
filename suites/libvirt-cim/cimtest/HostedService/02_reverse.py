@@ -30,47 +30,49 @@ from CimTest import Globals
 from XenKvmLib.const import do_main
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
+from XenKvmLib.common_util import get_host_info
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
 @do_main(sup_types)
 def main():
     options = main.options
-    keys = ['Name', 'CreationClassName']
-    try:
-        host_sys = enumclass.enumerate(options.ip, 'HostSystem', keys, options.virt)[0]
-    except Exception:
-        logger.error(Globals.CIM_ERROR_ENUMERATE % host_sys.CreationClassName)
-        return FAIL
+    virt = options.virt
+    
     servicelist = {"ResourcePoolConfigurationService" : "RPCS", 
                    "VirtualSystemManagementService" : "Management Service",
                    "VirtualSystemMigrationService" : "MigrationService"}
+
+    status, host_name, host_ccn = get_host_info(options.ip, virt)
+    if status != PASS:
+        logger.error("Failed to get host info.")
+        return status
     
+    an = get_typed_class(virt, "HostedService")
     for k, v in servicelist.iteritems():
+        cn = get_typed_class(virt, k)
         try:
-            assoc_host = assoc.AssociatorNames(options.ip, 
-                                               "HostedService",
-                                               k,
-                                               options.virt,
+            assoc_host = assoc.AssociatorNames(options.ip, an, cn, 
                                                Name = v,
-                                               CreationClassName = get_typed_class(options.virt, k),
-                                               SystemCreationClassName = host_sys.CreationClassName,
-                                               SystemName = host_sys.Name)
+                                               CreationClassName = cn,
+                                               SystemCreationClassName = host_ccn,
+                                               SystemName = host_name)
         except Exception:
-            logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % item)
+            logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES, an)
             return FAIL
         
         if len(assoc_host) != 1:
-            logger.error("Too many hosts error")
+            logger.error("Too many hosts")
             return FAIL
 
         ccn = assoc_host[0].keybindings['CreationClassName']
         name = assoc_host[0].keybindings['Name']
         
-        if ccn != get_typed_class(options.virt, "HostSystem"):
+        if ccn != host_ccn:
             logger.error("CreationClassName Error")
             return FAIL
-        elif name != host_sys.Name:
+
+        elif name != host_name:
             logger.error("CCN Error")
             return FAIL
      

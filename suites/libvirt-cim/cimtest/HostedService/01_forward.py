@@ -30,40 +30,52 @@ from CimTest import Globals
 from XenKvmLib.const import do_main
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
+from XenKvmLib.common_util import get_host_info
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
 @do_main(sup_types)
 def main():
     options = main.options
-    keys = ['Name', 'CreationClassName']
+    virt = options.virt
     try:
-        host_sys = enumclass.enumerate(options.ip, 'HostSystem', keys, options.virt)[0]
-    except Exception:
-        logger.error(Globals.CIM_ERROR_ENUMERATE % host_sys.name)
-        return FAIL
-    try:
+        status, host_name, host_ccn = get_host_info(options.ip, virt)
+        if status != PASS:
+            logger.error("Failed to get host info.")
+            return status
+
+        an = get_typed_class(virt, "HostedService")
         service = assoc.AssociatorNames(options.ip,
-                                        "HostedService",
-                                        "HostSystem",
-                                        options.virt,
-                                        CreationClassName = host_sys.CreationClassName,
-                                        Name = host_sys.Name)
-    except Exception:
-        logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % host_sys.Name)
+                                        an, host_ccn,
+                                        CreationClassName = host_ccn,
+                                        Name = host_name)
+    except Exception, deatils:
+        logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % host_name)
+        logger.error("Exception: details %s", details)
         return FAIL
     
     if service == None:
         logger.error("No association return")
         return FAIL
 
-    valid_services = [get_typed_class(options.virt, "ResourcePoolConfigurationService"), 
-                      get_typed_class(options.virt, "VirtualSystemManagementService"),
-                      get_typed_class(options.virt, "VirtualSystemMigrationService")]
+    valid_services = [get_typed_class(virt, "ResourcePoolConfigurationService"),
+                      get_typed_class(virt, "VirtualSystemManagementService"),
+                      get_typed_class(virt, "VirtualSystemMigrationService"),
+                      get_typed_class(virt, "ConsoleRedirectionService")]
+
+    ccn_list = []
     for item in service:
-        ccn = item.keybindings["CreationClassName"]
+        ccn_list.append(item.keybindings["CreationClassName"])
+    
+    if len(ccn_list) != len(valid_services):
+        logger.error("'%s' returned %d, expected %d", 
+                     an, len(valid_services), len(ccn_list))
+        return FAIL
+
+    for ccn in ccn_list:
         if ccn not in valid_services:
-            logger.error("HostedService association to associate HostSystem and %s is wrong " % ccn)
+            logger.error("Invalid Value '%s' returned for association '%s'",
+                         ccn, an)
             return FAIL
 
                     

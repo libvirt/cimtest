@@ -49,7 +49,7 @@ from VirtLib import utils
 from XenKvmLib import vxml
 from XenKvmLib import assoc
 from XenKvmLib import enumclass
-from XenKvmLib.classes import get_class_basename
+from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import CIM_ERROR_ENUMERATE, CIM_ERROR_ASSOCIATORS, logger
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
@@ -92,12 +92,12 @@ def main():
         cxml.undefine(server)
         return FAIL
     
-    hs_cn = "HostedDependency"
+    hs_cn = get_typed_class(virt, "HostedDependency")
     try:
         for system in cs:
-            ccn = get_class_basename(system.CreationClassName)
-            hs = assoc.Associators(server, hs_cn, ccn, virt,
-                                   CreationClassName=system.CreationClassName,
+            ccn = system.CreationClassName
+            hs = assoc.Associators(server, hs_cn, ccn, 
+                                   CreationClassName=ccn,
                                    Name=system.name)
 
             if not hs:
