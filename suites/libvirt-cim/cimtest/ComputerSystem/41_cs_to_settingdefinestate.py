@@ -150,8 +150,7 @@ def get_associatornames_info(server, virt, vsxml, cn, an, qcn, name):
                                          an,
                                          cn,
                        CreationClassName=cn,
-                                Name = name,
-                                  virt=virt)
+                                Name = name)
         if len(assoc_info) < 1:
             logger.error("%s returned %i %s objects" % (an, len(assoc_info), qcn))
             status = FAIL
@@ -171,8 +170,7 @@ def get_associators_info(server, virt, vsxml, cn, an, qcn, instid):
         assoc_info = Associators(server,
                                      an,
                                      cn,
-                    InstanceID = instid,
-                              virt=virt)
+                    InstanceID = instid)
         if len(assoc_info) < 1:
             logger.error("%s returned %i %s objects" % 
                          (an, len(assoc_info), qcn))
@@ -239,8 +237,7 @@ def get_SDS_verify_RASD_build_vssdc_input(server, virt, vsxml,
                                      DeviceID = devid,
                                      CreationClassName = cn,
                                      SystemName = test_dom,
-                                     SystemCreationClassName = sccn,
-                                     virt=virt)
+                                     SystemCreationClassName = sccn)
 
             # we expect only one RASD record to be returned for each device that is used to 
             # query with the SettingsDefineState association.

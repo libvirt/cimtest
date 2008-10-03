@@ -59,8 +59,7 @@ def main():
 
     for k, v in poollist.items():
         try:
-            assoc_host = assoc.AssociatorNames(options.ip, assoc_cn, k, InstanceID = v, \
-                                                                     virt = options.virt)
+            assoc_host = assoc.AssociatorNames(options.ip, assoc_cn, k, InstanceID = v)
         except Exception:
             logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % v)
             return FAIL

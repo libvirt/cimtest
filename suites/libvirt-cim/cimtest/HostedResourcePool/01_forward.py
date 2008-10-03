@@ -52,8 +52,7 @@ def main():
                                      assoc_cn,
                                      host_sys.CreationClassName,
                                      Name = host_sys.Name,
-                                     CreationClassName = host_sys.CreationClassName,
-                                     virt = options.virt)
+                                     CreationClassName = host_sys.CreationClassName)
     except Exception, details:
         logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % assoc_cn)
         logger.error("Exception:",  details)

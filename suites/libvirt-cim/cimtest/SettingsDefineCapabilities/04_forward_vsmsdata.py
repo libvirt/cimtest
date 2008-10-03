@@ -55,8 +55,7 @@ def main():
     qcn    = get_typed_class(options.virt, 'VirtualSystemMigrationCapabilities')
     instid = 'MigrationSettingData'
     try:
-        assoc_info = assoc.Associators(server, an, cn, InstanceID = instid, 
-                                                         virt=options.virt)  
+        assoc_info = assoc.Associators(server, an, cn, InstanceID = instid)  
         if len(assoc_info) != 1: 
             logger.error("%s returned %i %s objects", an, len(assoc_info), qcn)
             return FAIL

@@ -45,6 +45,7 @@ def AssociatorNames(host, assoc_cn, classname, **keys):
     names = []
 
     try:
+        logger.error("DEBUG instanceref, is %s", instanceref)
         names = conn.AssociatorNames(instanceref, AssocClass=assoc_cn)
     except pywbem.CIMError, arg:
         print arg[1]
@@ -67,6 +68,7 @@ def Associators(host, assoc_cn, classname, **keys):
     names = []
 
     try:
+        logger.error("DEBUG instanceref, is %s", instanceref)
         names = conn.Associators(instanceref, AssocClass=assoc_cn)
     except pywbem.CIMError, arg:
         print arg[1]

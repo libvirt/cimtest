@@ -167,7 +167,7 @@ def verify_sdc_with_ac(virt, server, pool):
     for instid in sorted(instlist):
         try:
             assoc_info = assoc.Associators(server, assoc_cname, cn, 
-                                           InstanceID = instid, virt=virt)  
+                                           InstanceID = instid)  
             if len(assoc_info) != 4:
                 logger.error("%s returned %i ResourcePool objects"
                              "instead 4", assoc_cname, len(assoc_info))
