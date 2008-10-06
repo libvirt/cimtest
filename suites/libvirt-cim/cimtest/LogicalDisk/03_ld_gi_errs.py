@@ -186,7 +186,7 @@ def main():
         test_disk = 'hda'
 
     vsxml = get_class(options.virt)(test_dom, disk=test_disk)
-    ret = vsxml.define(options.ip)
+    ret = vsxml.cim_define(options.ip)
     if not ret:
         logger.error("Failed to Define the dom: %s", test_dom)
         return FAIL
