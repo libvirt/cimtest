@@ -28,6 +28,8 @@ from pywbem.cim_obj import CIMInstanceName
 from XenKvmLib.devices import CIM_Instance
 from XenKvmLib.classes import get_typed_class
 from CimTest import Globals, CimExt
+from VirtLib import utils
+from CimTest.Globals import logger
 
 class CIM_MyClass(CIM_Instance):
     def __init__(self, server, keys):
@@ -405,3 +407,86 @@ def getInstance(server, basename, keys, virt="Xen"):
         return None 
         
     return inst
+
+class CIM_CimtestClass(CIM_Instance):
+    def __init__(self, host, ref):
+
+        conn = pywbem.WBEMConnection('http://%s' % host,
+                                     (Globals.CIM_USER, Globals.CIM_PASS),
+                                     Globals.CIM_NS)
+        try:
+            inst = conn.GetInstance(ref)
+        except pywbem.CIMError, arg:
+            raise arg
+
+        self.conn = conn
+        self.inst = inst
+        self.ref = ref
+
+        CIM_Instance.__init__(self, inst)
+
+    def __invoke(self, method, params):
+        try:
+            return self.conn.InvokeMethod(method,
+                                          self.ref,
+                                          **params)
+        except pywbem.CIMError, arg:
+            print 'InvokeMethod(%s): %s' % (method, arg[1])
+            raise
+
+    def __getattr__(self, attr):
+        if self.inst.has_key(attr):
+            return self.inst[attr]
+        else:
+            return CimExt._Method(self.__invoke, attr)
+
+def EnumNames(host, cn):
+    '''Resolve the enumeration given the @cn.
+    Return a list of CIMInstanceName objects.'''
+
+    conn = pywbem.WBEMConnection('http://%s' % host,
+                                 (Globals.CIM_USER, Globals.CIM_PASS),
+                                 Globals.CIM_NS)
+
+    names = []
+
+    try:
+        names = conn.EnumerateInstanceNames(cn)
+    except pywbem.CIMError, arg:
+        print arg[1]
+        return names
+
+    return names
+
+def EnumInstances(host, cn):
+    '''Resolve the enumeration given the @cn.
+    Return a list of CIMInstance objects.'''
+
+    refs = []
+
+    try:
+        refs = EnumNames(host, cn)
+    except pywbem.CIMError, arg:
+        print arg[1]
+
+    list = []
+
+    for name in refs:
+        list.append(CIM_CimtestClass(host, name))
+ 
+    return list
+
+def GetInstance(host, cn, keys):
+    '''Resolve the enumeration given the @cn.
+    Return a list of CIMInstance objects.'''
+
+    ref = CIMInstanceName(cn, keybindings=keys)
+    inst = None 
+
+    try:
+        inst = CIM_CimtestClass(host, ref)
+    except pywbem.CIMError, arg:
+        print arg[1]
+
+    return inst 
+
