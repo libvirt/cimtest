@@ -25,15 +25,21 @@ import pywbem
 from pywbem.cim_obj import CIMInstanceName
 from XenKvmLib import assoc
 from XenKvmLib import enumclass
+from XenKvmLib.common_util import get_host_info, try_assoc
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, CIM_USER, \
                             CIM_PASS, CIM_NS
 from XenKvmLib.const import do_main
-from CimTest.ReturnCodes import PASS, FAIL, XFAIL
+from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 
+bug = '00007'
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
-exp_rc = 6 #CIM_ERR_NOT_FOUND
-exp_desc = "No such instance"
+exp_values = {
+              "invalid_ccname" : {"rc" : pywbem.CIM_ERR_NOT_FOUND, \
+                  "desc" : "No such instance (CreationClassName)"},
+              "invalid_name"   : {"rc" : pywbem.CIM_ERR_NOT_FOUND, \
+                                  "desc" : "No such instance (Name)"}
+             }
 
 @do_main(sup_types)
 def main():
@@ -41,38 +47,38 @@ def main():
     rc = -1
     status = FAIL
     keys = ['Name', 'CreationClassName']
-    try:
-        host_sys = enumclass.enumerate(options.ip, 'HostSystem', keys, options.virt)[0]
-    except Exception:
-        logger.error(CIM_ERROR_ENUMERATE % host_sys.name)
+    status, host_name, host_ccn = get_host_info(options.ip, options.virt)
+    if status != PASS:
+        logger.error("Error in calling get_host_info function")
         return FAIL
 
     
     conn = assoc.myWBEMConnection('http://%s' % options.ip,                                        
                                   (CIM_USER, CIM_PASS),
                                    CIM_NS)
-    instanceref = CIMInstanceName(get_typed_class(options.virt, "HostSystem"), 
-                                  keybindings = {"Wrong" : "wrong", "CreationClassName" : host_sys.CreationClassName})
-
-    names = []
-
-    try:
-        names = conn.AssociatorNames(instanceref, AssocClass = get_typed_class(options.virt, "HostedService"))
-        rc = 0
-    except pywbem.CIMError, (rc, desc):
-        if rc == exp_rc and desc.find(exp_desc) >= 0:
-            logger.info("Got excepted rc code and error string")
-            status = PASS
-        else:
-            logger.error("Unexpected rc code %s and description %s\n" %(rc, desc))
-    except Exception, details:
-        logger.error("Unknown exception happened")
-        logger.error(details)
-
-    if rc == 0:
-        logger.error("HostedService associator should NOT return excepted result with a wrong key name and value of HostSystem input")
-        status = FAIL
+    assoc_classname = get_typed_class(options.virt, "HostedService")
     
+    keys = {"Wrong" : host_name, "CreationClassName": host_ccn}
+    ret =  try_assoc(conn, host_ccn, assoc_classname, keys, "Name", \
+                     exp_values['invalid_name'], bug_no="")
+    if ret != PASS:
+        if host_ccn == 'Linux_ComputerSystem':
+            return XFAIL_RC(bug)
+        else:
+            logger.error("------ FAILED: Invalid Name Key Name.------")
+            return FAIL
+
+    keys = {"Name" : host_name, "Wrong" : host_ccn}
+    ret = try_assoc(conn, host_ccn, assoc_classname, keys, "CreationClassName", \
+                    exp_values['invalid_ccname'], bug_no="")
+    if ret != PASS:
+        if host_ccn ==  'Linux_ComputerSystem':
+             return XFAIL_RC(bug)
+        else:
+            logger.error("------ FAILED: Invalid CreationClassName Key Name.------")
+            return FAIL
+
+
     return status        
 
 if __name__ == "__main__":
