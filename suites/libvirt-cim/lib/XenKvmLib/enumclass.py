@@ -338,6 +338,25 @@ class Xen_DiskResourceAllocationSettingData(CIM_DiskResourceAllocationSettingDat
 class KVM_DiskResourceAllocationSettingData(CIM_DiskResourceAllocationSettingData):
     pass
 
+class KVM_VirtualSystemMigrationService(CIM_MyClass):
+    pass
+
+class Xen_VirtualSystemMigrationService(CIM_MyClass):
+    pass
+
+class LXC_VirtualSystemMigrationService(CIM_MyClass):
+    pass
+
+class Xen_VirtualSystemManagementService(CIM_MyClass):
+    pass
+
+class KVM_VirtualSystemManagementService(CIM_MyClass):
+    pass
+
+class LXC_VirtualSystemManagementService(CIM_MyClass):
+    pass
+
+
 # Generic function which can be used to get the enumerate instances of any 
 # class when the following fields are specified
 # classname = any class for which we want obtain the instances 

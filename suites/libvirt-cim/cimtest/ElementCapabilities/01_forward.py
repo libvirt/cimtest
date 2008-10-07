@@ -23,17 +23,19 @@
 import sys
 from VirtLib import utils
 from VirtLib import live
+from XenKvmLib import vxml
 from XenKvmLib import assoc
 from XenKvmLib import enumclass
 from XenKvmLib.classes import get_typed_class
-from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES, \
-                            CIM_ERROR_ENUMERATE
+from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES
 from XenKvmLib.const import do_main
-from CimTest.ReturnCodes import PASS, FAIL, SKIP
+from CimTest.ReturnCodes import PASS, FAIL, SKIP, XFAIL_RC
 from XenKvmLib.enumclass import enumerate
 from XenKvmLib.common_util import get_host_info
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
+test_dom  = "dom_elecap"
+bug_sblim = "00007"
 
 def append_to_list(server, virt, poolname, valid_elc_id):
     keys_list = ['InstanceID']
@@ -67,7 +69,6 @@ def main():
         logger.error("Failed to get host info")
         return status
 
-
     try:
         an = get_typed_class(virt, "ElementCapabilities")
         elc = assoc.AssociatorNames(server,
@@ -91,35 +92,52 @@ def main():
         return status
 
     if len(elc) == 0:
-        logger.error("ElementCapabilities association failed, excepted at least one instance")
-        return FAIL
+        logger.error("'%s' association failed, expected at least one instance",
+                     an)
+        if host_ccn == 'Linux_ComputerSystem':
+           return XFAIL_RC(bug_sblim)
+        else:
+           return FAIL
 
     for i in elc:
         if i.classname not in valid_elc_name:
-            logger.error("ElementCapabilities association classname error")
+            logger.error("'%s' association classname error", an)
             return FAIL
         if i['InstanceID'] not in valid_elc_id:
-            logger.error("ElementCapabilities association InstanceID error ")
+            logger.error("'%s' association InstanceID error ", an)
             return FAIL
+
+    virtxml = vxml.get_class(virt)
+    cxml = virtxml(test_dom)
+    ret = cxml.cim_define(server)
+    if not ret:
+        logger.error("Failed to define the dom: %s", test_dom)
+        return FAIL
 
     cs = live.domain_list(server, virt)
     ccn  = get_typed_class(virt, "ComputerSystem")
     for system in cs:  
         try:
-	    elec = assoc.AssociatorNames(server,
-                                         an, ccn, Name = system,
+	    elec = assoc.AssociatorNames(server, an, ccn, Name = system, 
                                          CreationClassName = ccn)
   	except Exception:
             logger.error(CIM_ERROR_ASSOCIATORNAMES % system)
+            cxml.undefine(server)
             return FAIL     
+
         cn = get_typed_class(virt, "EnabledLogicalElementCapabilities") 
         if elec[0].classname != cn:
-	    logger.error("ElementCapabilities association classname error")
-            return FAIL
-        elif elec[0].keybindings['InstanceID'] != system:
-            logger.error("ElementCapabilities association InstanceID error")
+            cxml.undefine(server)
+            logger.error("'%s' association classname error", an)
             return FAIL
 
+        if elec[0].keybindings['InstanceID'] != system:
+            logger.error("ElementCapabilities association InstanceID error")
+            cxml.undefine(server)
+            logger.error("'%s' association InstanceID error", an)
+            return FAIL
+
+    cxml.undefine(server)
     return PASS
 
 if __name__ == "__main__":
