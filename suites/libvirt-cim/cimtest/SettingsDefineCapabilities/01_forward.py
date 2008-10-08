@@ -168,9 +168,18 @@ def verify_sdc_with_ac(virt, server, pool):
         try:
             assoc_info = assoc.Associators(server, assoc_cname, cn, 
                                            InstanceID = instid)  
-            if len(assoc_info) != 4:
-                logger.error("%s returned %i ResourcePool objects"
-                             "instead 4", assoc_cname, len(assoc_info))
+
+            if 'DiskPool' in instid and (virt =='Xen' or virt == 'XenFV'):
+                # For Diskpool, we have info 1 for each of Min, Max, 
+                # default, Increment and 1 for each of PV and FV 
+                # hence 4 * 2 = 8 records
+                exp_len = 8
+            else:
+                exp_len = 4
+
+            if len(assoc_info) != exp_len:
+                logger.error("%s returned %i ResourcePool objects instead"
+                             " of %i", assoc_cname, len(assoc_info), exp_len)
                 status = FAIL
                 break
             status = verify_rasd_fields(loop, assoc_info, cllist, rtype, 
