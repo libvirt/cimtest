@@ -47,13 +47,14 @@ from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES
 from XenKvmLib.const import do_main
-from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 from XenKvmLib.test_xml import testxml
 from XenKvmLib.test_doms import destroy_and_undefine_all
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
-test_dom = "domgst"
+test_dom = "domgst_test"
 test_vcpus = 1
+bug_sblim='00007'
 
 def setup_env(server, virt="Xen"):
     status = PASS
@@ -63,7 +64,7 @@ def setup_env(server, virt="Xen"):
     else:
         vsxml = get_class(virt)(test_dom, vcpus=test_vcpus)
 
-    ret = vsxml.define(server)
+    ret = vsxml.cim_define(server)
     if not ret:
         logger.error("Failed to define the dom: %s", test_dom)
         status = FAIL
@@ -95,7 +96,6 @@ def get_inst_from_list(cn, qcn, list, filter, exp_val):
     return status, inst 
 
 def get_hostsys(server, virt="Xen"):
-    cn = '%s_HostSystem' % virt
     status = PASS 
     host = live.hostname(server)
 
@@ -103,7 +103,7 @@ def get_hostsys(server, virt="Xen"):
         status, hostname, clsname = get_host_info(server, virt)
         if hostname != host:
             status = FAIL
-            logger.error("Hostname mismatch %s : %s" % (cn, host))
+            logger.error("Hostname mismatch") 
 
     except Exception, detail:
         logger.error("Exception in %s : %s" % (cn, detail))
@@ -112,8 +112,7 @@ def get_hostsys(server, virt="Xen"):
     return status, hostname, clsname
 
 def get_hostrespool(server, hostsys, clsname, virt="Xen"):
-    ccn1 = '%s_HostSystem' % virt
-    an1 = '%s_HostedResourcePool' % virt
+    an1 = get_typed_class(virt, "HostedResourcePool")
     status = PASS
     devpool = []
     
@@ -127,14 +126,16 @@ def get_hostrespool(server, hostsys, clsname, virt="Xen"):
     try:
         assoc_info = Associators(server,
                                  an1,
-                                 ccn1,
+                                 clsname,
                                  CreationClassName = clsname,
                                  Name = hostsys)
         if len(assoc_info) < 4:
-            logger.error("HostedResourcePool has returned %i instances, expected 4 \
-instances", len(assoc_info))
-            status = FAIL
-            return status, devpool
+            if clsname == 'Linux_ComputerSystem':
+                return XFAIL_RC(bug_sblim), devpool
+            else:
+                logger.error("'%s' has returned %i instances, expected 4"
+                             " instances", an1, len(assoc_info))
+                return FAIL, devpool
 
         for inst in assoc_info:
             for a, val in ccnlist.items():
@@ -143,14 +144,14 @@ instances", len(assoc_info))
                         devpool.append(inst)
 
     except Exception, detail:
-        print_err(CIM_ERROR_ASSOCIATORNAMES, detail, ccn1)
+        print_err(CIM_ERROR_ASSOCIATORNAMES, detail, clsname)
         status = FAIL
 
     return status, devpool 
 
 def get_alloccap(server, devpool, virt="Xen"):
-    an = '%s_ElementCapabilities' % virt
-    cn = '%s_AllocationCapabilities' % virt
+    an = get_typed_class(virt, 'ElementCapabilities')
+    cn =  get_typed_class(virt, 'AllocationCapabilities')
     status = FAIL
     alloccap = []
     filter =  {"key" : "ResourceType"}
@@ -171,7 +172,7 @@ def get_alloccap(server, devpool, virt="Xen"):
                                      InstanceID = inst['InstanceID'])
 
             if len(assoc_info) < 1:
-                logger.error("ElementCapabilities has returned %i objects", len(assoc_info))
+                logger.error("'%s' has returned %i objects", an, len(assoc_info))
                 status = FAIL
                 return status, alloccap
 
@@ -195,8 +196,8 @@ def get_alloccap(server, devpool, virt="Xen"):
 def get_rasddetails(server, alloccap, virt="Xen"):
 
     status = PASS
-    ccn = '%s_AllocationCapabilities' % virt
-    an = '%s_SettingsDefineCapabilities' % virt
+    ccn = get_typed_class(virt, 'AllocationCapabilities')
+    an = get_typed_class(virt, 'SettingsDefineCapabilities')
    
     if virt == 'LXC':
         rtype = { "%s_MemResourceAllocationSettingData" % virt :  4 }
@@ -207,13 +208,6 @@ def get_rasddetails(server, alloccap, virt="Xen"):
                   "%s_NetResourceAllocationSettingData" % virt : 10, \
                   "%s_ProcResourceAllocationSettingData" % virt :  3
                  }
-    rangelist = {
-                  "Default"   : 0, \
-                  "Minimum"   : 1, \
-                  "Maximum"   : 2, \
-                  "Increment" : 3
-                }
-
     try:
         for ap in alloccap:
             assoc_info = Associators(server,
@@ -221,19 +215,26 @@ def get_rasddetails(server, alloccap, virt="Xen"):
                                      ccn,
                                      InstanceID = ap['InstanceID'])
 
-            if len(assoc_info) != 4:
-                logger.error("SettingsDefineCapabilities returned %i ResourcePool \
-objects instead of 4", len(assoc_info))
+            if 'DiskPool' in ap['InstanceID'] and virt =='Xen':
+                # For Diskpool, we have info 1 for each of Min, Max, 
+                # default, Increment and 1 for each of PV and FV 
+                # hence 4 * 2 = 8 records
+                exp_len = 8
+            else:
+                exp_len = 4 
+
+            if len(assoc_info) != exp_len:
+                logger.error("'%s' returned %i RASD objects instead of %i", 
+                             an, len(assoc_info), exp_len)
                 return FAIL
 
             for inst in assoc_info:
 
                 cn = inst.classname
                 if cn in rtype:
-                    status = check_rasd_vals(inst, cn, rtype[cn], rangelist)
+                    status = check_rasd_vals(inst, rtype[cn])
                     if status != PASS:
                         return status
-
                 else:
                     logger.error("Unexpected instance type %s" % cn)
                     return FAIL
@@ -244,12 +245,11 @@ objects instead of 4", len(assoc_info))
 
     return status 
 
-def check_rasd_vals(inst, cn, rt, rangelist):
+def check_rasd_vals(inst, rt):
     try:
         if inst['ResourceType'] != rt:
             logger.error("In ResourceType for %s " % rt)
             return FAIL
- 
     except Exception, detail:
         logger.error("Error checking RASD attribute values %s" % detail)
         return FAIL
