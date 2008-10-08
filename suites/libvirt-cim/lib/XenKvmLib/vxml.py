@@ -328,8 +328,6 @@ class VirtXML(Virsh, XMLClass):
         return self.run(ip, 'define', self.xml_string)
 
     def undefine(self, ip):
-        if os.path.exists(const.LXC_init_path):
-            os.remove(const.LXC_init_path)
         return self.run(ip, 'undefine', self.dname)
 
     def start(self, ip):
@@ -339,8 +337,6 @@ class VirtXML(Virsh, XMLClass):
         return self.run(ip, 'stop', self.dname)        
 
     def destroy(self, ip):
-        if os.path.exists(const.LXC_init_path):
-            os.remove(const.LXC_init_path)
         return self.run(ip, 'destroy', self.dname)
 
     def create(self, ip):
@@ -471,9 +467,7 @@ class VirtCIM:
         self.virt = virt
         self.domain_name = dom_name
         self.vssd = vsms.get_vssd_class(virt)(name=dom_name, virt=virt)
-        self.dasd = vsms.get_dasd_class(virt)(dev=disk_dev,
-                                              source=disk_source,
-                                              name=dom_name)
+        self.dasd = vsms.get_dasd_class(virt)(disk_dev, disk_source, dom_name)
         self.nasd = vsms.get_nasd_class(virt)(type=net_type, 
                                               mac=net_mac,
                                               name=dom_name,
@@ -487,8 +481,11 @@ class VirtCIM:
     def cim_define(self, ip, ref_conf=None):
         service = vsms.get_vsms_class(self.virt)(ip)
         sys_settings = str(self.vssd)
-        res_settings = [str(self.dasd), str(self.nasd),
-                        str(self.pasd), str(self.masd)]
+        if self.virt == 'LXC' and const.LXC_netns_support is False:
+            res_settings = [str(self.dasd), str(self.pasd), str(self.masd)]
+        else:
+            res_settings = [str(self.dasd), str(self.nasd),
+                            str(self.pasd), str(self.masd)]
 
         if ref_conf is None:
              ref_conf = ' '
@@ -683,7 +680,7 @@ class XenFVXML(VirtXML, VirtCIM):
     def set_vbridge(self, ip, net_name):
         return self._set_vbridge(ip, 'XenFV', net_name)
 
-class LXCXML(VirtXML):
+class LXCXML(VirtXML, VirtCIM):
 
     def __init__(self, test_dom=const.default_domname,
                        mem=const.default_memory,
@@ -693,6 +690,9 @@ class LXCXML(VirtXML):
                        net_name=const.default_network_name,
                        tty=const.LXC_default_tty):
         VirtXML.__init__(self, 'lxc', test_dom, set_uuid(), mem, vcpus)
+        VirtCIM.__init__(self, 'LXC', test_dom, const.LXC_default_mp,
+                         const.LXC_default_source, ntype, net_name, mac, vcpus,
+                         mem, const.default_mallocunits)
         self._os(const.LXC_init_path)
         self._devices(mac, ntype, net_name, const.LXC_default_tty)
         self.create_lxc_file(CIM_IP, const.LXC_init_path)
@@ -704,8 +704,12 @@ class LXCXML(VirtXML):
 
     def _devices(self, net_mac, net_type, net_name, tty_set):
         devices = self.get_node('/domain/devices')
-        self.set_interface_details(devices, net_mac, net_type, net_name, 'LXC')
-        interface = self.add_sub_node(devices, 'console', tty = tty_set)
+      
+        if const.LXC_netns_support is True:
+            self.set_interface_details(devices, net_mac, net_type, 
+                                       net_name, 'LXC')
+
+        self.add_sub_node(devices, 'console', tty = tty_set)
 
     def create_lxc_file(self, ip, lxc_file):
         try:

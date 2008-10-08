@@ -85,6 +85,7 @@ LXC_default_tty = '/dev/ptmx'
 LXC_default_mp = '/tmp'
 LXC_default_source = '/tmp/lxc_files'
 LXC_default_mac = '11:22:33:aa:bb:cc'
+LXC_netns_support = False  
 
 parser = OptionParser()
 parser.add_option("-i", "--ip", dest="ip", default="localhost",

@@ -241,30 +241,25 @@ def default_vssd_rasd_str(dom_name='test_domain',
     class_vssd = get_vssd_class(virt)
     vssd = class_vssd(name=dom_name, virt=virt)
 
-    # LXC only takes disk and memory device for now.
-    # Only disk __init__ takes different params.
-    if virt == 'LXC':
-        d = LXC_DiskResourceAllocationSettingData(
-                mountpoint=const.LXC_default_mp,
-                source=const.LXC_default_source, name=dom_name)
-    else:
-        class_dasd = get_dasd_class(virt)
-        if virt == 'KVM':
-            disk_dev = 'hda'
-            disk_source = const.KVM_disk_path
-        elif virt == 'XenFV':
-            disk_dev = 'hda'
-            disk_source = const.XenFV_disk_path
-        d = class_dasd(
-                    dev=disk_dev, 
-                    source=disk_source,
-                    name=dom_name)
+    class_dasd = get_dasd_class(virt)
+    if virt == 'KVM':
+        disk_dev = 'hda'
+        disk_source = const.KVM_disk_path
+    elif virt == 'XenFV':
+        disk_dev = 'hda'
+        disk_source = const.XenFV_disk_path
+    elif virt == 'LXC':
+        disk_dev = const.LXC_default_mp
+        disk_source = const.LXC_default_source
+    d = class_dasd(disk_dev, disk_source, dom_name)
     
     class_masd = get_masd_class(virt)
     m = class_masd(
                 megabytes=mem_mb,
                 mallocunits=malloc_units,
                 name=dom_name)
+
+    # LXC only takes disk and memory device for now.
     if virt == 'LXC':
         return vssd.mof(), [d.mof(), m.mof()]
     
