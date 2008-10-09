@@ -23,8 +23,9 @@
 #
 
 import sys
-from XenKvmLib import assoc
+from XenKvmLib.assoc import AssociatorNames 
 from XenKvmLib import enumclass
+from XenKvmLib.common_util import get_host_info
 from XenKvmLib.const import default_network_name
 from CimTest import Globals
 from CimTest.Globals import logger
@@ -39,12 +40,11 @@ def main():
     status = PASS
 
     keys = ['Name', 'CreationClassName']
-    try:
-        host_sys = enumclass.enumerate(options.ip, 'HostSystem', keys, options.virt)[0]
-    except Exception:
-        host_cn = get_typed_class(options.virt, "HostSystem")
-        logger.error(Globals.CIM_ERROR_ENUMERATE % host_cn)
-        return FAIL 
+    status, host_sys, host_cn = get_host_info(options.ip, options.virt)
+    if status != PASS:
+        logger.error("Error in calling get_host_info function")
+        return FAIL
+
     assoc_cn = get_typed_class(options.virt, "HostedResourcePool")
     proc_cn  = get_typed_class(options.virt, "ProcessorPool")
     mem_cn   = get_typed_class(options.virt, "MemoryPool")
@@ -59,19 +59,18 @@ def main():
 
     for k, v in poollist.items():
         try:
-            assoc_host = assoc.AssociatorNames(options.ip, assoc_cn, k, InstanceID = v)
+            assoc_host = AssociatorNames(options.ip, assoc_cn, k, InstanceID=v)
         except Exception:
-            logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % v)
+            logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % assoc_cn)
             return FAIL
         if len(assoc_host) == 1:
-            if assoc_host[0].keybindings['Name'] != host_sys.Name:
+            if assoc_host[0].keybindings['Name'] != host_sys:
                 logger.error("Pool association returned wrong hostsystem")
-                status = FAIL 
-            if assoc_host[0].keybindings['CreationClassName'] != host_sys.CreationClassName:
-                logger.error("Pool association returned wrong CreationClassName")
-                status = FAIL 
-        if status != PASS:
-            break 
+                return FAIL
+            if assoc_host[0].keybindings['CreationClassName'] != host_cn:
+                logger.error("Pool assoc returned wrong CreationClassName")
+                return FAIL
+
     return status
 if __name__ == "__main__":
     sys.exit(main())
