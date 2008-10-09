@@ -44,3 +44,16 @@ def get_class_basename(cn):
 
     return cn[dash_index+1:]
 
+#FIXME This function is only needed for libcmpiutil versions 0.4 and later.
+#Once version 0.4 is obsolete, this function should be removed.
+def inst_to_mof(inst):
+    mof_str = inst.tomof()
+
+    mof_inst = ""
+
+    for str in mof_str.splitlines():
+        if str.endswith('{') or str.endswith('};') or not str.endswith('NULL;'):
+            mof_inst += "%s\n" % str
+
+    return mof_inst
+

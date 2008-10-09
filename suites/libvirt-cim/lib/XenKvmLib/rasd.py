@@ -24,8 +24,11 @@ import sys
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import FAIL, PASS
 from XenKvmLib import vxml
-from XenKvmLib.classes import get_typed_class
-
+from XenKvmLib import const
+from XenKvmLib.classes import get_typed_class, get_class_type
+from XenKvmLib.enumclass import GetInstance
+from XenKvmLib.assoc import Associators 
+from XenKvmLib.const import default_pool_name, default_network_name 
 
 pasd_cn = 'ProcResourceAllocationSettingData'
 nasd_cn = 'NetResourceAllocationSettingData'
@@ -165,3 +168,63 @@ def verify_memrasd_values(assoc_info, memrasd_list):
                       memrasd_list['VirtualQuantity'])
         status = FAIL 
     return status
+
+def get_rasd_templates(host_ip, type, pool_id):
+    ac_cn = get_typed_class(type, "AllocationCapabilities")
+    an_cn = get_typed_class(type, "SettingsDefineCapabilities")
+
+    templates = []
+
+    try:
+        key_list = {"InstanceID" : pool_id }
+
+        inst = GetInstance(host_ip, ac_cn, key_list)
+
+        temps = Associators(host_ip, an_cn, ac_cn, InstanceID=inst.InstanceID)
+
+        for temp in temps:
+            templates.append(temp)
+
+    except Exception, detail:
+        logger.error("Exception: %s", detail)
+
+    return templates
+
+def get_default_rasds(host_ip, type):
+    ac_id_list = [ "MemoryPool/0", 
+                   "DiskPool/%s" % default_pool_name, 
+                 ]
+
+    if type == "LXC":
+        if const.LXC_netns_support is True:
+            ac_id_list.append("NetworkPool/%s" % default_network_name)
+    else:
+            ac_id_list.append("NetworkPool/%s" % default_network_name)
+            ac_id_list.append("ProcessorPool/0")
+
+    templates = [] 
+    
+    for id in ac_id_list:
+        rasd_list = get_rasd_templates(host_ip, type, id)
+        if len(rasd_list) < 1:
+            logger.info("No RASD templates returned for %s", id)
+            return []
+
+        for rasd in rasd_list:
+            if rasd['InstanceID'] == "Default": 
+                templates.append(rasd)
+
+    return templates
+
+def get_default_rasd_mofs(host_ip, type):
+    rasds = get_default_rasds(ip, virt)
+
+    rasd_mofs = []
+
+    #FIXME for libcmpiutil versions 0.4 and later, inst_to_mof() is needed.
+    #This should be changed to rasd.tomof() once version 0.4 is obsolete.
+    for rasd in rasds:
+        rasd_mofs.append(inst_to_mof(rasd))
+
+    return rasd_mofs
+
