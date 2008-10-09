@@ -25,6 +25,7 @@ import pywbem
 from pywbem.cim_obj import CIMInstanceName
 from XenKvmLib import assoc
 from XenKvmLib import enumclass
+from XenKvmLib.common_util import get_host_info, try_assoc
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, CIM_USER, \
                             CIM_PASS, CIM_NS
@@ -32,56 +33,55 @@ from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
-exp_rc = 6 #CIM_ERR_NOT_FOUND
-exp_desc = "No such instance"
+exp_values = {
+              "invalid_ccname" : {"rc" : pywbem.CIM_ERR_NOT_FOUND, 
+                        "desc" : "No such instance (CreationClassName)"},       
+              "invalid_name"   : {"rc" : pywbem.CIM_ERR_NOT_FOUND, 
+                        "desc" : "No such instance (Name)"}
+             }
 
 @do_main(sup_types)
 def main():
     options = main.options
-    rc = -1
     status = FAIL
     keys = ['Name', 'CreationClassName']
-    try:
-        host_sys = enumclass.enumerate(options.ip, 'HostSystem', keys, options.virt)[0]
-    except Exception:
-        logger.error(CIM_ERROR_ENUMERATE % host_sys.name)
+    status, host_name, host_ccn = get_host_info(options.ip, options.virt)
+    if status != PASS:
+        logger.error("Error in calling get_host_info function")
         return FAIL
 
-
-    servicelist = {get_typed_class(options.virt, "ResourcePoolConfigurationService") : "RPCS",
-                   get_typed_class(options.virt, "VirtualSystemManagementService") : "Management Service",
-                   get_typed_class(options.virt, "VirtualSystemMigrationService") : "MigrationService"}
+    rpcs = get_typed_class(options.virt, "ResourcePoolConfigurationService")
+    vsms = get_typed_class(options.virt, "VirtualSystemManagementService")
+    migrate = get_typed_class(options.virt, "VirtualSystemMigrationService")
+    
+    servicelist = {rpcs : "RPCS",
+                   vsms : "Management Service",
+                   migrate : "MigrationService"}
                                               
     
-    conn = assoc.myWBEMConnection('http://%s' % options.ip,                                        
+    conn = assoc.myWBEMConnection('http://%s' % options.ip,
                                   (CIM_USER, CIM_PASS),
                                    CIM_NS)
+    assoc_classname = get_typed_class(options.virt, "HostedService")
     for k, v in servicelist.items():
-        instanceref = CIMInstanceName(k, 
-                                      keybindings = {"Wrong" : v,
-                                                     "CreationClassName" : "wrong",
-                                                     "SystemCreationClassName" : host_sys.CreationClassName,
-                                                     "SystemName" : host_sys.Name})
-        names = []
 
-        try:
-            names = conn.AssociatorNames(instanceref, AssocClass = get_typed_class(options.virt, "HostedService"))
-            rc = 0
-        except pywbem.CIMError, (rc, desc):
-            if rc == exp_rc and desc.find(exp_desc) >= 0:
-                logger.info("Got excepted rc code and error string")
-                status = PASS
-            else:
-                logger.error("Unexpected rc code %s and description %s\n" %(rc, desc))
-        except Exception, details:
-            logger.error("Unknown exception happened")
-            logger.error(details)
+        keys = {"Wrong" : v, "CreationClassName": k,
+                "SystemCreationClassName": host_ccn,  "SystemName" : host_name}
+        ret =  try_assoc(conn, k, assoc_classname, keys, "Name",
+                         exp_values['invalid_name'], bug_no="")
+        if ret != PASS:
+            logger.error("------ FAILED: Invalid Name Key Name.------")
+            return FAIL
 
-        if rc == 0:
-            logger.error("HostedService associator should NOT return excepted result with a wrong key name and value of %s input" % k)
-            status = FAIL
+        keys = {"Name" : v, "Wrong": k,  "SystemCreationClassName":  host_ccn,
+                "SystemName" : host_name}
+        ret =  try_assoc(conn, k, assoc_classname, keys, "Name",
+                         exp_values['invalid_ccname'], bug_no="")
+        if ret != PASS:
+            logger.error("------ FAILED: Invalid Name Key Name.------")
+            return FAIL
                 
-        return status        
+    return PASS 
 
 
 if __name__ == "__main__":
