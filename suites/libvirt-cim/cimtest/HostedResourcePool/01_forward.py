@@ -39,7 +39,6 @@ sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 @do_main(sup_types)
 def main():
     options = main.options
-    status = FAIL
 
     keys = ['Name', 'CreationClassName']
     status, host_sys, host_cn = get_host_info(options.ip, options.virt)
@@ -68,20 +67,30 @@ def main():
             logger.error("No pool returned")
             return FAIL
     
-    for items in pool:
-        cname = items.classname
-        if cname.find("MemoryPool") >=0 and items['InstanceID'] == "MemoryPool/0":
-            status = PASS
-        if cname.find("ProcessorPool") >=0 and items['InstanceID'] == "ProcessorPool/0":
-            status = PASS
-        if cname.find("NetworkPool") >=0 and \
-           items['InstanceID'] == "NetworkPool/%s" %default_network_name:
-            status = PASS
-        if cname.find("DiskPool") >=0 and \
-           items['InstanceID'] == "DiskPool/%s" % default_pool_name:
-            status = PASS
+    try:
+        for items in pool:
+            cname = items.classname
+            if cname.find("MemoryPool") >=0 and items['InstanceID'] != \
+                "MemoryPool/0":
+                raise Exception("%s does not match MemoryPool/0",
+                    items['InstanceID'])
+            elif cname.find("ProcessorPool") >=0 and items['InstanceID'] != \
+                "ProcessorPool/0":
+                raise Exception("%s does not match ProcessorPool/0",
+                    items['InstanceID'])
+            elif cname.find("NetworkPool") >=0 and items['InstanceID'] != \
+                "NetworkPool/%s" %default_network_name:
+                raise Exception("%s does not match NetworkPool/%s",
+                    items['InstanceID'], default_network_name)
+            elif cname.find("DiskPool") >=0 and items['InstanceID'] != \
+                "DiskPool/%s" % default_pool_name:
+                raise Exception("%s does not match DiskPool/%s",
+                    items['InstanceID'], default_pool_name)
+    except Exception, details:
+         logger.error(details)
+         return FAIL
         
 
-    return status  
+    return PASS
 if __name__ == "__main__":
     sys.exit(main())
