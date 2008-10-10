@@ -25,48 +25,57 @@ import sys
 import pywbem
 from XenKvmLib import assoc
 from XenKvmLib import enumclass
+from XenKvmLib.common_util import get_host_info
 from XenKvmLib.common_util import try_assoc
 from CimTest import Globals
 from CimTest.Globals import logger
-from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 from XenKvmLib.const import do_main
 from XenKvmLib.classes import get_typed_class
 
-expr_values = { "rc"   : pywbem.CIM_ERR_NOT_FOUND, \
-                "desc" : "No such instance"
-              } 
+bug = "00007"
+expr_values = {
+        "invalid_ccname" : {"rc" : pywbem.CIM_ERR_NOT_FOUND, 
+                  "desc" : "No such instance (CreationClassName)"},
+        "invalid_name"   : {"rc" : pywbem.CIM_ERR_NOT_FOUND, 
+                  "desc" : "No such instance (Name)"}
+             }
 
 sup_types=['Xen', 'KVM', 'XenFV', 'LXC']
 @do_main(sup_types)
 def main():
     options = main.options
-    status = PASS
     keys = ['Name', 'CreationClassName']
-    try: 
-        host_sys = enumclass.enumerate(options.ip, 'HostSystem', keys, options.virt)[0]
-    except Exception:
-        host_cn = get_typed_class(options.virt, "HostSystem")
-        logger.error(Globals.CIM_ERROR_ENUMERATE % host_cn)
+    status, host_sys, host_cn = get_host_info(options.ip, options.virt)
+    if status != PASS:
+        logger.error("Error in calling get_host_info function")
         return FAIL
 
     conn = assoc.myWBEMConnection('http://%s' % options.ip,                                        
                                   (Globals.CIM_USER, Globals.CIM_PASS),
                                                        Globals.CIM_NS)
-    classname = host_sys.CreationClassName 
+    classname = host_cn
     assoc_classname = get_typed_class(options.virt, "HostedResourcePool")
-
-    keys = {"Name" : "wrong", "CreationClassName" : host_sys.CreationClassName}
-    ret =  try_assoc(conn, classname, assoc_classname, keys, "Name", expr_values, bug_no="")
+    keys = {"Name" : host_sys, "CreationClassName" : "wrong"}
+    ret =  try_assoc(conn, classname, assoc_classname, keys, 
+                     "Name", expr_values['invalid_ccname'], bug_no="")
     if ret != PASS:
-        logger.error("------ FAILED: Invalid Name Key Name.------")
-        status = ret
+        if host_cn == 'Linux_ComputerSystem':
+            return XFAIL_RC(bug)
+        else:
+            logger.error("------ FAILED: Invalid CreationClassName Key Value.------")
+            return FAIL
 
-    keys = {"Wrong" : host_sys.Name, "CreationClassName" : host_sys.CreationClassName}
-    ret = try_assoc(conn, classname, assoc_classname, keys, "Name", expr_values, bug_no="")
+    keys = {"Name" : "wrong", "CreationClassName" : host_cn}
+    ret = try_assoc(conn, classname, assoc_classname, keys, 
+                  "CreationClassName", expr_values['invalid_name'], bug_no="")
     if ret != PASS:
-        logger.error("------ FAILED: Invalid Name Key Value.------")
-        status = ret
+        if host_cn == 'Linux_ComputerSystem':
+            return XFAIL_RC(bug)
+        else:
+            logger.error("------ FAILED: Invalid Name Key Value.------")
+            return FAIL
 
-    return status
+    return PASS
 if __name__ == "__main__":
     sys.exit(main())
