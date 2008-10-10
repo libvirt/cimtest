@@ -103,7 +103,7 @@ def EnumInstances(host, cn, ret_cim_inst=False):
  
     return list
 
-def GetInstance(host, cn, keys):
+def GetInstance(host, cn, keys, ret_cim_inst=False):
     '''Resolve the enumeration given the @cn.
     Return a list of CIMInstance objects.'''
 
@@ -112,6 +112,9 @@ def GetInstance(host, cn, keys):
 
     try:
         inst = CIM_CimtestClass(host, ref)
+
+        if ret_cim_inst:
+            inst = inst.inst
     except pywbem.CIMError, arg:
         print arg[1]
 

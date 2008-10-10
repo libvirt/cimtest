@@ -18,6 +18,7 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 #
+import pywbem
 
 virt_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
@@ -47,6 +48,9 @@ def get_class_basename(cn):
 #FIXME This function is only needed for libcmpiutil versions 0.4 and later.
 #Once version 0.4 is obsolete, this function should be removed.
 def inst_to_mof(inst):
+    if not isinstance(inst, pywbem.cim_obj.CIMInstance):
+        inst = inst.inst
+
     mof_str = inst.tomof()
 
     mof_inst = ""
