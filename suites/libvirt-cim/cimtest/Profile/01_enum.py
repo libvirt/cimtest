@@ -44,15 +44,14 @@ def main():
                 'System Virtualization', '1.0.0'],
                ['CIM:DSP1057-VirtualSystem-1.0.0a', 2,
                 'Virtual System Profile', '1.0.0a']]
-    cn = 'RegisteredProfile'
+    cn = get_typed_class(options.virt, 'RegisteredProfile')
 
     status = PASS
     prev_namespace = Globals.CIM_NS
     Globals.CIM_NS = 'root/interop'
 
     try: 
-        key_list = ["InstanceID"]
-        proflist = enumclass.enumerate(options.ip, cn, key_list, options.virt)
+        proflist = enumclass.EnumInstances(options.ip, cn)
     except Exception, detail:
         logger.error(CIM_ERROR_ENUMERATE, get_typed_class(options.virt,
                      cn))
