@@ -40,11 +40,9 @@ def main():
     # Expected results from enumeration
     cn       =  get_typed_class(options.virt, "VirtualSystemSnapshotServiceCapabilities")
     instid   = 'SnapshotCapabilities'
-
+    
     try:
-        vs_sservicecap = enumclass.enumerate_inst(options.ip,
-                                                  "VirtualSystemSnapshotServiceCapabilities",
-                                                  options.virt)
+        vs_sservicecap = enumclass.EnumNames(options.ip, cn)
     except Exception, detail:
         logger.error(CIM_ERROR_ENUMERATE, cn)
         logger.error("Exception: %s", detail)
