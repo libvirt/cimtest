@@ -146,10 +146,7 @@ def main():
     vssd_cn = get_typed_class(options.virt, 'VirtualSystemSettingData')
 
     try:
-        vssd = enumclass.getInstance(options.ip, \
-                                     'VirtualSystemSettingData', \
-                                     key_list, \
-                                     options.virt)
+        vssd = enumclass.GetInstance(options.ip, vssd_cn, key_list)
         if vssd is None:
             logger.error("VSSD instance for %s not found" % test_dom)
             cxml.undefine(options.ip)

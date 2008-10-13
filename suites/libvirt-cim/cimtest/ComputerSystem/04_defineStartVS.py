@@ -62,11 +62,12 @@ def main():
         # otherwise. 
         for i in range(1, (timeout + 1)):
             sleep(1)
+            cs_class = get_typed_class(options.virt, 'ComputerSystem')
             keys = {
                     'Name' : test_dom,
-                    'CreationClassName' : get_typed_class(options.virt, 'ComputerSystem')
+                    'CreationClassName' : cs_class
                    } 
-            cs = enumclass.getInstance(options.ip, 'ComputerSystem', keys, options.virt)
+            cs = enumclass.GetInstance(options.ip, cs_class, keys)
             if cs.Name != test_dom:
                 Globals.logger.error("VS %s is not defined" % test_dom)
                 break  
