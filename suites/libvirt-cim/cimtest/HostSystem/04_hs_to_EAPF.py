@@ -56,7 +56,7 @@ from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from XenKvmLib.assoc import AssociatorNames, Associators
 from XenKvmLib.common_util import get_host_info
 from XenKvmLib.classes import get_typed_class
-from CimTest.ReturnCodes import PASS, FAIL, SKIP
+from CimTest.ReturnCodes import PASS, FAIL, SKIP, XFAIL_RC
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.logicaldevices import verify_device_values
 
@@ -66,6 +66,7 @@ test_dom   = "CrossClass_GuestDom"
 test_mac   = "00:11:22:33:44:aa"
 test_mem   = 128 
 test_vcpus = 1 
+bug_sblim='00007'
 
 def print_err(err, detail, cn):
     logger.error(err % cn)
@@ -147,22 +148,23 @@ def get_inst_for_dom(assoc_val):
 
     return dom_list
 
-def get_assocname_info(server, cn, an, qcn, hostname, virt):
+def get_assocname_info(server, host_cn, an, qcn, hostname):
     status = PASS
     assoc_info = []
     try:
-        assoc_info = AssociatorNames(server,
-                                         an,
-                                         cn,
-                       CreationClassName=cn,
-                            Name = hostname)
+        assoc_info = AssociatorNames(server, an, host_cn,
+                                     CreationClassName=host_cn,
+                                     Name = hostname)
         if len(assoc_info) < 1:
-            logger.error("%s returned %i %s objects" % (an, 
-                         len(assoc_info), qcn))
-            status = FAIL
+            if host_cn == 'Linux_ComputerSystem':
+               return XFAIL_RC(bug_sblim), assoc_info
+            else:
+               logger.error("%s returned %i %s objects",
+                             an, len(assoc_info), qcn)
+               return FAIL, assoc_info
 
     except Exception, detail:
-        print_err(CIM_ERROR_ASSOCIATORNAMES, detail, cn)
+        print_err(CIM_ERROR_ASSOCIATORNAMES, detail, host_cn)
         status = FAIL
 
     return status, assoc_info
@@ -232,10 +234,11 @@ def main():
     net_name = vsxml.xml_get_net_network()
 
     # Get the hostedResourcePool info first
-    cn  = classname
+    host_cn  = classname
     an  = get_typed_class(virt, "HostedResourcePool")
     qcn = "Device Pool"
-    status, pool = get_assocname_info(server, cn, an, qcn, host_name, virt)
+    logger.error("DEBUG host_name is %s", host_name)
+    status, pool = get_assocname_info(server, host_cn, an, qcn, host_name)
     if status != PASS:
         vsxml.undefine(server)
         return status
