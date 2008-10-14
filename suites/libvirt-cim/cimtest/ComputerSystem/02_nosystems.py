@@ -27,6 +27,7 @@ import pywbem
 from XenKvmLib import enumclass
 from VirtLib import live
 from VirtLib import utils
+from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
@@ -48,11 +49,10 @@ def main():
         logger.error("System has defined domains; unable to run")
         return SKIP 
 
-    cn = "%s_ComputerSystem" % options.virt
+    cn = get_typed_class(options.virt, 'ComputerSystem')
 
-    keys = ['Name', 'CreationClassName']
     try:
-        cs = enumclass.enumerate(options.ip, 'ComputerSystem', keys, options.virt)
+        cs = enumclass.EnumInstances(options.ip, cn)
 
     except Exception, details:
         logger.error(CIM_ERROR_ENUMERATE, cn)

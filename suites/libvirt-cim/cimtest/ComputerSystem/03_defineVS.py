@@ -49,9 +49,9 @@ def main():
         Globals.logger.error(VIRSH_ERROR_DEFINE % test_dom)
         return status
 
-    keys = ['Name', 'CreationClassName']
+    cs_class = get_typed_class(options.virt, 'ComputerSystem')
     try:
-        cs = enumclass.enumerate(options.ip, 'ComputerSystem', keys, options.virt)
+        cs = enumclass.EnumInstances(options.ip, cs_class)
         if len(cs) == 0:
             raise Exception('No cs instance returned')
         for dom in cs:
