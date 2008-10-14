@@ -24,6 +24,7 @@
 #
 
 import sys
+from sets import Set
 from XenKvmLib import assoc
 from XenKvmLib import enumclass
 from XenKvmLib.common_util import get_host_info
@@ -39,14 +40,14 @@ sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 @do_main(sup_types)
 def main():
     options = main.options
-
+    virt = options.virt
     keys = ['Name', 'CreationClassName']
-    status, host_sys, host_cn = get_host_info(options.ip, options.virt)
+    status, host_sys, host_cn = get_host_info(options.ip, virt)
     if status != PASS:
         logger.error("Error in calling get_host_info function")
         return FAIL
     try:
-        assoc_cn = get_typed_class(options.virt, "HostedResourcePool")
+        assoc_cn = get_typed_class(virt, "HostedResourcePool")
         pool = assoc.AssociatorNames(options.ip,
                                      assoc_cn,
                                      host_cn,
@@ -66,26 +67,51 @@ def main():
         else:
             logger.error("No pool returned")
             return FAIL
+
+    mpool =  get_typed_class(virt, 'MemoryPool')
+    exp_pllist = { mpool   : ['MemoryPool/0'] }
+    if virt != 'LXC':
+        npool =  get_typed_class(virt, 'NetworkPool')
+        dpool =  get_typed_class(virt, 'DiskPool')
+        ppool =  get_typed_class(virt, 'ProcessorPool')
+        exp_pllist[dpool] = ['DiskPool/%s' % default_pool_name]
+        exp_pllist[npool] = ['NetworkPool/%s' %default_network_name]
+        exp_pllist[ppool] = ['ProcessorPool/0']
     
     try:
+        res_pllist = {}
         for items in pool:
-            cname = items.classname
-            if cname.find("MemoryPool") >=0 and items['InstanceID'] != \
-                "MemoryPool/0":
-                raise Exception("%s does not match MemoryPool/0",
-                    items['InstanceID'])
-            elif cname.find("ProcessorPool") >=0 and items['InstanceID'] != \
-                "ProcessorPool/0":
-                raise Exception("%s does not match ProcessorPool/0",
-                    items['InstanceID'])
-            elif cname.find("NetworkPool") >=0 and items['InstanceID'] != \
-                "NetworkPool/%s" %default_network_name:
-                raise Exception("%s does not match NetworkPool/%s",
-                    items['InstanceID'], default_network_name)
-            elif cname.find("DiskPool") >=0 and items['InstanceID'] != \
-                "DiskPool/%s" % default_pool_name:
-                raise Exception("%s does not match DiskPool/%s",
-                    items['InstanceID'], default_pool_name)
+            # The dict has some elements
+            if len(res_pllist) != 0:
+                # If the dict already has the key we append the new value 
+                if items.classname in res_pllist.keys(): 
+                    list = []
+                    list = res_pllist[items.classname]
+                    list.append(items['InstanceID'])
+                    res_pllist[items.classname] = list
+                else:
+                    # If the dict is not empty, but does not yet contain 
+                    # items.classname, we create new item
+                    res_pllist[items.classname] = [items['InstanceID']]
+            else:
+                # When the dict is empty
+                res_pllist[items.classname] = [items['InstanceID']]
+
+        #Verifying we get all the expected pool class info
+        if len(Set(exp_pllist.keys()) - Set(res_pllist.keys())) != 0:
+            logger.error("Pool Class mismatch")
+            raise Exception("Expected Pool class list: %s \n \t  Got: %s"
+                            % (sorted(exp_pllist.keys()), 
+                               sorted(res_pllist.keys())))
+
+        #Verifying that we get the atleast the expected instanceid 
+        #for every pool class
+        for key in exp_pllist.keys():
+            if Set(exp_pllist[key]) != Set(res_pllist[key]):
+                logger.error("InstanceID mismatch")
+                raise Exception("Expected InstanceID: %s \n \t  Got: %s"
+                                 % (sorted(exp_pllist[key]), 
+                                    sorted(res_pllist[key])))
     except Exception, details:
          logger.error(details)
          return FAIL
