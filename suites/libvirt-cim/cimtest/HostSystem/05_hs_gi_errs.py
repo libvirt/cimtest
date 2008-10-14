@@ -29,7 +29,7 @@
 # Input:
 # ------
 # wbemcli gi 'http://localhost:5988/root/virt:Xen_HostSystem.\
-# Wrong="Xen_HostSystem",Name="mx3650a.in.ibm.com"' -nl
+# Wrong="Xen_HostSystem",Name="x3650"' -nl
 #
 # Output:
 # -------
@@ -40,7 +40,7 @@
 # Input:
 # ------
 # wbemcli gi 'http://localhost:5988/root/virt:Xen_HostSystem.\
-# CreationClassName="Wrong",Name="mx3650a.in.ibm.com"' -nl
+# CreationClassName="Wrong",Name="x3650"' -nl
 #
 # Output:
 # -------
@@ -51,7 +51,7 @@
 # Input:
 # ------
 # wbemcli gi 'http://localhost:5988/root/virt:Xen_HostSystem.\
-# CreationClassName="Xen_HostSystem",Wrong="mx3650a.in.ibm.com"' -nl
+# CreationClassName="Xen_HostSystem",Wrong="x3650"' -nl
 #
 # Output:
 # -------
@@ -78,19 +78,21 @@ from XenKvmLib import assoc
 from XenKvmLib.common_util import get_host_info, try_getinstance
 from XenKvmLib.classes import get_typed_class
 from optparse import OptionParser
-from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from XenKvmLib.const import do_main
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 expr_values = {
-    "invalid_ccname" : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                 'desc' : "No such instance (CreationClassName)" }, \
-    "invalid_name"   : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                 'desc' : "No such instance (Name)" }
+                "invalid_ccname" : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
+                                    'desc' : "No such instance "
+                                             "(CreationClassName)" }, 
+                "invalid_name"   : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
+                                    'desc' : "No such instance (Name)" }
               }
 
+bug_sblim='00007'
 
 @do_main(sup_types)
 def main():
@@ -104,45 +106,62 @@ def main():
     if status != PASS:
         return status
 
-    conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, CIM_PASS), CIM_NS)
+    conn = assoc.myWBEMConnection('http://%s' % options.ip, 
+                                  (CIM_USER, CIM_PASS), CIM_NS)
 
     # 1) Test by giving Invalid CCName Key Name
     field = 'INVALID_CCName_KeyName'
     keys = { field : classname, 'Name' : host_name }
-    ret_value = try_getinstance(conn, classname, keys, field_name=field, \
-                                 expr_values=expr_values['invalid_ccname'], bug_no="")
+    ret_value = try_getinstance(conn, classname, keys, field_name=field, 
+                                expr_values=expr_values['invalid_ccname'], 
+                                bug_no="")
     if ret_value != PASS:
-        logger.error("------ FAILED: Invalid CCName Key Name.------")
-        status = ret_value
+        if classname == 'Linux_ComputerSystem':
+            return XFAIL_RC(bug_sblim)
+        else:
+            logger.error("------ FAILED: Invalid CCName Key Name.------")
+            return ret_value
 
     # 2) Test by passing Invalid CCName Key Value
     field = 'INVALID_CCName_KeyValue'
     keys = { 'CreationClassName' : field, 'Name' : host_name }
-    ret_value = try_getinstance(conn, classname, keys, field_name=field, \
-                                 expr_values=expr_values['invalid_ccname'], bug_no="")
+    ret_value = try_getinstance(conn, classname, keys, field_name=field, 
+                                expr_values=expr_values['invalid_ccname'], 
+                                bug_no="")
     if ret_value != PASS:
-        logger.error("------ FAILED: Invalid CCName Key Value.------")
-        status = ret_value
+        if classname == 'Linux_ComputerSystem':
+            return XFAIL_RC(bug_sblim)
+        else:
+            logger.error("------ FAILED: Invalid CCName Key Value.------")
+            return ret_value
 
     # 3) Test by giving Invalid Name Key Name
     field = 'INVALID_Name_KeyName'
     keys = { 'CreationClassName' :  classname, field : host_name}
-    ret_value = try_getinstance(conn, classname, keys, field_name=field, \
-                                 expr_values=expr_values['invalid_name'], bug_no="")
+    ret_value = try_getinstance(conn, classname, keys, field_name=field, 
+                                expr_values=expr_values['invalid_name'], 
+                                bug_no="")
     if ret_value != PASS:
-        logger.error("------ FAILED: Invalid Name Key Name.------")
-        status = ret_value
+        if classname == 'Linux_ComputerSystem':
+            return XFAIL_RC(bug_sblim)
+        else:
+            logger.error("------ FAILED: Invalid Name Key Name.------")
+            return ret_value
 
     # 4) Test by passing Invalid Name Key Value
     field = 'INVALID_Name_KeyValue'
     keys = { 'CreationClassName' : classname, 'Name' : field }
-    ret_value = try_getinstance(conn, classname, keys, field_name=field, \
-                                 expr_values=expr_values['invalid_name'], bug_no="")
+    ret_value = try_getinstance(conn, classname, keys, field_name=field, 
+                                expr_values=expr_values['invalid_name'], 
+                                bug_no="")
     if ret_value != PASS:
-        logger.error("------ FAILED: Invalid Name Key Value.------")
-        status = ret_value
+        if classname == 'Linux_ComputerSystem':
+            return XFAIL_RC(bug_sblim)
+        else:
+            logger.error("------ FAILED: Invalid Name Key Value.------")
+            return ret_value
 
-    return status
+    return PASS
 
 if __name__ == "__main__":
     sys.exit(main())
