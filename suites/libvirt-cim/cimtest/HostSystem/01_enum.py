@@ -48,7 +48,7 @@ def main():
     
     ret, linux_cs = check_sblim(options.ip, options.virt)
     try:
-        hs = enumclass.enumerate(options.ip, 'HostSystem', keys, options.virt)
+        hs = enumclass.EnumInstances(options.ip, name)
     except Exception, details:
         logger.error("%s %s: %s" % (CIM_ERROR_ENUMERATE, name, details))
         status = FAIL

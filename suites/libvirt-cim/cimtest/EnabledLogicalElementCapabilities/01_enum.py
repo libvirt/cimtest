@@ -36,14 +36,11 @@ def main():
     options = main.options
     
     try:
-        key_list = ["InstanceID"]
-        elec = enumclass.enumerate(options.ip,
-                                   "EnabledLogicalElementCapabilities",
-                                   key_list,
-                                   options.virt)
+        elec_class = get_typed_class(options.virt, 
+                     "EnabledLogicalElementCapabilities")
+        elec = enumclass.EnumInstances(options.ip, elec_class)
     except Exception:
-        Globals.logger.error(Globals.CIM_ERROR_ENUMERATE, \
-                             get_typed_class(options.virt, 'EnabledLogicalElementCapabilities'))
+        Globals.logger.error(Globals.CIM_ERROR_ENUMERATE, elec_class)
         return 1
 
      

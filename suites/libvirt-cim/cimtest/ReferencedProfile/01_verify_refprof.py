@@ -87,8 +87,7 @@ def get_proflist():
     proflist = []
     status = PASS
     try: 
-        key_list = ["InstanceID"]
-        proflist = enumclass.enumerate(server, reg_classname, key_list, virt) 
+        proflist = enumclass.EnumInstances(server, reg_classname) 
         if len(proflist) < 5:
             logger.error("%s returned %i %s objects, expected atleast 5", 
                          reg_classname, len(proflist), 'Profile')

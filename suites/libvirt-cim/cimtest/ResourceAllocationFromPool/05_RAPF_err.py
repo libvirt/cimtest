@@ -111,7 +111,7 @@ def get_netrasd_instid(server, virt, vsxml, classname):
     rasd_list = []
     status = PASS
     try:
-        rasd_list = enumclass.enumerate_inst(server, classname, virt)
+        rasd_list = enumclass.EnumNames(server, classname)
         if len(rasd_list) < 1:
             logger.error("%s returned %i instances, excepted atleast 1 "
                          "instance", classname, len(rasd_list))

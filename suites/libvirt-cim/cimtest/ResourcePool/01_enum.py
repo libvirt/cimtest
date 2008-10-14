@@ -27,7 +27,7 @@
 import sys
 import os
 from distutils.file_util import move_file
-from XenKvmLib.enumclass import enumerate
+from XenKvmLib.enumclass import EnumInstances
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib import vxml
 from CimTest import Globals
@@ -111,36 +111,39 @@ def main():
         logger.error("Failed to initialise the list")
         return status
 
-    key_list = ["InstanceID"]
+    mp = get_typed_class(virt, mp_cn)
+    pp = get_typed_class(virt, pp_cn)
+    dp = get_typed_class(virt, dp_cn)
+    np = get_typed_class(virt, np_cn)
+
+    try:
+        mempool = EnumInstances(ip, mp)
+    except Exception:
+        logger.error(Globals.CIM_ERROR_ENUMERATE % mp)
+        return FAIL
+    status = verify_fields(pool_list, mempool, mp)
     
     try:
-        mempool = enumerate(ip, mp_cn, key_list, virt)
+        propool = EnumInstances(ip, pp)
     except Exception:
-        logger.error(Globals.CIM_ERROR_ENUMERATE % mp_cn)
+        logger.error(Globals.CIM_ERROR_ENUMERATE % pp)
         return FAIL
-    status = verify_fields(pool_list, mempool, get_typed_class(virt, mp_cn))
-    
-    try:
-        propool = enumerate(ip, pp_cn, key_list, virt)
-    except Exception:
-        logger.error(Globals.CIM_ERROR_ENUMERATE % pp_cn)
-        return FAIL
-    status = verify_fields(pool_list, propool, get_typed_class(virt, pp_cn))
+    status = verify_fields(pool_list, propool, pp)
    
     if virt != 'LXC': 
         try:
-            diskpool = enumerate(ip, dp_cn, key_list, virt)
+            diskpool = EnumInstances(ip, dp)
         except Exception:
-            logger.error(Globals.CIM_ERROR_ENUMERATE % dp_cn)
+            logger.error(Globals.CIM_ERROR_ENUMERATE % dp)
             return FAIL
-        status = verify_fields(pool_list, diskpool, get_typed_class(virt, dp_cn))
+        status = verify_fields(pool_list, diskpool, dp)
     
     try:
-        netpool = enumerate(ip, np_cn, key_list, virt)
+        netpool = EnumInstances(ip, np)
     except Exception:
-        logger.error(Globals.CIM_ERROR_ENUMERATE % np_cn)
+        logger.error(Globals.CIM_ERROR_ENUMERATE % np)
         return FAIL
-    status = verify_fields(pool_list, netpool, get_typed_class(virt, np_cn))
+    status = verify_fields(pool_list, netpool, np)
     
     return status
 
