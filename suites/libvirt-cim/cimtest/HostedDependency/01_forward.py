@@ -83,11 +83,11 @@ def main():
         cxml.undefine(server)
         return status
 
-    keys = ['Name', 'CreationClassName']
+    cs_class = get_typed_class(options.virt, 'ComputerSystem')
     try: 
-        cs = enumclass.enumerate(server, 'ComputerSystem', keys, virt)
+        cs = enumclass.EnumInstances(server, cs_class)
     except Exception,detail:
-        logger.error(CIM_ERROR_ENUMERATE, 'ComputerSystem')
+        logger.error(CIM_ERROR_ENUMERATE, cs_class)
         logger.error("Exception: %s", detail)
         cxml.undefine(server)
         return FAIL

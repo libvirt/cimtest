@@ -89,8 +89,8 @@ def main():
             cxml.undefine(server)
             return status
 
-        keys = ['Name', 'CreationClassName']
-        cs = enumclass.enumerate(server, 'ComputerSystem', keys, virt)
+        cs_class = get_typed_class(options.virt, 'ComputerSystem')
+        cs = enumclass.EnumInstances(server, cs_class)
         if virt == 'Xen' or options.virt == 'XenFV':
             # Xen honors additional domain-0
             cs_list_len = 2
