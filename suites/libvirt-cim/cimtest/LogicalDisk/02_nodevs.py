@@ -26,8 +26,8 @@
 import sys
 import pywbem
 from time import sleep
-from XenKvmLib import devices
 from XenKvmLib import enumclass
+from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
@@ -38,8 +38,8 @@ test_dom = "test_domain"
 def clean_system(host, virt='Xen'):
     timer_count = 10
     for count in range(0, timer_count):
-        keys = ['Name', 'CreationClassName']
-        l = enumclass.enumerate(host, 'ComputerSystem', keys, virt)
+        cs = get_typed_class(virt, 'ComputerSystem')
+        l = enumclass.EnumInstances(host, cs)
         if len(l) == 0:
             return True
         if virt == 'Xen' or virt == 'XenFV':
@@ -58,10 +58,10 @@ def main():
     key_list = ["DeviceID", "CreationClassName", "SystemName", 
                 "SystemCreationClassName"]
 
-    cn = "LogicalDisk"
+    cn = get_typed_class(options.virt, "LogicalDisk")
 
     try:
-        devs = devices.enumerate(options.ip, cn, key_list, options.virt)
+        devs = enumclass.EnumInstances(options.ip, cn)
 
     except Exception, details:
         logger.error(CIM_ERROR_ENUMERATE, cn)
