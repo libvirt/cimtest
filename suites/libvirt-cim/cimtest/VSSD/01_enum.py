@@ -29,6 +29,7 @@
 import sys
 from VirtLib import live
 from XenKvmLib import enumclass
+from XenKvmLib.classes import get_typed_class
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.vxml import get_class
 from CimTest.Globals import logger
@@ -53,10 +54,8 @@ def main():
 
     try:
         live_cs = live.domain_list(options.ip, options.virt)
-        key_list = ["InstanceID"]
-        syslst = enumclass.enumerate(options.ip, "VirtualSystemSettingData", 
-                                     key_list, options.virt) 
-
+        vssd_class = get_typed_class(options.virt, "VirtualSystemSettingData")
+        syslst = enumclass.EnumInstances(options.ip, vssd_class) 
         found = 0
         for vssd in syslst :
             if options.virt == 'XenFV':
