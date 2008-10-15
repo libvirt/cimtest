@@ -217,7 +217,8 @@ def get_host_info(server, virt="Xen"):
         # sblim-base-provider provider related changes
 
         ret, linux_cs = check_sblim(server)
-        host_info = enumclass.enumerate(server, 'HostSystem', keys, virt)
+        hs_class = get_typed_class(virt, 'HostSystem')
+        host_info = enumclass.EnumInstances(server, hs_class)
         if ret == PASS:
             host_sys = linux_cs
         elif len(host_info) == 1:
@@ -499,8 +500,9 @@ def check_sblim(server, virt='Xen'):
     Globals.CIM_NS = 'root/cimv2'
     keys = ['Name', 'CreationClassName']
     linux_cs = None
+    cs = 'Linux_ComputerSystem'
     try:
-        linux = enumclass.enumerate(server, 'ComputerSystem', keys, 'Linux')
+        linux = enumclass.EnumInstances(server, cs)
         if len(linux) == 1:
             status = PASS
             linux_cs = linux[0]
