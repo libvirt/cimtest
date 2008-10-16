@@ -44,9 +44,7 @@ def main():
     instid = 'MigrationCapabilities'
 
     try:
-        vsmc = enumclass.enumerate_inst(options.ip,
-                                        "VirtualSystemMigrationCapabilities",
-                                        options.virt)
+        vsmc = enumclass.EnumNames(options.ip, cn)
     except Exception:
         logger.error(CIM_ERROR_ENUMERATE, cn)
         return FAIL
