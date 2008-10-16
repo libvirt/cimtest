@@ -107,7 +107,8 @@ def main():
     keys = ['Name', 'CreationClassName']
     try:
         #Getting the hostname, to verify with the value returned by the assoc.
-        host_sys = enumclass.enumerate(options.ip, 'HostSystem', keys, options.virt)
+        cn = get_typed_class(options.virt, 'HostSystem')
+        host_sys = enumclass.EnumInstances(options.ip, cn)
 
         if len(host_sys) < 1:
             logger.error("ERROR: Enumerate returned 0 host instances")
@@ -123,14 +124,10 @@ def main():
     Globals.CIM_NS = 'root/interop'
 
     try:
-        key_list = ["InstanceID"]
-        proflist = enumclass.enumerate(options.ip,
-                                       "RegisteredProfile",
-                                        key_list,
-                                        options.virt)
+        cn = get_typed_class(options.virt, 'RegisteredProfile')
+        proflist = enumclass.EnumInstances(options.ip, cn)
     except Exception, details:
-        logger.error(CIM_ERROR_ENUMERATE, 
-                     get_typed_class(options.virt, 'RegisteredProfile')) 
+        logger.error(CIM_ERROR_ENUMERATE, cn) 
         logger.error("Exception: %s", details)
         return status
 
