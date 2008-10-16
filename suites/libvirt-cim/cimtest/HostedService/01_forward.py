@@ -22,6 +22,7 @@
 #
 
 import sys
+from sets import Set
 from VirtLib import utils
 from XenKvmLib import assoc
 from XenKvmLib import enumclass
@@ -29,23 +30,25 @@ from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
 from XenKvmLib.const import do_main
 from CimTest.Globals import logger
-from CimTest.ReturnCodes import PASS, FAIL, XFAIL
+from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 from XenKvmLib.common_util import get_host_info
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
+bug_sblim = '00007'
 
 @do_main(sup_types)
 def main():
     options = main.options
     virt = options.virt
+    server = options.ip
     try:
-        status, host_name, host_ccn = get_host_info(options.ip, virt)
+        status, host_name, host_ccn = get_host_info(server, virt)
         if status != PASS:
             logger.error("Failed to get host info.")
             return status
 
         an = get_typed_class(virt, "HostedService")
-        service = assoc.AssociatorNames(options.ip,
+        service = assoc.AssociatorNames(server,
                                         an, host_ccn,
                                         CreationClassName = host_ccn,
                                         Name = host_name)
@@ -58,26 +61,27 @@ def main():
         logger.error("No association return")
         return FAIL
 
-    valid_services = [get_typed_class(virt, "ResourcePoolConfigurationService"),
-                      get_typed_class(virt, "VirtualSystemManagementService"),
-                      get_typed_class(virt, "VirtualSystemMigrationService"),
-                      get_typed_class(virt, "ConsoleRedirectionService")]
+    val_serv = Set([get_typed_class(virt, "ResourcePoolConfigurationService"),
+                    get_typed_class(virt, "VirtualSystemManagementService"),
+                    get_typed_class(virt, "VirtualSystemMigrationService"),
+                    get_typed_class(virt, "ConsoleRedirectionService")])
 
     ccn_list = []
     for item in service:
         ccn_list.append(item.keybindings["CreationClassName"])
-    
-    if len(ccn_list) != len(valid_services):
-        logger.error("'%s' returned %d, expected %d", 
-                     an, len(valid_services), len(ccn_list))
+
+    ccn_list = Set(ccn_list) 
+ 
+    if (len(val_serv) - len(ccn_list)) != 0:
+        if host_ccn == 'Linux_ComputerSystem':
+            return XFAIL_RC(bug_sblim)
+        else:
+
+            logger.error("Mismatching services values")
+            logger.error("'%s' returned %d, expected %d", 
+                         an, len(ccn_list), len(val_serv))
         return FAIL
 
-    for ccn in ccn_list:
-        if ccn not in valid_services:
-            logger.error("Invalid Value '%s' returned for association '%s'",
-                         ccn, an)
-            return FAIL
-
-                    
+    return PASS 
 if __name__ == "__main__":
     sys.exit(main())
