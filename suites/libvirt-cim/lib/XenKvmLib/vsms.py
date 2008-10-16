@@ -108,7 +108,6 @@ class CIM_VirtualSystemSettingData(CIMClassMOF):
             self.Kernel = const.Xen_kernel_path
             self.Ramdisk = const.Xen_init_path
  
-
 class Xen_VirtualSystemSettingData(CIM_VirtualSystemSettingData):
     pass
 
@@ -118,9 +117,10 @@ class KVM_VirtualSystemSettingData(CIM_VirtualSystemSettingData):
 class LXC_VirtualSystemSettingData(CIM_VirtualSystemSettingData):
     pass
 
-@eval_cls('VirtualSystemSettingData')
-def get_vssd_class(virt):
-    pass
+def get_vssd_mof(virt, dom_name):
+    vssd_cn = eval(get_typed_class(virt, "VirtualSystemSettingData"))
+    vssd = vssd_cn(dom_name, virt)
+    return vssd.mof()
 
 # classes to define RASD parameters
 class CIM_DiskResourceAllocationSettingData(CIMClassMOF):
@@ -238,8 +238,7 @@ def default_vssd_rasd_str(dom_name='test_domain',
                           mem_mb=512,
                           malloc_units="MegaBytes",
                           virt='Xen'):
-    class_vssd = get_vssd_class(virt)
-    vssd = class_vssd(name=dom_name, virt=virt)
+    vssd = get_vssd_mof(virt, dom_name)
 
     class_dasd = get_dasd_class(virt)
     if virt == 'KVM':
@@ -261,7 +260,7 @@ def default_vssd_rasd_str(dom_name='test_domain',
 
     # LXC only takes disk and memory device for now.
     if virt == 'LXC':
-        return vssd.mof(), [d.mof(), m.mof()]
+        return vssd, [d.mof(), m.mof()]
     
     class_nasd = get_nasd_class(virt)
     if net_mac != const.Xen_default_mac:
@@ -282,5 +281,5 @@ def default_vssd_rasd_str(dom_name='test_domain',
                 vcpu=proc_vcpu,
                 name=dom_name)
 
-    return vssd.mof(), [d.mof(), n.mof(), p.mof(), m.mof()]
+    return vssd, [d.mof(), n.mof(), p.mof(), m.mof()]
 

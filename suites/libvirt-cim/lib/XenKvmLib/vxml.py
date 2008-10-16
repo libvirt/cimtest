@@ -466,7 +466,7 @@ class VirtCIM:
                  net_type, net_name, net_mac, vcpus, mem, mem_allocunits):
         self.virt = virt
         self.domain_name = dom_name
-        self.vssd = vsms.get_vssd_class(virt)(name=dom_name, virt=virt)
+        self.vssd = vsms.get_vssd_mof(virt, dom_name)
         self.dasd = vsms.get_dasd_class(virt)(disk_dev, disk_source, dom_name)
         self.nasd = vsms.get_nasd_class(virt)(type=net_type, 
                                               mac=net_mac,

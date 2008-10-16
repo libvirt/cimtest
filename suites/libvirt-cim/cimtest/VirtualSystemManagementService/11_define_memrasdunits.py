@@ -51,7 +51,7 @@ def try_define(options, vssd, units, value):
                         name=default_dom)
 
     params = { 
-        "vssd" : vssd.mof(),
+        "vssd" : vssd,
         "rasd" : [mrasd.mof()],
         }
 
@@ -101,8 +101,7 @@ def check_value(options):
 def main():
     options = main.options
 
-    vssd_class = vsms.get_vssd_class(options.virt)
-    vssd = vssd_class(name=default_dom, virt=options.virt)
+    vssd = vsms.get_vssd_mof(options.virt, default_dom)
 
     status = PASS
 
