@@ -49,7 +49,7 @@ from XenKvmLib.common_util import print_field_error
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS, CIM_ERROR_ENUMERATE
 from XenKvmLib.const import do_main 
 from CimTest.ReturnCodes import PASS, FAIL
-from XenKvmLib.enumclass import enumerate
+from XenKvmLib.enumclass import EnumInstances
 from XenKvmLib.const import default_network_name, default_pool_name 
 
 
@@ -139,8 +139,7 @@ def get_proflist(server, reg_classname, virt):
     profiles_instid_list = []
     status = PASS
     try: 
-        key_list = ["InstanceID"]
-        proflist = enumerate(server, reg_classname, key_list, virt) 
+        proflist = EnumInstances(server, reg_classname) 
         if len(proflist) < 7:
             logger.error("'%s' returned '%d' '%s' objects, expected atleast 7", 
                          reg_classname, len(proflist), 'Profile')
