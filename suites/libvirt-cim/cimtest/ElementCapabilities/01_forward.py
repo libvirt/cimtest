@@ -30,7 +30,7 @@ from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP, XFAIL_RC
-from XenKvmLib.enumclass import enumerate
+from XenKvmLib.enumclass import EnumInstances
 from XenKvmLib.common_util import get_host_info
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
@@ -38,8 +38,8 @@ test_dom  = "dom_elecap"
 bug_sblim = "00007"
 
 def append_to_list(server, virt, poolname, valid_elc_id):
-    keys_list = ['InstanceID']
-    pool_list = enumerate(server, poolname, keys_list, virt) 
+    poolname = get_typed_class(virt, poolname)
+    pool_list = EnumInstances(server, poolname) 
     if len(pool_list) > 0:
         for pool in pool_list:
             valid_elc_id.append(pool.InstanceID)
