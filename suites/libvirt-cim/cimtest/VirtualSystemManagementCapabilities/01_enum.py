@@ -47,11 +47,7 @@ def main():
     sync_method_val = Set([ 1L, 2L, 3L, 5L, 6L, 7L ])
 
     try:
-        key_list = ["InstanceID"]
-        vsmc = enumclass.enumerate(server,
-                                   "VirtualSystemManagementCapabilities",
-                                   key_list,
-                                   options.virt)
+        vsmc = enumclass.EnumInstances(server, cn)
     except Exception:
        logger.error(CIM_ERROR_ENUMERATE, cn)
        return FAIL 
