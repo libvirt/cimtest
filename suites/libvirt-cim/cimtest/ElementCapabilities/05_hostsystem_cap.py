@@ -54,9 +54,10 @@ from XenKvmLib.common_util import get_host_info
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES
 from XenKvmLib.const import do_main
-from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
+bug_sblim = '00007'
 
 def print_err(err, detail, cn):
     logger.error(err % cn)
@@ -81,7 +82,7 @@ def get_inst_from_list(cn, cs_list, filter_name, exp_val):
 
     return status, inst
 
-def get_assoc_info(server, cn, an, qcn, name, virt="Xen"):
+def get_assoc_info(server, cn, an, qcn, name):
     status = PASS
     assoc_info = []
     try:
@@ -89,10 +90,14 @@ def get_assoc_info(server, cn, an, qcn, name, virt="Xen"):
                                          an,
                                          cn,
                      CreationClassName = cn,
-                                Name = name,)
+                                Name = name)
         if len(assoc_info) < 1:
-            logger.error("%s returned %i %s objects" % (an, len(assoc_info), qcn))
-            status = FAIL
+            if cn == 'Linux_ComputerSystem':
+               return XFAIL_RC(bug_sblim), assoc_info
+            else:
+               logger.error("%s returned %i %s objects", an,
+                            len(assoc_info), qcn)
+               return FAIL, assoc_info
     except Exception, detail:
         print_err(CIM_ERROR_ASSOCIATORNAMES, detail, cn)
         status = FAIL
@@ -116,7 +121,7 @@ def get_association_info(server, service_fieldname, cn, an, qcn, virt="Xen"):
             SystemCreationClassName=sccname,
                            SystemName=sname)
         if len(assoc_info) < 1:
-            logger.error("%s returned %i %s objects" % (an, len(assoc_info), qcn))
+            logger.error("%s returned %i %s objects", an, len(assoc_info), qcn)
             status = FAIL
 
     except Exception, detail:
@@ -143,8 +148,8 @@ def verify_cap_fields(server, service_fieldname, cap_key, virt="Xen"):
     cn      = service_list[service_fieldname]['CreationClassName'] 
     an      = get_typed_class(virt, 'ElementCapabilities')
     qcn     = 'Capabilities'
-    status, cap_assoc_info = get_association_info(server, service_fieldname, \
-                                                                  cn, an, qcn, virt)
+    status, cap_assoc_info = get_association_info(server, service_fieldname, 
+                                                  cn, an, qcn, virt)
     if status != PASS or len(cap_assoc_info) == 0:
         return status
     cn = cap_assoc_info[0].classname
@@ -163,37 +168,40 @@ def verify_cap_fields(server, service_fieldname, cap_key, virt="Xen"):
 def main():
     options = main.options
     server = options.ip
+    virt   = options.virt
     global service_list
     global cap_list
 
     # initialising the list
-    service_list = { 'ManagementService' : 'Management Service', \
+    service_list = { 'ManagementService' : 'Management Service', 
                      'MigrationService' : 'MigrationService'
                    }
 
     # This will be used for the comparison at the end.
-    mgtcap = { 'ClassName'     : get_typed_class(options.virt, 'VirtualSystemManagementCapabilities'), \
+    vsmancap_cn = get_typed_class(virt, 'VirtualSystemManagementCapabilities')
+    vsmigcap_cn = get_typed_class(virt, 'VirtualSystemMigrationCapabilities')
+    mgtcap = { 'ClassName'     :  vsmancap_cn,
                'InstanceID'    : 'ManagementCapabilities'
              }
-    migcap = { 'ClassName'     : get_typed_class(options.virt, 'VirtualSystemMigrationCapabilities'), \
+    migcap = { 'ClassName'     : vsmigcap_cn, 
                'InstanceID'    : 'MigrationCapabilities'
              }
     cap_list = { 
-                 'ManagementCapabilities' : mgtcap, \
+                 'ManagementCapabilities' : mgtcap, 
                  'MigrationCapabilities'  : migcap
                }
     
     # Get the host info
-    status, host_name, classname = get_host_info(server, options.virt)
+    status, host_name, classname = get_host_info(server, virt)
     if status != PASS:
         return status
 
-    an   = get_typed_class(options.virt, 'HostedService')
+    an   = get_typed_class(virt, 'HostedService')
     cn   = classname
     qcn  = 'Service'
     name = host_name
     # Get the service available on the host
-    status, service_assoc_info = get_assoc_info(server, cn, an, qcn, name, options.virt)
+    status, service_assoc_info = get_assoc_info(server, cn, an, qcn, name)
     if status != PASS or len(service_assoc_info) == 0:
         return status
 
@@ -212,7 +220,7 @@ def main():
     # Query ElementCapabilities and verify the ManagementCapabilities information.
     service_fieldname = 'ManagementService'
     cap_key = 'ManagementCapabilities'
-    status = verify_cap_fields(server, service_fieldname, cap_key, options.virt)
+    status = verify_cap_fields(server, service_fieldname, cap_key, virt)
     if status != PASS:
         logger.error("ManagementCapabilities Verification failed")
         return status
@@ -220,7 +228,7 @@ def main():
     # Query ElementCapabilities and verify the MigrationCapabilities information.
     service_fieldname = 'MigrationService'
     cap_key = 'MigrationCapabilities'
-    status = verify_cap_fields(server, service_fieldname, cap_key, options.virt)
+    status = verify_cap_fields(server, service_fieldname, cap_key, virt)
     if status != PASS:
         logger.error("MigrationCapabilities Verification failed")
         return status
