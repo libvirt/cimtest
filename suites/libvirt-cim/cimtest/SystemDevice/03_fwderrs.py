@@ -34,7 +34,7 @@ from pywbem.cim_obj import CIMInstanceName
 from VirtLib import utils
 from XenKvmLib import vxml
 from XenKvmLib import assoc
-from XenKvmLib import devices
+from XenKvmLib import enumclass
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
@@ -89,7 +89,8 @@ def main():
 
     try:
         for item in devlist:
-            devs = devices.enumerate(options.ip, item, key_list, options.virt)
+            cn = get_typed_class(options.virt, item)
+            devs = enumclass.EnumInstances(options.ip, cn)
             if len(devs) == 0:
                 raise Exception('empty result returned')
             for dev in devs:

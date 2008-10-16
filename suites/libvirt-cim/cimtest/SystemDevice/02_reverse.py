@@ -58,8 +58,9 @@ def main():
     key_list = ["DeviceID", "CreationClassName", "SystemName",
                 "SystemCreationClassName"]
     for items in devlist:
+        cn = get_typed_class(options.virt, items)
         try:
-            devs = devices.enumerate(options.ip, items, key_list, options.virt)
+            devs = enumclass.EnumInstances(options.ip, cn)
         except Exception, detail:
             logger.error("Exception: %s" % detail)
             cxml.destroy(options.ip)
@@ -99,7 +100,8 @@ def main():
                     'Name': systems[0]['Name'],
                     'CreationClassName': systems[0]['CreationClassName']
                    }
-            system = enumclass.getInstance(options.ip, 'ComputerSystem', keys, options.virt)
+            cn = get_typed_class(options.virt, 'ComputerSystem')
+            system = enumclass.GetInstance(options.ip, cn, keys)
         
             if system.Name == test_dom:
                 status = PASS
