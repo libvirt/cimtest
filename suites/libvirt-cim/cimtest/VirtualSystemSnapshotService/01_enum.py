@@ -50,9 +50,7 @@ def main():
         if status != PASS:
             return status
     try:
-        vs_sservice = enumclass.enumerate_inst(options.ip,
-                                               "VirtualSystemSnapshotService",
-                                               options.virt)
+        vs_sservice = enumclass.EnumNames(options.ip, cn)
     except Exception, detail:
         logger.error(CIM_ERROR_ENUMERATE, cn)
         logger.error("Exception: %s", detail)
