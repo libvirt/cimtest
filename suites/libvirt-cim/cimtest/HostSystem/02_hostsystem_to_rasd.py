@@ -55,12 +55,12 @@ from XenKvmLib.assoc import Associators, AssociatorNames
 from XenKvmLib.common_util import get_host_info
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES, \
 CIM_ERROR_ASSOCIATORS
-from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 from XenKvmLib.rasd import verify_procrasd_values, verify_netrasd_values, \
 verify_diskrasd_values, verify_memrasd_values, rasd_init_list
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
-
+bug_sblim = '00007'
 
 test_dom    = "CrossClass_GuestDom"
 test_vcpus  = 1
@@ -112,7 +112,7 @@ def get_inst_from_list(server, cn, cs_list, filter_name, exp_val, vsxml):
 
     return status, inst
 
-def get_assoc_info(server, cn, an, qcn, name, vsxml, virt="Xen"):
+def get_assoc_info(server, cn, an, qcn, name, vsxml):
     status = PASS
     assoc_info = []
     try:
@@ -122,8 +122,11 @@ def get_assoc_info(server, cn, an, qcn, name, vsxml, virt="Xen"):
                                      CreationClassName = cn,
                                      Name = name)
         if len(assoc_info) < 1:
-            logger.error("%s returned %i %s objects" % (an, len(assoc_info), qcn))
-            status = FAIL
+            if cn == 'Linux_ComputerSystem':
+                status = XFAIL_RC(bug_sblim)
+            else:
+                logger.error("%s returned %i %s objects", an, len(assoc_info), qcn)
+                status = FAIL
 
     except Exception, detail:
         print_err(CIM_ERROR_ASSOCIATORNAMES, detail, cn)
@@ -201,9 +204,10 @@ def main():
     an   = get_typed_class(options.virt, 'HostedDependency')
     qcn  = get_typed_class(options.virt, 'ComputerSystem')
     name = host_name
-    status, cs_assoc_info = get_assoc_info(server, cn, an, qcn, name, vsxml, options.virt)
+    status, cs_assoc_info = get_assoc_info(server, cn, an, qcn, name, vsxml)
     if status != PASS or len(cs_assoc_info) == 0:
         return status
+
     filter_name =  {"key" : "Name"}
     status, cs_dom = get_inst_from_list(server,
                                            cn,
@@ -217,7 +221,7 @@ def main():
     an   = get_typed_class(options.virt, 'SystemDevice') 
     qcn  = 'Devices'
     name = test_dom
-    status, sd_assoc_info = get_assoc_info(server, cn, an, qcn, name, vsxml, options.virt)
+    status, sd_assoc_info = get_assoc_info(server, cn, an, qcn, name, vsxml)
     if status != PASS or len(sd_assoc_info) == 0:
         return status
     status = verify_RASD_values(server, sd_assoc_info, vsxml, options.virt)
