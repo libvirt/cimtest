@@ -104,7 +104,8 @@ def get_inst_from_list(classname, vssd_list, filter_name, exp_val):
 
     # We expect only one record to be returned. 
     if len(inst) != 1:
-        logger.error("%s returned %i %s objects, expected only 1" % (classname, len(inst), 'VSSD'))
+        logger.error("%s returned %i %s objects, expected only 1", classname,
+                     len(inst), 'VSSD')
         status = FAIL
 
     if status != PASS: 
@@ -117,9 +118,10 @@ def get_vssd_info():
     status = PASS
     try:
         classname   =  get_typed_class(virt, 'VirtualSystemSettingData')
-        vssd = enumclass.enumerate_inst(server, eval('enumclass.' + classname), virt)
+        vssd = enumclass.EnumNames(server, classname)
         if len(vssd) < 1 :
-            logger.error("%s returned %i %s objects, expected atleast 1" % (classname, len(vssd), 'VSSD'))
+            logger.error("%s returned %i %s objects, expected atleast 1",
+                          classname, len(vssd), 'VSSD')
             status = FAIL
 
     except Exception, detail:
