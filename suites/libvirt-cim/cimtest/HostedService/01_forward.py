@@ -72,7 +72,7 @@ def main():
 
     ccn_list = Set(ccn_list) 
  
-    if (len(val_serv) - len(ccn_list)) != 0:
+    if len((val_serv) - (ccn_list)) != 0:
         if host_ccn == 'Linux_ComputerSystem':
             return XFAIL_RC(bug_sblim)
         else:
