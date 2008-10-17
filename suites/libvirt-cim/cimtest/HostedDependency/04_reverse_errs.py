@@ -42,110 +42,94 @@ sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom = "hd_domain1"
 test_mac = "00:11:22:33:44:55"
-bug='90264'
+bug_sblim='00007'
 
 exp_rc = 6 #CIM_ERR_NOT_FOUND
 exp_d1 = "No such instance (Name)"
 exp_d2 = "No such instance (CreationClassName)" 
 
 expr_values = {
-                "invalid_name_keyname"    : { 'rc' : exp_rc, 'desc' : exp_d1 },
-                "invalid_name_keyvalue"   : { 'rc' : exp_rc, 'desc' : exp_d1 },
-                "invalid_ccname_keyname"  : { 'rc' : exp_rc, 'desc' : exp_d2 },
-                "invalid_ccname_keyvalue" : { 'rc' : exp_rc, 'desc' : exp_d2 }
+                "INVALID_KeyName"     : { 'rc' : exp_rc, 'desc' : exp_d1 },
+                "INVALID_NameValue"   : { 'rc' : exp_rc, 'desc' : exp_d1 },
+                "INVALID_CCNKeyName"  : { 'rc' : exp_rc, 'desc' : exp_d2 },
+                "INVALID_CCNameValue" : { 'rc' : exp_rc, 'desc' : exp_d2 }
               }
 
-def err_invalid_name_keyname(server, conn, virt, assoc_classname, field):
-    status, host_name, classname = get_host_info(server, virt)
-    if status:
-        return status
-    keys = { 
-              'CreationClassName' : classname, \
-                            field : host_name 
-           }
-    return try_assoc(conn, classname, assoc_classname, keys, field_name=field, \
-                              expr_values=expr_values['invalid_name_keyname'], \
-                                                                     bug_no=bug)
-
-def err_invalid_name_keyvalue(server, conn, virt, assoc_classname, field):
-    status, host_name, classname = get_host_info(server, virt)
-    if status:
-        return status
-    keys = { 
-              'CreationClassName' : classname, \
-                         'Name'   : field
-           }
-    return try_assoc(conn, classname, assoc_classname, keys, field_name=field, \
-                             expr_values=expr_values['invalid_name_keyvalue'], \
-                                                                     bug_no=bug)
-
-def err_invalid_ccname_keyname(server, conn, virt, assoc_classname, field):
-    status, host_name, classname = get_host_info(server, virt)
-    if status:
-        return status
-    keys = {  
-                field : classname, \
-               'Name' : host_name
-            }
-    return try_assoc(conn, classname, assoc_classname, keys, field_name=field, \
-                             expr_values=expr_values['invalid_ccname_keyname'], \
-                                                                     bug_no=bug)
-def err_invalid_ccname_keyvalue(server, conn, virt, assoc_classname, field):
-    status, host_name, classname = get_host_info(server, virt)
-    if status:
-        return status
-    keys = {  
-               'CreationClassName'  : field, \
-               'Name'               : host_name
-            }
-    return try_assoc(conn, classname, assoc_classname, keys, field_name=field, \
-                           expr_values=expr_values['invalid_ccname_keyvalue'], \
-                                                                     bug_no=bug)
+def verify_err_fields(cxml, server, conn, keys, classname, 
+                      assoc_classname, msg, field):
+    try:
+        ret = try_assoc(conn, classname, assoc_classname, keys, 
+                        field_name=field, expr_values=expr_values[field], 
+                        bug_no="")
+        if ret != PASS:
+            if classname == 'Linux_ComputerSystem':
+                return XFAIL_RC(bug_sblim)
+            else:
+                logger.error("--- FAILED: %s---", msg)
+            cxml.destroy(server)
+    except Exception, details:
+        logger.error("Exception: %s", details)
+        return FAIL
+    return ret
 
 @do_main(sup_types)
 def main():
     options = main.options
+    server = options.ip 
+    virt = options.virt
 
-    status = PASS
-    server = options.ip
-    virtxml = vxml.get_class(options.virt)
-    if options.virt == "LXC":
+    virtxml = vxml.get_class(virt)
+    if virt == "LXC":
         cxml = virtxml(test_dom)
     else:
         cxml = virtxml(test_dom, mac = test_mac)
 
-    ret = cxml.create(options.ip)
+    ret = cxml.create(server)
     if not ret:
         logger.error("Failed to Create the dom: %s" % test_dom)
-        status = FAIL
-        return status
-    conn = assoc.myWBEMConnection('http://%s' % options.ip,
-                                  (CIM_USER, CIM_PASS), CIM_NS)
-    acn = get_typed_class(options.virt, 'HostedDependency')
-    ret_value = err_invalid_name_keyname(server, conn, options.virt, acn,
-                                         field='INVALID_KeyName') 
-    if ret_value != PASS: 
-         logger.error("--- FAILED: Invalid Name Key Name.---")
-         status = ret_value 
-    ret_value = err_invalid_name_keyvalue(server, conn, options.virt, acn,
-                                          field='INVALID_NameValue') 
-    if ret_value != PASS: 
-         logger.error("--- FAILED: Invalid Name Key Value.---")
-         status = ret_value
-    ret_value = err_invalid_ccname_keyname(server, conn, options.virt, acn,
-                                           field='INVALID_CCNKeyName')
-    if ret_value != PASS: 
-         logger.error("--- FAILED: Invalid CreationClassName Key Name---")
-         status = ret_value 
-    ret_value = err_invalid_ccname_keyvalue(server, conn, options.virt, acn,
-                                            field='INVALID_CCNameValue')
-    if ret_value != PASS:
-         logger.error("--- FAILED: Invalid CreationClassName Key Value---")
-         status = ret_value
-    cxml.destroy(options.ip)
-    cxml.undefine(options.ip)
-    return status
+        return FAIL
 
+    conn = assoc.myWBEMConnection('http://%s' % server,
+                                  (CIM_USER, CIM_PASS), CIM_NS)
+
+    acn = get_typed_class(virt, 'HostedDependency')
+    status, host_name, classname = get_host_info(server, virt)
+    if status:
+        logger.error("Unable to get host info")
+        cxml.destroy(server)
+        return status
+
+    msg = 'Invalid Name Key Name'
+    field = 'INVALID_KeyName'
+    keys = { 'CreationClassName' : classname, field : host_name }
+    ret_value = verify_err_fields(cxml, server, conn, keys, classname, 
+                                  acn, msg, field) 
+    if ret_value != PASS: 
+        return ret_value
+      
+    msg = 'Invalid Name Key Value'
+    field='INVALID_NameValue'
+    keys = { 'CreationClassName' : classname, 'Name'   : field }
+    ret_value = verify_err_fields(cxml, server, conn, keys, classname, 
+                                  acn, msg, field) 
+    if ret_value != PASS: 
+        return ret_value
+
+    msg = 'Invalid CreationClassName Key Name'
+    field='INVALID_CCNKeyName'
+    keys = {  field : classname, 'Name' : host_name }
+    ret_value = verify_err_fields(cxml, server, conn, keys, classname, 
+                                  acn, msg, field)
+    if ret_value != PASS: 
+        return ret_value
+
+    msg = 'Invalid CreationClassName Key Value'
+    field='INVALID_CCNameValue'
+    keys = { 'CreationClassName'  : field, 'Name'  : host_name }
+    ret_value = verify_err_fields(cxml, server, conn, keys, classname, 
+                                  acn, msg, field)
+    cxml.destroy(server)
+    return ret_value 
 if __name__ == "__main__":
     sys.exit(main())
 
