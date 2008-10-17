@@ -69,7 +69,7 @@ def try_define(options, vssd, units, value):
 
 def check_value(options):
     mrasd_cn = get_typed_class(options.virt, rasd.masd_cn)
-    rasds = enumclass.enumerate_inst(options.ip, mrasd_cn, options.virt)
+    rasds = enumclass.EnumInstances(options.ip, mrasd_cn, ret_cim_inst=True)
 
     the_rasd = None
     mem_kb = mem_bytes >> 10
