@@ -477,7 +477,7 @@ def EnumNames(host, cn):
 
     return names
 
-def EnumInstances(host, cn):
+def EnumInstances(host, cn, ret_cim_inst=False):
     '''Resolve the enumeration given the @cn.
     Return a list of CIMInstance objects.'''
 
@@ -491,7 +491,10 @@ def EnumInstances(host, cn):
     list = []
 
     for name in refs:
-        list.append(CIM_CimtestClass(host, name))
+        inst = CIM_CimtestClass(host, name)
+        if ret_cim_inst:
+            inst = inst.inst
+        list.append(inst)
  
     return list
 
