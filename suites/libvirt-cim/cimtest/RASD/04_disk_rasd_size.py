@@ -33,6 +33,7 @@ from XenKvmLib.test_doms import undefine_test_domain
 from XenKvmLib.common_util import create_using_definesystem
 from XenKvmLib import vsms
 from XenKvmLib import enumclass
+from XenKvmLib.classes import get_typed_class
 
 def make_image(ip, size):
     s, fn = utils.run_remote(ip, "mktemp")
@@ -89,8 +90,9 @@ def test_rasd(options, temp, test_size):
                               options.ip,
                               params=params,
                               virt=options.virt)
-    
-    rasds = enumclass.enumerate_inst(options.ip, drasd_class, options.virt)
+
+    cn = get_typed_class(options.virt, 'DiskResourceAllocationSettingData') 
+    rasds = enumclass.EnumInstances(options.ip, cn, ret_cim_inst=True)
 
     status = FAIL
     for rasd in rasds:
