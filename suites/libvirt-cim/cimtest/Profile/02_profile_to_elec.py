@@ -95,7 +95,7 @@ def get_profile(server, virt):
     profile = None
 
     try:
-        proflist = enumclass.enumerate_inst(server, 'RegisteredProfile', virt)
+        proflist = enumclass.EnumInstances(server, cn, ret_cim_inst=True)
         status, profile = get_expected_inst(cn, proflist, 'RegisteredName',
                                             registeredname)
     except Exception, detail:
