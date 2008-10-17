@@ -43,8 +43,6 @@ expr_values = {
    "invalid_instid_keyvalue" : { 'rc' : pywbem.CIM_ERR_FAILED, 
                                  'desc' : 'Unable to determine\
  resource type' },
-   "invalid_ccname_keyname"  : { 'rc'   : pywbem.CIM_ERR_INVALID_PARAMETER, 
-                                 'desc' : 'CIM_ERR_INVALID_PARAMETER' }
               }
 
 def err_invalid_instid_keyname(virt, conn, field):
@@ -85,22 +83,6 @@ def err_invalid_instid_keyvalue(virt, conn, field):
                      expr_values=expr_values['invalid_instid_keyvalue'], 
                      bug_no="")
 
-def err_invalid_ccname_keyname(virt, conn, field):
-# Input:
-# ------
-# wbemcli ai -ac Xen_SettingsDefineCapabilities \
-# 'http://localhost:5988/root/virt:Wrong.InstanceID="ProcessorPool/0"' -nl
-#
-# Output:
-# -------
-# error code    : CIM_ERR_INVALID_PARAMETER
-# error desc    : One or more parameter values passed to the method were invalid
-    assoc_classname = get_typed_class(virt, "SettingsDefineCapabilities")
-    classname = field
-    keys = { 'InstanceID' : 'MemoryPool/0' }
-    return try_assoc(conn, classname, assoc_classname, keys, field_name=field, \
-                     expr_values=expr_values['invalid_ccname_keyname'],
-                     bug_no="")
 
 @do_main(platform_sup)
 def main():
@@ -117,10 +99,6 @@ def main():
                                             field='INVALID_InstID_KeyValue')
     if ret_value != PASS:
         logger.error("------ FAILED: Invalid InstanceID Key Value.------")
-        return ret_value
-    ret_value = err_invalid_ccname_keyname(virt, conn, field='WrongClassName')
-    if ret_value != PASS:
-        logger.error("------ FAILED: Invalid CCName Key Name.------")
         return ret_value
     return PASS
     
