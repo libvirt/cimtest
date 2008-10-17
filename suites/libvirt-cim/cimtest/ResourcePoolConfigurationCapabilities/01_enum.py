@@ -23,6 +23,7 @@
 
 import sys
 from XenKvmLib import enumclass
+from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
@@ -33,14 +34,11 @@ sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 def main():
     options = main.options
 
-    key_list = ["InstanceID"]
+    cn = get_typed_class(options.virt, "ResourcePoolConfigurationCapabilities")
     try:
-        rpcc = enumclass.enumerate(options.ip,
-                                   "ResourcePoolConfigurationCapabilities",
-                                   key_list,
-                                   options.virt)
+        rpcc = enumclass.EnumInstances(options.ip, cn)
     except Exception:
-        Globals.logger.error(Globals.CIM_ERROR_ENUMERATE, '%s_ResourcePoolConfigurationCapabilities' % options.virt)
+        Globals.logger.error(Globals.CIM_ERROR_ENUMERATE, cn)
         return FAIL
      
     if len(rpcc) != 1:
