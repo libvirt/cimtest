@@ -45,16 +45,17 @@ from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib import vxml
 from CimTest import Globals 
-from XenKvmLib.common_util import print_field_error
+from XenKvmLib.common_util import print_field_error, check_sblim
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS, CIM_ERROR_ENUMERATE
 from XenKvmLib.const import do_main 
-from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 from XenKvmLib.enumclass import EnumInstances
 from XenKvmLib.const import default_network_name, default_pool_name 
 
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 test_dom = "domU"
+bug_sblim = '00007'
 
 def pool_init(verify_list, pool_cn, pool_name, virt):
     ccn = get_typed_class(virt, pool_cn)
@@ -175,9 +176,13 @@ def verify_ectp_assoc(server, virt):
                                            reg_classname,
                                            InstanceID = devid)  
             if len(assoc_info) < 1:
-                status = FAIL
-                logger.error(" '%s' returned (%d) '%s' objects", an, 
-                             len(assoc_info), reg_classname)
+                ret_val, linux_cs = check_sblim(server, virt)
+                if ret_val != PASS:
+                    logger.error(" '%s' returned (%d) '%s' objects", an, 
+                                 len(assoc_info), reg_classname)
+                    return FAIL
+                else:
+                    return XFAIL_RC(bug_sblim) 
                 break
 
             if 'DSP1059' in devid or 'DSP1045' in devid:
