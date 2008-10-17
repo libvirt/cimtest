@@ -68,7 +68,7 @@ def get_rasd_values(classname, virt, server):
     status = PASS
     rasd_list   = []
     try:
-        rasd_list = enumclass.enumerate_inst(server, classname, virt)
+        rasd_list = enumclass.EnumInstances(server, classname, ret_cim_inst=True)
         if len(rasd_list) < 1:
             logger.error("%s returned %i instances, excepted at least 1.",
                     classname, len(rasd_list))
