@@ -108,10 +108,7 @@ def get_migration_job_instance(ip, virt, id):
     key_list = ["instanceid"]
     mig_job_cn   = get_typed_class(virt, 'MigrationJob')
     try:
-        job = enumclass.enumerate(ip,
-                                  mig_job_cn,
-                                  key_list,
-                                  virt=virt)
+        job = enumclass.EnumInstances(ip, mig_job_cn)
     except Exception, details:
         logger.error(CIM_ERROR_ENUMERATE, mig_job_cn)
         logger.error(details)
