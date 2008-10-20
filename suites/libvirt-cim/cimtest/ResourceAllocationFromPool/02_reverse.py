@@ -105,7 +105,7 @@ def init_list(test_disk, diskid, virt='Xen'):
 def get_rasd_instance(server, virt, key_list, cn):
     inst = None 
     try:
-        inst = enumclass.getInstance(server, cn, key_list, virt)
+        inst = enumclass.GetInstance(server, cn, key_list)
     except Exception, details:
         logger.error(Globals.CIM_ERROR_GETINSTANCE, cn)
         logger.error("Exception details: %s", details)

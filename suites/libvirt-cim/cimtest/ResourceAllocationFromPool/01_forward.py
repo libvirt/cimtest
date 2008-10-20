@@ -73,13 +73,11 @@ def setup_env(server, virt):
     return PASS, vsxml, test_disk
 
 def get_instance(server, pool, list, virt='Xen'):
+    pool_cn = get_typed_class(virt, pool)
     try:
-        inst = enumclass.getInstance(server,
-                                     pool,
-                                     list,
-                                     virt)
+        inst = enumclass.GetInstance(server, pool_cn, list)
     except Exception:
-        logger.error(Globals.CIM_ERROR_GETINSTANCE  % pool)
+        logger.error(Globals.CIM_ERROR_GETINSTANCE  % pool_cn)
         return FAIL, inst
   
     return PASS, inst

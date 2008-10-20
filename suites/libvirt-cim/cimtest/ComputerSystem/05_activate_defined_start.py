@@ -73,12 +73,12 @@ def main():
         if not ret :
             logger.error("ERROR: VS %s was not defined" % test_dom)
             return status 
-
+        cs_class = get_typed_class(options.virt, 'ComputerSystem')
         keys = {
                 'Name' : test_dom,
-                'CreationClassName' : get_typed_class(options.virt, 'ComputerSystem')
+                'CreationClassName' : cs_class
                }
-        cs = enumclass.getInstance(options.ip, 'ComputerSystem', keys, options.virt)
+        cs = enumclass.GetInstance(options.ip, cs_class, keys)
 
         if cs.Name == test_dom:
             from_State =  cs.EnabledState
@@ -101,7 +101,7 @@ def main():
 
 #Get the value of the EnabledState property and RequestedState property.
     try:
-        cs= enumclass.getInstance(options.ip, 'ComputerSystem', keys, options.virt)
+        cs= enumclass.GetInstance(options.ip, cs_class, keys)
         if cs.Name == test_dom:
             to_RequestedState = cs.RequestedState
             enabledState = cs.EnabledState

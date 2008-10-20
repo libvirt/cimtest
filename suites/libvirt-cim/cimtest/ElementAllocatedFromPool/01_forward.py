@@ -45,7 +45,7 @@ import pywbem
 from XenKvmLib.assoc import Associators
 from XenKvmLib.test_doms import destroy_and_undefine_all 
 from XenKvmLib import devices
-from XenKvmLib.enumclass import getInstance 
+from XenKvmLib.enumclass import GetInstance 
 from CimTest.Globals import CIM_ERROR_ASSOCIATORS, CIM_ERROR_GETINSTANCE
 from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
@@ -61,16 +61,17 @@ test_mac = "00:11:22:33:44:aa"
 test_vcpus = 1 
 
 def get_inst(server, virt, cn, key_list):
+    cn_name = get_typed_class(virt, cn)
     inst = None 
     try:
-        inst = getInstance(server, cn, key_list, virt)
+        inst = GetInstance(server, cn_name, key_list)
 
     except Exception, details:
         logger.error("Exception %s" % details)
         return None 
 
     if inst is None:
-        logger.error("Expected at least one %s instance" % cn)
+        logger.error("Expected at least one %s instance" % cn_name)
         return None 
 
     return inst 

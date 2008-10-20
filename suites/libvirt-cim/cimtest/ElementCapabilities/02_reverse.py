@@ -34,7 +34,7 @@ from CimTest.Globals import logger, CIM_ERROR_GETINSTANCE, \
                             CIM_ERROR_ASSOCIATORNAMES
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
-from XenKvmLib.enumclass import getInstance
+from XenKvmLib.enumclass import GetInstance
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 test_dom  = "dom_elecap"
@@ -94,8 +94,7 @@ def verify_service(inst_list, ip, virt, host_name, host_ccn,
               'SystemCreationClassName' : host_ccn
            }   
     try:
-        basename = get_class_basename(ser_cn)
-        service = getInstance(ip, basename, keys, virt)
+        service = GetInstance(ip, ser_cn, keys)
     except Exception, detail:
         logger.error(CIM_ERROR_GETINSTANCE, ser_cn)
         logger.error("Exeption : %s", detail)

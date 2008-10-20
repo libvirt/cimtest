@@ -78,7 +78,7 @@ def get_or_bail(virt, ip, id, pool_class):
     """
     key_list = { 'InstanceID' : id } 
     try:
-        instance = enumclass.getInstance(ip, pool_class, key_list, virt)
+        instance = enumclass.GetInstance(ip, pool_class, key_list)
     except Exception, detail:
         logger.error(CIM_ERROR_GETINSTANCE, '%s' % pool_class)
         logger.error("Exception: %s", detail)
@@ -123,8 +123,7 @@ def init_list(virt, pool):
 
 def get_pool_info(virt, server, devid, poolname=""):
         pool_cname = get_typed_class(virt, poolname)
-        pool_cn = eval("enumclass." + pool_cname)
-        return get_or_bail(virt, server, id=devid, pool_class=pool_cn)
+        return get_or_bail(virt, server, id=devid, pool_class=pool_cname)
 
 def get_pool_details(virt, server):  
     dpool = npool  = mpool  = ppool = None
