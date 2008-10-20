@@ -60,8 +60,8 @@ def main():
 
     try:
         key_list = { 'InstanceID' : instIdval }
-        system = enumclass.getInstance(options.ip, \
-                 enumclass.Xen_VirtualSystemSettingData, key_list)
+        system = enumclass.GetInstance(options.ip,
+                                      "Xen_VirtualSystemSettingData", key_list)
 
         name = system.ElementName
         if name == test_dom :
