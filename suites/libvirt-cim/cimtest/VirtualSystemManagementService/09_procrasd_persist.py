@@ -25,6 +25,8 @@ import pywbem
 from XenKvmLib.common_util import call_request_state_change, \
                                   poll_for_state_change 
 from XenKvmLib import vsms
+from XenKvmLib.enumclass import GetInstance
+from XenKvmLib.common_util import get_typed_class
 from VirtLib import utils 
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
@@ -55,38 +57,23 @@ def setup_rasd_mof(ip, vtype):
 
     return FAIL, vssd, rasd
 
-def check_sched_info(str, exp_val, server, virt):
-    if str == "limit":
-        virsh_val = "cap"
-    else:
-        virsh_val = str
-
-    cmd = "virsh -c %s schedinfo %s | awk '/%s/ { print \$3 }'" % \
-          (utils.virt2uri(virt), default_dom, virsh_val)
-    ret, out = utils.run_remote(server, cmd)
-    if not out.isdigit():
-        return FAIL
-
-    try:
-        val = int(out)
-    except ValueError:
-        val = -1
-
-    if val != exp_val: 
-        logger.error("%s is %i, expected %i" % (str, val, exp_val))
-        return FAIL
-
-    return PASS
-
 def check_proc_sched(server, virt):
-    attr_list = { "weight" : weight,
-                  "limit"  : limit
-                }
+    try:
+        key_list = {"InstanceID" : '%s/proc' %default_dom}
+        cn_name  = get_typed_class(virt, 'ProcResourceAllocationSettingData')
+        proc = GetInstance(server, cn_name, key_list)
    
-    for k, v in attr_list.iteritems():
-        status = check_sched_info(k, v, server, virt)
-        if status != PASS:
+        if proc.Limit != limit:
+            logger.error("Limit is %i, expected %i", proc.Limit, limit)
             return FAIL
+
+        if proc.Weight != weight:
+            logger.error("Weight is %i, expected %i", proc.Weight, weight)
+            return FAIL
+
+    except Exception, details:
+        logger.error("Exception: details %s", details)
+        return FAIL
 
     return PASS
 
@@ -100,7 +87,6 @@ def main():
 
     try:
         service = vsms.get_vsms_class(options.virt)(options.ip)
-
         service.DefineSystem(SystemSettings=vssd,
                              ResourceSettings=rasd,
                              ReferenceConfiguration=' ')
@@ -111,21 +97,19 @@ def main():
             raise Exception("Unable to start %s using RequestedStateChange()" %
                             default_dom)
 
-        status, dom_cs = poll_for_state_change(options.ip, options.virt, default_dom, 
-                                               REQUESTED_STATE)
+        status, dom_cs = poll_for_state_change(options.ip, options.virt, 
+                                               default_dom, REQUESTED_STATE)
         if status != PASS:
             raise Exception("%s didn't change state as expected" % default_dom)
 
-        if options.virt == "Xen" or options.virt == "XenFV":
-            status = check_proc_sched(options.ip, options.virt)
-            if status != PASS:
-                raise Exception("%s CPU scheduling not set properly" % 
-                                default_dom)
+        status = check_proc_sched(options.ip, options.virt)
+        if status != PASS:
+            raise Exception("%s CPU scheduling not set properly", default_dom)
 
         status = PASS
       
     except Exception, details:
-        logger.error(details)
+        logger.error("Exception: details %s", details)
         status = FAIL
 
     destroy_and_undefine_domain(default_dom, options.ip, options.virt)
