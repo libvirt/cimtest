@@ -139,7 +139,7 @@ def get_provider_version(virt, ip):
     if revision is None or changeset is None:
         return 0, "Unknown" 
 
-    revision.strip("+")
+    revision = revision.strip("+")
     if revision.isdigit():
         revision = int(revision)
 

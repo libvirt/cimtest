@@ -133,7 +133,7 @@ from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS, \
                             CIM_ERROR_GETINSTANCE
-from XenKvmLib.const import do_main 
+from XenKvmLib.const import do_main, get_provider_version
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 
@@ -206,6 +206,13 @@ def main():
 
     global conn
     conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, CIM_PASS), CIM_NS)
+
+    rev, changeset = get_provider_version(options.virt, options.ip)
+    if rev < 682:
+        old_ret = { 'rc' : pywbem.CIM_ERR_NOT_FOUND,
+                    'desc' : "No such instance (INVALID_DevID_Keyvalue)"
+                  }
+        expr_values["invalid_devid_keyvalue"] = old_ret 
 
     global name_val
     name_val = [

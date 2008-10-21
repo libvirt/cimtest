@@ -152,7 +152,7 @@ from XenKvmLib.common_util import try_assoc
 from XenKvmLib.classes import get_typed_class
 from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
-from XenKvmLib.const import do_main
+from XenKvmLib.const import do_main, get_provider_version
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
@@ -245,6 +245,13 @@ def main():
                 'INVALID_SCCName_Keyname', 'INVALID_SCCName_Keyval', 
                 'INVALID_SysName_Keyname', 'INVALID_SysName_Keyval'
               ]
+
+    rev, changeset = get_provider_version(options.virt, options.ip)
+    if rev < 682:
+        old_ret = { 'rc' : pywbem.CIM_ERR_NOT_FOUND,
+                    'desc' : "No such instance (INVALID_DevID_Keyval)"
+                  }
+        expr_values["INVALID_DevID_Keyval"] = old_ret
 
     sccn = get_typed_class(options.virt, 'ComputerSystem')
     for classname, devid in sorted(class_id.items()):

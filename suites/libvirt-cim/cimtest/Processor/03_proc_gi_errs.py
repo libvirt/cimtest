@@ -131,7 +131,7 @@ from XenKvmLib.vxml import get_class
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
-from XenKvmLib.const import do_main
+from XenKvmLib.const import do_main, get_provider_version
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 
@@ -206,6 +206,13 @@ def main():
                 'INVALID_SysName_Keyname'  : 'invalid_sysname', 
                 'INVALID_SysName_Keyvalue' : 'invalid_sysname'
               }
+
+    rev, changeset = get_provider_version(options.virt, options.ip)
+    if rev < 682:
+        old_ret = { 'rc' : pywbem.CIM_ERR_NOT_FOUND,
+                    'desc' : "No such instance (INVALID_DevID_Keyvalue)"
+                  }
+        expr_values["invalid_devid_keyvalue"] = old_ret
 
     i = 0
     for field1, field2 in sorted(tc_scen.items()):
