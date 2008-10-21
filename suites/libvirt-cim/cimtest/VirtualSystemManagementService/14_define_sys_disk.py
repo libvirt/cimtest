@@ -53,8 +53,8 @@ def get_vssd_rasd(ip, virt, addr):
 
     rasds = get_default_rasds(ip, virt)
 
-    for i in range(0, len(rasds)):
-        if rasds[i]['PoolID'].find('DiskPool') >= 0:
+    for i in range(len(rasds)):
+        if 'DiskPool' in rasds[i]['PoolID']:
             rasds[i]['Address'] = addr
         rasds[i] = inst_to_mof(rasds[i])
 
