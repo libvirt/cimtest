@@ -69,7 +69,7 @@ def main():
 
 #Define a VS
     try:
-        ret = cxml.define(options.ip)
+        ret = cxml.cim_define(options.ip)
         if not ret :
             logger.error("ERROR: VS %s was not defined" % test_dom)
             return status 

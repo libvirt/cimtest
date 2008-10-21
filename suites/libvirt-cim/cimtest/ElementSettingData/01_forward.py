@@ -135,7 +135,7 @@ def main():
         keys['DiskResourceAllocationSettingData'] = "%s/%s" % (test_dom, vdisk)
         keys['NetResourceAllocationSettingData'] = "%s/%s" % (test_dom, vmac)
                
-    ret = cxml.define(options.ip)
+    ret = cxml.cim_define(options.ip)
     if not ret:
         logger.error("Failed to define the dom: %s", test_dom)
         return FAIL

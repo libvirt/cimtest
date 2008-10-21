@@ -44,7 +44,7 @@ def main():
     status = FAIL
 
     cxml = vxml.get_class(options.virt)(test_dom)
-    rc = cxml.define(options.ip)
+    rc = cxml.cim_define(options.ip)
     if not rc:
         Globals.logger.error(VIRSH_ERROR_DEFINE % test_dom)
         return status

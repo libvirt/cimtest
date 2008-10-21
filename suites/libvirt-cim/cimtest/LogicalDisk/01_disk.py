@@ -45,7 +45,7 @@ def main():
        test_dev = 'hda'
 
     vsxml = get_class(options.virt)(test_dom, disk=test_dev)
-    vsxml.define(options.ip)
+    vsxml.cim_define(options.ip)
   
     devid = "%s/%s" % (test_dom, test_dev)
     key_list = { 'DeviceID' : devid,

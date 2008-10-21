@@ -85,7 +85,7 @@ def setup_env(server, virt="Xen"):
                               mac = test_mac,
                               disk = test_disk)
     
-    ret = vsxml_info.define(server)
+    ret = vsxml_info.cim_define(server)
     if not ret:
         logger.error("Failed to define the dom: %s", test_dom)
         status = FAIL
