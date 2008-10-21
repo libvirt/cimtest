@@ -564,7 +564,7 @@ class XenXML(VirtXML, VirtCIM):
     def set_bootloader(self, ip, gtype=0):
         bldr = live.bootloader(ip, gtype)
         self.add_sub_node('/domain', 'bootloader', bldr)
-        self.vssd.Bootloader = bldr
+        self.vssd = vsms.get_vssd_mof(self.virt, self.domain_name, bldr)
         return bldr
 
     def set_bridge(self, ip):

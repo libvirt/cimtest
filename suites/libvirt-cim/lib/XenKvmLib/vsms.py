@@ -89,7 +89,7 @@ def enumerate_instances(server, virt='Xen'):
 
 # classes to define VSSD parameters
 class CIM_VirtualSystemSettingData(CIMClassMOF):
-    def __init__(self, name, virt):
+    def __init__(self, name, virt, bldr=None):
         type = get_class_type(self.__class__.__name__)
         self.InstanceID = '%s:%s' % (type, name)
         self.Caption = self.Description = 'Virtual System'
@@ -107,6 +107,9 @@ class CIM_VirtualSystemSettingData(CIMClassMOF):
         else:
             self.Kernel = const.Xen_kernel_path
             self.Ramdisk = const.Xen_init_path
+
+        if bldr is not None:
+            self.Bootloader = bldr
  
 class Xen_VirtualSystemSettingData(CIM_VirtualSystemSettingData):
     pass
@@ -117,9 +120,9 @@ class KVM_VirtualSystemSettingData(CIM_VirtualSystemSettingData):
 class LXC_VirtualSystemSettingData(CIM_VirtualSystemSettingData):
     pass
 
-def get_vssd_mof(virt, dom_name):
+def get_vssd_mof(virt, dom_name, bldr=None):
     vssd_cn = eval(get_typed_class(virt, "VirtualSystemSettingData"))
-    vssd = vssd_cn(dom_name, virt)
+    vssd = vssd_cn(dom_name, virt, bldr)
     return vssd.mof()
 
 # classes to define RASD parameters
