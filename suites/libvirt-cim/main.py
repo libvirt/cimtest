@@ -90,10 +90,15 @@ def remove_old_logs(ogroup):
     print "Cleaned log files."
 
 def pre_check(ip, virt):
-    cmd = "virsh -c %s version " % utils.virt2uri(virt)
+    cmd = "virsh -c %s list --all" % utils.virt2uri(virt)
     ret, out = utils.run_remote(ip, cmd)
     if ret != 0:
         return "This libvirt install does not support %s"  % virt
+
+    cmd = "virsh -c %s version" % utils.virt2uri(virt)
+    ret, out = utils.run_remote(ip, cmd)
+    if ret != 0:
+        return "Encountered an error querying libvirt with: %s" % cmd
 
     cmd = "ps -ef | grep -v grep | grep cimserver"
     rc, out = utils.run_remote(ip, cmd)
