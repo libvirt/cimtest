@@ -38,7 +38,6 @@ from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, \
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 from VirtLib.live import diskpool_list, virsh_version, net_list, domain_list
 from XenKvmLib.vxml import PoolXML, NetXML
-from XenKvmLib.enumclass import getInstance
 from VirtLib import utils 
 from XenKvmLib.const import default_pool_name, default_network_name
 
@@ -52,12 +51,13 @@ def print_field_error(fieldname, ret_value, exp_value):
 
 def get_cs_instance(domain_name, ip, virt='Xen'):
     cs = None
+    cs_class = get_typed_class(virt, 'ComputerSystem')
     try:
         keys = {
                 'Name' : domain_name,
-                'CreationClassName' : get_typed_class(virt, 'ComputerSystem')
+                'CreationClassName' : cs_class
                }
-        cs = enumclass.getInstance(ip, 'ComputerSystem', keys, virt)
+        cs = enumclass.GetInstance(ip, cs_class, keys)
 
         if cs.Name != domain_name:
             logger.error("VS %s is not found" % domain_name)
@@ -172,16 +172,15 @@ def try_request_state_change(domain_name, ip, rs, time, exp_rc,
 
 def poll_for_state_change(server, virt, dom, exp_state, timeout=30):
     dom_cs = None
-
+    cs_class = get_typed_class(virt, 'ComputerSystem')
     keys = {
             'Name' : dom,
-            'CreationClassName' : get_typed_class(virt, 'ComputerSystem')
+            'CreationClassName' : cs_class
            }
 
     try:
         for i in range(1, (timeout + 1)):
-            dom_cs = enumclass.getInstance(server, 'ComputerSystem', keys, 
-                                           virt)
+            dom_cs = enumclass.GetInstance(server, cs_class, keys)
             if dom_cs is None or dom_cs.Name != dom:
                 continue
 

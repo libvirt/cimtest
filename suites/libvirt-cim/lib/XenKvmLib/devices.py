@@ -101,36 +101,6 @@ class KVM_Processor(CIM_Processor):
 def get_class(classname):
     return eval(classname)
 
-def enumerate(server, basetype, keys, virt='Xen'):
-    conn = pywbem.WBEMConnection('http://%s' % server,
-                                 (Globals.CIM_USER, Globals.CIM_PASS),
-                                 Globals.CIM_NS)
-
-    list = []
-
-    #FIXME - Remove once all tests are converted for KVM
-    basetype = basetype.split('_', 1)[-1]
-    
-    devtype = eval(get_typed_class(virt, basetype))
-    try:
-        names = conn.EnumerateInstanceNames(devtype.__name__)
-    except pywbem.CIMError, arg:
-        raise Exception("%s" % arg[1])
-        return list
-
-    for name in names:
-        key_list = {}
-        for item in keys:
-            key_list[item] = name.keybindings[item]
-
-        if len(key_list) == 0:
-            return list
-
-        list.append(devtype(server, key_list))
-
-    return list
-
-    
 def device_of(server, key_list):
     t = eval(key_list["CreationClassName"])
 
