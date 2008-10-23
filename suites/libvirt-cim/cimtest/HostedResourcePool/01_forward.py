@@ -107,7 +107,7 @@ def main():
         #Verifying that we get the atleast the expected instanceid 
         #for every pool class
         for key in exp_pllist.keys():
-            if Set(exp_pllist[key]) != Set(res_pllist[key]):
+            if Set(exp_pllist[key]) - Set(res_pllist[key]):
                 logger.error("InstanceID mismatch")
                 raise Exception("Expected InstanceID: %s \n \t  Got: %s"
                                  % (sorted(exp_pllist[key]), 
