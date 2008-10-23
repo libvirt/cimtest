@@ -41,7 +41,8 @@ def main():
     
     servicelist = {"ResourcePoolConfigurationService" : "RPCS", 
                    "VirtualSystemManagementService" : "Management Service",
-                   "VirtualSystemMigrationService" : "MigrationService"}
+                   "VirtualSystemMigrationService" : "MigrationService",
+                   "ConsoleRedirectionService" : "ConsoleRedirectionService" }
 
     status, host_name, host_ccn = get_host_info(options.ip, virt)
     if status != PASS:
@@ -72,9 +73,10 @@ def main():
             logger.error("CreationClassName Error")
             return FAIL
 
-        elif name != host_name:
+        if name != host_name:
             logger.error("CCN Error")
             return FAIL
+    return PASS
      
         
 if __name__ == "__main__":
