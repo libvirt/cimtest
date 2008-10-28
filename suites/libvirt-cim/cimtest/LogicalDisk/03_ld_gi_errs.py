@@ -125,7 +125,7 @@ import sys
 import pywbem
 from VirtLib import utils
 from XenKvmLib import assoc
-from XenKvmLib import devices
+from XenKvmLib.enumclass import GetInstance
 from XenKvmLib.common_util import try_getinstance
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.classes import get_typed_class
@@ -198,7 +198,7 @@ def main():
                     'SystemName' : test_dom,
                     'SystemCreationClassName' : get_typed_class(options.virt, "ComputerSystem")
                    }
-        disk = eval('devices.' + get_typed_class(options.virt, "LogicalDisk"))(options.ip, key_list)
+        disk = GetInstance(options.ip, classname, key_list)
     except Exception,detail:
         logger.error(CIM_ERROR_GETINSTANCE, classname)
         logger.error("Exception: %s", detail)

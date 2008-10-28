@@ -26,7 +26,7 @@
 import sys
 import pywbem
 from VirtLib import utils
-from XenKvmLib import devices
+from XenKvmLib.enumclass import GetInstance
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from CimTest.Globals import logger
@@ -48,13 +48,13 @@ def main():
     vsxml.cim_define(options.ip)
   
     devid = "%s/%s" % (test_dom, test_dev)
+    disk = get_typed_class(options.virt, "LogicalDisk")
     key_list = { 'DeviceID' : devid,
-                 'CreationClassName' : get_typed_class(options.virt, "LogicalDisk"),
+                 'CreationClassName' : disk,
                  'SystemName' : test_dom,
                  'SystemCreationClassName' : get_typed_class(options.virt, "ComputerSystem")
                }
-    dev = eval('devices.' + get_typed_class(options.virt, "LogicalDisk"))(options.ip, key_list)
-
+    dev = GetInstance(options.ip, disk, key_list)
     status = 0
     
     if dev.Name != test_dev:

@@ -26,7 +26,7 @@ import sys
 import pywbem
 from VirtLib import utils
 from VirtLib import live
-from XenKvmLib import devices
+from XenKvmLib.enumclass import GetInstance
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from CimTest.Globals import logger
@@ -46,12 +46,13 @@ def main():
     alloc_mem = int(vsxml.xml_get_mem())
     
     devid = "%s/mem" % test_dom
+    mem_class = get_typed_class(options.virt, "Memory")
     key_list = { 'DeviceID' : devid,
-                 'CreationClassName' : get_typed_class(options.virt, "Memory"),
+                 'CreationClassName' : mem_class,
                  'SystemName' : test_dom,
                  'SystemCreationClassName' : get_typed_class(options.virt, "ComputerSystem")
                }
-    dev = eval('devices.' + get_typed_class(options.virt, "Memory"))(options.ip, key_list)
+    dev = GetInstance(options.ip, mem_class, key_list)
 
     status = 0
 

@@ -26,7 +26,7 @@ import sys
 import pywbem
 from VirtLib import utils
 from VirtLib import live
-from XenKvmLib import devices
+from XenKvmLib.enumclass import GetInstance
 from XenKvmLib.test_xml import testxml
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
@@ -49,6 +49,7 @@ def main():
 
     # Processor instance enumerate need the domain to be active
     domlist = live.active_domain_list(options.ip, options.virt)
+    proc_class = get_typed_class(options.virt, "Processor")
     if test_dom not in domlist:
         status = FAIL
         logger.error("Domain not started, we're not able to check vcpu")
@@ -56,12 +57,12 @@ def main():
         for i in range(0, test_vcpus):
             devid = "%s/%s" % (test_dom, i)
             key_list = { 'DeviceID' : devid,
-                         'CreationClassName' : get_typed_class(options.virt, "Processor"),
+                         'CreationClassName' : proc_class,
                          'SystemName' : test_dom,
                          'SystemCreationClassName' : get_typed_class(options.virt, "ComputerSystem")
                        }
             try:
-                dev = eval(('devices.' + get_typed_class(options.virt, 'Processor')))(options.ip, key_list)
+                dev = GetInstance(options.ip, proc_class, key_list)
                 if dev.DeviceID == devid:
                     logger.info("Checked device %s" % devid)
                 else:

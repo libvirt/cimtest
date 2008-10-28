@@ -33,7 +33,7 @@ import sys
 import pywbem
 from VirtLib import utils
 from VirtLib import live
-from XenKvmLib import devices
+from XenKvmLib.enumclass import GetInstance
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from CimTest.Globals import logger
@@ -67,16 +67,17 @@ def main():
     vsxml.cim_define(options.ip)
 
     devid = "%s/%s" % (test_dom, test_mac)
+    net_class = get_typed_class(options.virt, "NetworkPort")
     key_list = { 'DeviceID' : devid,
-                 'CreationClassName' : get_typed_class(options.virt, "NetworkPort"),
+                 'CreationClassName' : net_class,
                  'SystemName' : test_dom,
                  'SystemCreationClassName' : get_typed_class(options.virt, "ComputerSystem")
                }
 
     dev = None 
-
+    
     try:
-        dev = eval('devices.' + get_typed_class(options.virt, "NetworkPort"))(options.ip, key_list)
+        dev = GetInstance(options.ip, net_class, key_list)
 
     except Exception, detail:
         logger.error("Exception: %s" % detail)

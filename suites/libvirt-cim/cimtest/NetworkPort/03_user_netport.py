@@ -28,7 +28,7 @@
 import sys
 import pywbem
 from XenKvmLib import const
-from XenKvmLib import devices
+from XenKvmLib.enumclass import GetInstance
 from XenKvmLib.vxml import KVMXML
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
@@ -57,7 +57,7 @@ def main():
 
     dev = None 
     try:
-        dev = devices.KVM_NetworkPort(options.ip, key_list)
+        dev = GetInstance(options.ip, 'KVM_NetworkPort', key_list)
     except Exception, detail:
         logger.error("Exception: %s" % detail)
         cxml.undefine(options.ip)

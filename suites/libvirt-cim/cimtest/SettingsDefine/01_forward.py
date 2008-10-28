@@ -30,7 +30,7 @@ import sys
 from VirtLib import utils
 from XenKvmLib import vxml
 from XenKvmLib import assoc
-from XenKvmLib import devices
+from XenKvmLib.enumclass import GetInstance
 from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
 from XenKvmLib.const import do_main
@@ -99,8 +99,8 @@ def main():
             exp_inst_id_val[cn] = key_list['DeviceID']
 
         try:
-            dev_class = devices.get_class(get_typed_class(options.virt, cn))
-            devlist[cn] = dev_class(options.ip, key_list)
+            dev_class = get_typed_class(options.virt, cn)
+            devlist[cn] = GetInstance(options.ip, dev_class, key_list)
             logelelst[cn] = devlist[cn].DeviceID
         except Exception, detail:
             print_error(cn, detail)

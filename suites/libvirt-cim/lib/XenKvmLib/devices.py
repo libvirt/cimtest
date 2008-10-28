@@ -40,63 +40,6 @@ class CIM_Instance:
     def __str__(self):
         print self.inst.items()
 
-class CIM_LogicalDevice(CIM_Instance):
-    def __init__(self, server, keys):
-        conn = pywbem.WBEMConnection('http://%s' % server,
-                                     (Globals.CIM_USER, Globals.CIM_PASS),
-                                     Globals.CIM_NS)
-
-        try:
-            classname = self.__class__.__name__
-            ref = CIMInstanceName(classname,
-                                  keybindings=keys)
-            inst = conn.GetInstance(ref)
-        except pywbem.CIMError, arg:
-            raise arg
-
-        CIM_Instance.__init__(self, inst)
-
-class CIM_LogicalDisk(CIM_LogicalDevice):
-    pass
-
-class CIM_NetworkPort(CIM_LogicalDevice):
-    pass
-
-class CIM_Memory(CIM_LogicalDevice):
-    pass
-
-class CIM_Processor(CIM_LogicalDevice):
-    pass
-
-class Xen_LogicalDisk(CIM_LogicalDisk):
-    pass
-
-class KVM_LogicalDisk(CIM_LogicalDisk):
-    pass
-
-class LXC_LogicalDisk(CIM_LogicalDisk):
-    pass
-
-class Xen_NetworkPort(CIM_NetworkPort):
-    pass
-
-class KVM_NetworkPort(CIM_NetworkPort):
-    pass
-
-class Xen_Memory(CIM_Memory):
-    pass
-
-class KVM_Memory(CIM_Memory):
-    pass
-
-class LXC_Memory(CIM_Memory):
-    pass
-
-class Xen_Processor(CIM_Processor):
-    pass
-
-class KVM_Processor(CIM_Processor):
-    pass
 
 def get_class(classname):
     return eval(classname)
