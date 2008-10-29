@@ -177,7 +177,7 @@ def get_nasd_class(virt):
     pass
 
 class CIM_ProcResourceAllocationSettingData(CIMClassMOF):
-    def __init__(self, vcpu, name, weight=None, limit=None):
+    def __init__(self, name, vcpu=None, weight=None, limit=None):
         self.ResourceType = RASD_TYPE_PROC
         
         if vcpu != None:

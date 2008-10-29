@@ -472,7 +472,10 @@ class VirtCIM:
                                               mac=net_mac,
                                               name=dom_name,
                                               virt_net=net_name)
-        self.pasd = vsms.get_pasd_class(virt)(vcpu=vcpus, name=dom_name)
+        if virt == 'LXC':
+            self.pasd = vsms.get_pasd_class(virt)(name=dom_name)
+        else:
+            self.pasd = vsms.get_pasd_class(virt)(vcpu=vcpus, name=dom_name)
         self.masd = vsms.get_masd_class(virt)(megabytes=mem, 
                                               mallocunits=mem_allocunits,
                                               name=dom_name)
