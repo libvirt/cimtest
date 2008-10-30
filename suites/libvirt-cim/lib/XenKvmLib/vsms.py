@@ -25,7 +25,6 @@
 import pywbem
 from CimTest.CimExt import CIMMethodClass, CIMClassMOF
 from CimTest import Globals
-from VirtLib import live
 from XenKvmLib import const
 from XenKvmLib.classes import get_typed_class, get_class_type, virt_types
 

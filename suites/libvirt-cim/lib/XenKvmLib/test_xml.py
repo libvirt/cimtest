@@ -29,12 +29,13 @@ import os
 import sys 
 import random
 from VirtLib import utils
-from VirtLib import live
 from xml import xpath
 from xml.dom import minidom, Node
 from CimTest.Globals import logger
 from XenKvmLib.test_doms import set_uuid, create_vnet
-from VirtLib.live import net_list, available_bridges, get_bridge_from_network_xml 
+from VirtLib.live import available_bridges
+from XenKvmLib.xm_virt_util import net_list, get_bridge_from_network_xml, \
+                                   bootloader
 from CimTest.ReturnCodes import SKIP
 
 image_dir   = "/tmp"
@@ -116,7 +117,7 @@ specify either localhost or remote machine ip/name " )
         </disk>
       </devices>
     </domain>
-    """ % ( test_dom, set_uuid(), live.bootloader(server, gtype), \
+    """ % ( test_dom, set_uuid(), bootloader(server, gtype), \
             kernel_path, init_path, mem*1024, vcpus, mac, disk_file_path, disk )
     return test_xml
 

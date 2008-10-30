@@ -38,6 +38,7 @@ import pywbem
 from xml.dom import minidom, Node
 from xml import xpath
 from VirtLib import utils, live
+from XenKvmLib.xm_virt_util import get_bridge_from_network_xml, bootloader 
 from XenKvmLib.test_doms import set_uuid, viruuid
 from XenKvmLib import vsms
 from XenKvmLib import const
@@ -436,7 +437,7 @@ class VirtXML(Virsh, XMLClass):
         return br
 
     def _set_vbridge(self, ip, virt_type, net_name):
-        vbr = live.get_bridge_from_network_xml(net_name, ip, virt=virt_type)
+        vbr = get_bridge_from_network_xml(net_name, ip, virt=virt_type)
 
         interface = self.get_node('/domain/devices/interface')
         interface.setAttribute('type', 'bridge')
@@ -565,7 +566,7 @@ class XenXML(VirtXML, VirtCIM):
         self.set_interface_details(devices, net_mac, net_type, net_name, 'Xen')
 
     def set_bootloader(self, ip, gtype=0):
-        bldr = live.bootloader(ip, gtype)
+        bldr = bootloader(ip, gtype)
         self.add_sub_node('/domain', 'bootloader', bldr)
         self.vssd = vsms.get_vssd_mof(self.virt, self.domain_name, bldr)
         return bldr

@@ -24,7 +24,7 @@
 import tempfile
 import os
 from VirtLib import utils
-from VirtLib import live
+from XenKvmLib.xm_virt_util import domain_list
 from CimTest.Globals import CIM_FUUID
 
 try:
@@ -127,7 +127,7 @@ def destroy_and_undefine_all(server, virt="Xen", aggressive = False):
     """Destroy and undefine all domain to keep a 
     clean env for next testcase"""
     
-    names = live.domain_list(server, virt)
+    names = domain_list(server, virt)
     ids = virdomid_list(server, virt)
     names.extend(ids)
     uuid_list = get_uuid_list()
