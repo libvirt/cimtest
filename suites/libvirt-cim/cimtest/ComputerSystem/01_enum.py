@@ -25,7 +25,7 @@
 import sys
 from XenKvmLib.const import do_main
 from XenKvmLib import enumclass
-from VirtLib import live
+from XenKvmLib.xm_virt_util import domain_list
 from XenKvmLib.classes import get_typed_class
 from VirtLib import utils
 from CimTest import Globals
@@ -41,7 +41,7 @@ def main():
     cs_class = get_typed_class(options.virt, 'ComputerSystem')
     try:
         cs = enumclass.EnumInstances(options.ip, cs_class)
-        live_cs = live.domain_list(options.ip, options.virt)
+        live_cs = domain_list(options.ip, options.virt)
         for system in cs:
             name = system.name
             try:

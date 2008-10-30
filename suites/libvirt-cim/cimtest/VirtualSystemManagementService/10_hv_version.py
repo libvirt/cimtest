@@ -22,7 +22,7 @@
 
 import sys
 import pywbem
-from VirtLib import live
+from XenKvmLib.xm_virt_util import get_hv_ver
 from XenKvmLib import vsms
 from XenKvmLib.const import do_main
 from CimTest.Globals import logger
@@ -47,7 +47,7 @@ def main():
 
     try:
         cim_ver = service["Caption"]
-        local_ver = live.get_hv_ver(options.ip, options.virt)
+        local_ver = get_hv_ver(options.ip, options.virt)
 
         if cim_ver != local_ver:
             logger.error("CIM says version is `%s', but libvirt says `%s'" \

@@ -25,7 +25,7 @@
 import sys
 import pywbem
 from VirtLib import utils
-from VirtLib import live
+from XenKvmLib.xm_virt_util import active_domain_list
 from XenKvmLib.enumclass import GetInstance
 from XenKvmLib.test_xml import testxml
 from XenKvmLib.classes import get_typed_class
@@ -48,7 +48,7 @@ def main():
     vsxml.start(options.ip)
 
     # Processor instance enumerate need the domain to be active
-    domlist = live.active_domain_list(options.ip, options.virt)
+    domlist = active_domain_list(options.ip, options.virt)
     proc_class = get_typed_class(options.virt, "Processor")
     if test_dom not in domlist:
         status = FAIL

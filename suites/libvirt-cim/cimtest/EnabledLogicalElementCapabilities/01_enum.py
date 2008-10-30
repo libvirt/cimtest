@@ -26,7 +26,7 @@ from XenKvmLib import enumclass
 from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
 from XenKvmLib.const import do_main
-from VirtLib import live
+from XenKvmLib.xm_virt_util import domain_list
 from VirtLib import utils
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
@@ -44,7 +44,7 @@ def main():
         return 1
 
      
-    names = live.domain_list(options.ip, options.virt)
+    names = domain_list(options.ip, options.virt)
     
     if len(elec) != len(names):
         Globals.logger.error("Get domain list error, the number of domains is not equal")

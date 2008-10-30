@@ -25,7 +25,7 @@
 import sys
 import pywbem
 from XenKvmLib import enumclass
-from VirtLib import live
+from XenKvmLib.xm_virt_util import domain_list
 from VirtLib import utils
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
@@ -35,7 +35,7 @@ from CimTest.ReturnCodes import PASS, FAIL, SKIP
 sup_types = ['KVM', 'LXC']
 
 def clean_system(host, virt):
-    l = live.domain_list(host, virt)
+    l = domain_list(host, virt)
     if len(l) > 0:
         return False
     else:

@@ -23,7 +23,7 @@
 
 import sys
 from VirtLib import utils
-from VirtLib import live
+from XenKvmLib.xm_virt_util import domain_list
 from XenKvmLib import assoc
 from XenKvmLib import enumclass
 from XenKvmLib import vxml
@@ -154,7 +154,7 @@ def main():
         logger.error("Failed to define the dom: %s" % test_dom)
         return FAIL
 
-    cs = live.domain_list(options.ip, options.virt)
+    cs = domain_list(options.ip, options.virt)
     for system in cs:
         cn = get_typed_class(options.virt, "EnabledLogicalElementCapabilities")
         status, elec_cs = call_assoc(options.ip, cn, system, options.virt)

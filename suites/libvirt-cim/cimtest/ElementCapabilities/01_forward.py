@@ -22,7 +22,7 @@
 
 import sys
 from VirtLib import utils
-from VirtLib import live
+from XenKvmLib.xm_virt_util import domain_list
 from XenKvmLib import vxml
 from XenKvmLib import assoc
 from XenKvmLib import enumclass
@@ -114,7 +114,7 @@ def main():
         logger.error("Failed to define the dom: %s", test_dom)
         return FAIL
 
-    cs = live.domain_list(server, virt)
+    cs = domain_list(server, virt)
     ccn  = get_typed_class(virt, "ComputerSystem")
     for system in cs:  
         try:

@@ -25,7 +25,7 @@ import sys
 import pywbem
 from pywbem.cim_obj import CIMInstanceName
 from VirtLib import utils
-from VirtLib.live import domain_list, active_domain_list
+from XenKvmLib.xm_virt_util import domain_list, active_domain_list
 from XenKvmLib import vsms, vxml
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.const import do_main

@@ -34,7 +34,7 @@ from CimTest import Globals
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main, default_pool_name
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
-from VirtLib.live import net_list
+from XenKvmLib.xm_virt_util import net_list
 from XenKvmLib.vsms import RASD_TYPE_PROC, RASD_TYPE_MEM, RASD_TYPE_NET_ETHER, \
 RASD_TYPE_DISK 
 

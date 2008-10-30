@@ -28,7 +28,7 @@
 import os
 import sys
 import pywbem
-from VirtLib.live import net_list
+from XenKvmLib.xm_virt_util import net_list
 from XenKvmLib import assoc
 from XenKvmLib import vxml
 from XenKvmLib.common_util import try_getinstance

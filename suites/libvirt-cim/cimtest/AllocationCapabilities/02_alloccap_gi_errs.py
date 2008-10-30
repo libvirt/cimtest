@@ -57,7 +57,7 @@ from VirtLib import utils
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from CimTest.ReturnCodes import PASS, SKIP, FAIL
 from XenKvmLib.common_util import try_getinstance
-from VirtLib.live import net_list
+from XenKvmLib.xm_virt_util import net_list
 from XenKvmLib.test_xml import netxml
 from XenKvmLib.test_doms import create_vnet
 from XenKvmLib.const import do_main, platform_sup, default_pool_name

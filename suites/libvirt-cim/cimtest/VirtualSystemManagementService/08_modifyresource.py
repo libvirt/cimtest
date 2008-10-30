@@ -26,7 +26,7 @@ import sys
 import pywbem
 from pywbem.cim_obj import CIMInstanceName
 from VirtLib import utils
-from VirtLib.live import network_by_bridge
+from XenKvmLib.xm_virt_util import network_by_bridge
 from XenKvmLib import vsms
 from XenKvmLib import vxml
 from CimTest.Globals import logger
