@@ -32,6 +32,13 @@ def get_cmd_val(cmd, ip):
         return "Unknown"
     return out
 
+def get_cimtest_version():
+    revision = commands.getoutput("hg parents --template \
+    \"{rev}\" 2>/dev/null")
+    changeset = commands.getoutput("hg parents --template \
+    \"{node|short}\" 2>/dev/null")
+    return revision, changeset
+
 def get_libvirt_ver(ip):
     libvirt_ver = "Unknown"
     hyp_ver = "Unknown"
@@ -80,11 +87,14 @@ def get_env_data(ip, virt):
           % (distro, kernel_ver, libvirt_ver, hyp_ver, cimom, cimom_ver)
 
     rev, changeset = get_provider_version(virt, ip)
+    cimtest_revision, cimtest_changeset = get_cimtest_version()
 
     lc_ver = "Libvirt-cim revision: %s\nLibvirt-cim changeset: %s\n" % \
              (rev, changeset)
+    cimtest_ver = "Cimtest revision: %s\nCimtest changeset: %s\n" % \
+                  (cimtest_revision, cimtest_changeset)
 
-    return env + lc_ver
+    return env + lc_ver + cimtest_ver
 
 def parse_run_output(log_file):
     rvals = { 'PASS' : 0,
