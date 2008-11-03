@@ -24,8 +24,8 @@ import pywbem
 from CimTest import Globals
 from CimTest.ReturnCodes import FAIL, PASS
 from CimTest.Globals import logger
-from VirtLib.live import network_by_bridge, virsh_vcpuinfo, \
-                         get_bridge_from_network_xml
+from XenKvmLib.xm_virt_util import network_by_bridge, virsh_vcpuinfo, \
+get_bridge_from_network_xml
 
 def print_mod_err_msg(func_str, details):
         logger.error('Error invoking ModifyRS: %s' % func_str)

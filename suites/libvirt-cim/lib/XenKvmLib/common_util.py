@@ -36,7 +36,7 @@ from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, \
                             CIM_ERROR_GETINSTANCE
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
-from VirtLib.live import diskpool_list, virsh_version, net_list, domain_list
+from XenKvmLib.xm_virt_util import diskpool_list, virsh_version, net_list, domain_list
 from XenKvmLib.vxml import PoolXML, NetXML
 from VirtLib import utils 
 from XenKvmLib.const import default_pool_name, default_network_name

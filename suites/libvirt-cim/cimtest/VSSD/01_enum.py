@@ -27,7 +27,7 @@
 # Date : 25-10-2007 
 
 import sys
-from VirtLib import live
+from XenKvmLib.xm_virt_util import domain_list
 from XenKvmLib import enumclass
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.test_doms import destroy_and_undefine_all
@@ -53,7 +53,7 @@ def main():
         status = FAIL
 
     try:
-        live_cs = live.domain_list(options.ip, options.virt)
+        live_cs = domain_list(options.ip, options.virt)
         vssd_class = get_typed_class(options.virt, "VirtualSystemSettingData")
         syslst = enumclass.EnumInstances(options.ip, vssd_class) 
         found = 0

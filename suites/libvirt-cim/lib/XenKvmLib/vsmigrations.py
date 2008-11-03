@@ -27,7 +27,7 @@ from XenKvmLib.test_doms import destroy_and_undefine_domain
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from XenKvmLib import enumclass
 from XenKvmLib.classes import get_typed_class
-from VirtLib.live import domain_list 
+from XenKvmLib.xm_virt_util import domain_list 
 
 class CIM_VirtualSystemMigrationService(CIMMethodClass):
     conn = None

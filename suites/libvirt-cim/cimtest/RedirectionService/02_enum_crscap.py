@@ -26,7 +26,7 @@
 #
 
 import sys
-from VirtLib.live import domain_list
+from XenKvmLib.xm_virt_util import domain_list
 from XenKvmLib.enumclass import EnumInstances
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from XenKvmLib.classes import get_typed_class

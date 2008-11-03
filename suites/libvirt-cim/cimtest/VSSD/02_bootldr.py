@@ -30,7 +30,7 @@ import sys
 from XenKvmLib import enumclass
 from XenKvmLib.vxml import get_class
 from VirtLib import utils
-from VirtLib.live import bootloader
+from XenKvmLib.xm_virt_util import bootloader
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
