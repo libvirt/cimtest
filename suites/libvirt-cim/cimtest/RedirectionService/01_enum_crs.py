@@ -26,17 +26,19 @@
 #
 
 import sys
-from VirtLib.live import domain_list
+from sets import Set
+from XenKvmLib.xm_virt_util import domain_list, active_domain_list
 from XenKvmLib.enumclass import EnumInstances
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.const import do_main 
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.common_util import get_host_info
+from XenKvmLib.const import get_provider_version 
 
 SHAREMODE = 3
 REDIRECTION_SER_TYPE = 3
-MAX_SAP_SESSIONS = 65535
+CRS_MAX_SAP_REV = 724 
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 @do_main(sup_types)
@@ -50,6 +52,19 @@ def main():
 
     cname = 'ConsoleRedirectionService'
     classname = get_typed_class(virt, cname)
+
+    cim_rev, changeset = get_provider_version(virt, server)
+    #  This branch should be removed once the F9 rpm has changes with
+    #  Revision >= 724, and max_sap_sessions = 65535 should be used
+    #  for verification.
+    if cim_rev < CRS_MAX_SAP_REV:
+        inactive_active_doms = domain_list(server, virt)
+        active_doms = active_domain_list(server, virt)
+        inactive_doms = len(Set(inactive_active_doms) - Set(active_doms))
+        max_sap_sessions =  2 * inactive_doms
+    else:
+        max_sap_sessions = 65535
+
     crs_list =  {
                    'ElementName'             : cname,
                    'SystemCreationClassName' : host_cn, 
@@ -61,7 +76,7 @@ def main():
                    'EnabledState'            : 2,
                    'EnabledDefault'          : 2,
                    'RequestedState'          : 12,
-                   'MaxConcurrentEnabledSAPs': MAX_SAP_SESSIONS
+                   'MaxConcurrentEnabledSAPs': max_sap_sessions
                 }
 
     try:
