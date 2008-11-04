@@ -31,15 +31,29 @@ from XenKvmLib.enumclass import EnumInstances
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.const import do_main 
-from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.ReturnCodes import PASS, FAIL, SKIP
+from XenKvmLib.const import get_provider_version
 
 SHAREMODESUPP = 3
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
+libvirtcim_crscap_changes = 691
+
 @do_main(sup_types)
 def main():
     virt = main.options.virt
     server = main.options.ip
+
+    # This check is required for libivirt-cim providers which do not have 
+    # CRSCAP changes in it and the CRSCAP provider is available with 
+    # revision >= 691.
+    curr_cim_rev, changeset = get_provider_version(virt, server)
+    if curr_cim_rev  < libvirtcim_crscap_changes:
+        logger.info("ConsoleRedirectionServiceCapabilities provider not"
+                    " supported, hence skipping the tc ....")
+        return SKIP 
+
+
     cname = 'ConsoleRedirectionServiceCapabilities'
     cap_name = 'ConsoleRedirectionCapabilities'
     classname = get_typed_class(virt, cname)
