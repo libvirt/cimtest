@@ -35,7 +35,7 @@ from CimTest.Globals import logger
 from XenKvmLib.test_doms import set_uuid, create_vnet
 from VirtLib.live import available_bridges
 from XenKvmLib.xm_virt_util import net_list, get_bridge_from_network_xml, \
-                                   bootloader
+                                   bootloader, virt2uri
 from CimTest.ReturnCodes import SKIP
 
 image_dir   = "/tmp"
@@ -201,7 +201,7 @@ def netxml(server, bridgename, networkname):
 
 
 def dumpxml(name, server, virt="Xen"):
-    cmd = "virsh -c %s dumpxml %s" % (utils.virt2uri(virt), name)
+    cmd = "virsh -c %s dumpxml %s" % (virt2uri(virt), name)
     s, o = utils.run_remote(server, cmd)
     if s == 0:
         return o

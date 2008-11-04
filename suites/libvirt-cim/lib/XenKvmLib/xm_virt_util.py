@@ -63,7 +63,7 @@ def disk_list(ip, vs_name):
     """
 
     guest_cmd = "cat /proc/partitions | awk '/^ /{ print $4 } ' "
-    rc, out = utils.run_remote_guest(ip, vs_name, guest_cmd)
+    rc, out = run_remote_guest(ip, vs_name, guest_cmd)
 
     if rc != 0:
         return None
@@ -89,7 +89,7 @@ def domain_list(server, virt="Xen"):
        virt = "Xen"
 
     cmd = "virsh -c %s list --all | sed -e '1,2 d' -e '$ d'" % \
-                utils.virt2uri(virt)
+                virt2uri(virt)
     ret, out = utils.run_remote(server, cmd)
 
     if ret != 0:
@@ -109,7 +109,7 @@ def active_domain_list(server, virt="Xen"):
         virt = "Xen"
 
     cmd = "virsh -c %s list | sed -e '1,2 d' -e '$ d'" % \
-                utils.virt2uri(virt)
+                virt2uri(virt)
     ret, out = utils.run_remote(server, cmd)
 
     if ret != 0:
@@ -156,7 +156,7 @@ def net_list(server, virt="Xen"):
     """Function to list active network"""
     names = []
     cmd = "virsh -c %s net-list | sed -e '1,2 d' -e '$ d'" % \
-                utils.virt2uri(virt)
+                virt2uri(virt)
     ret, out = utils.run_remote(server, cmd)
 
     if ret != 0:
@@ -173,7 +173,7 @@ def get_bridge_from_network_xml(network, server, virt="Xen"):
     """Function returns bridge name for a given virtual network"""
 
     cmd = "virsh -c %s net-dumpxml %s | awk '/bridge name/ { print $2 }'" % \
-                (utils.virt2uri(virt), network)
+                (virt2uri(virt), network)
     ret, out = utils.run_remote(server, cmd)
 
     if ret != 0:
@@ -196,7 +196,7 @@ def network_by_bridge(bridge, server, virt="Xen"):
     return None
 
 def virsh_version(server, virt="KVM"):
-    cmd = "virsh -c %s -v " % utils.virt2uri(virt)
+    cmd = "virsh -c %s -v " % virt2uri(virt)
     ret, out = utils.run_remote(server, cmd)
     if ret != 0:
         return None
@@ -206,7 +206,7 @@ def diskpool_list(server, virt="KVM"):
     """Function to list active DiskPool list"""
     names = []
     cmd = "virsh -c %s pool-list | sed -e '1,2 d' -e '$ d'" % \
-           utils.virt2uri(virt)
+           virt2uri(virt)
     ret, out = utils.run_remote(server, cmd)
 
     if ret != 0:
@@ -221,7 +221,7 @@ def diskpool_list(server, virt="KVM"):
     return names
 
 def virsh_vcpuinfo(server, dom, virt="Xen"):
-    cmd = "virsh -c %s vcpuinfo %s | grep VCPU | wc -l" % (utils.virt2uri(virt),
+    cmd = "virsh -c %s vcpuinfo %s | grep VCPU | wc -l" % (virt2uri(virt),
           dom)
     ret, out = utils.run_remote(server, cmd)
     if out.isdigit():
@@ -229,10 +229,61 @@ def virsh_vcpuinfo(server, dom, virt="Xen"):
     return None
 
 def get_hv_ver(server, virt="Xen"):
-    cmd = "virsh -c %s version | grep ^Running | cut -d ' ' -f 3,4" % utils.virt2uri(virt)
+    cmd = "virsh -c %s version | grep ^Running | cut -d ' ' -f 3,4" %virt2uri(virt)
     ret, out = utils.run_remote(server, cmd)
     if ret == 0:
         return out
     else:
         return None
 
+def get_xmtest_files(ip, kernel):
+    # get the xm-test disk from morbo
+    rc, out = run_remote(ip,
+        "rm -rf /tmp/boot ; mkdir -p /tmp/boot /tmp/xmtest")
+    rc, out = run_remote(ip,
+        "cd /tmp/boot ; wget http://morbo.linux.ibm.com/pub/xmtest.disk.gz")
+    if rc != 0:
+        return 2, "fetching xmtest.disk failed:\n%s" % out
+
+    # mount on /tmp/xmtest
+    rc, out = run_remote(ip,
+        "gzip -d /tmp/boot/xmtest.disk.gz ; mount -o loop /tmp/boot/xmtest.disk /tmp/xmtest")
+    if rc != 0:
+        run_remote(ip, "umount /tmp/xmtest")
+        return 2, "mounting xmtest.disk failed:\n%s" % out
+
+    # We need "uname -r" to name the kernel correctly
+    rc, uname = run_remote(ip, "uname -r")
+    if rc != 0:
+        run_remote(ip, "umount /tmp/xmtest")
+        return 2, "uname failed:\n%s" % out
+
+    # get the kernel binary, put in /tmp/boot
+    rc, out = run_remote(ip,
+        "wget %s -O /tmp/boot/vmlinuz-\`uname -r\`" % kernel)
+    if rc != 0:
+        run_remote(ip, "umount /tmp/xmtest")
+        return 2, "fetching kernel failed:\n%s" % out
+
+    return 0, ""
+
+def customize_xmtest_ramdisk(ip):
+    # customize modules on xm-test ramdisk
+    #    cd $xmtestdir/ramdisk ; bin/add_modules_to_initrd  ; cd
+    rc, out = run_remote(ip,
+                    "cd /tmp/xmtest/ramdisk ; bin/add_modules_to_initrd")
+    if rc != 0:
+        run_remote(ip, "umount /tmp/xmtest")
+        return 2, "customizing ramdisk failed:\n%s" % out
+
+    return 0, ""
+
+def virt2uri(virt):
+    # convert cimtest --virt param string to libvirt uri
+    if virt == "Xen" or virt == "XenFV":
+        return "xen:///"
+    if virt == "KVM":
+        return "qemu:///system"
+    if virt == "LXC":
+        return "lxc:///system"
+    return ""

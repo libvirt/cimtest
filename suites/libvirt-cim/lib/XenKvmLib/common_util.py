@@ -36,7 +36,8 @@ from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, \
                             CIM_ERROR_GETINSTANCE
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
-from XenKvmLib.xm_virt_util import diskpool_list, virsh_version, net_list, domain_list
+from XenKvmLib.xm_virt_util import diskpool_list, virsh_version, net_list,\
+                                   domain_list, virt2uri
 from XenKvmLib.vxml import PoolXML, NetXML
 from VirtLib import utils 
 from XenKvmLib.const import default_pool_name, default_network_name
@@ -382,7 +383,7 @@ def create_diskpool(server, virt='KVM', dpool=default_pool_name,
 
         if dpoolname == None:
             cmd = "virsh -c %s pool-list --all | grep %s" % \
-                  (utils.virt2uri(virt), dpool)
+                  (virt2uri(virt), dpool)
             ret, out = utils.run_remote(server, cmd)
             if out != "":
                 logger.error("Disk pool with name '%s' already exists", dpool)
@@ -444,7 +445,7 @@ def create_netpool_conf(server, virt, use_existing=False,
 
         if test_network == None:
             cmd = "virsh -c %s net-list --all | grep -w %s" % \
-                  (utils.virt2uri(virt), net_name)
+                  (virt2uri(virt), net_name)
             ret, out = utils.run_remote(server, cmd)
             # If success, network pool with name net_name already exists
             if ret == 0:

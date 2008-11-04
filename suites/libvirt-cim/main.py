@@ -36,6 +36,7 @@ from XenKvmLib.const import platform_sup, default_network_name, \
                             default_pool_name
 from XenKvmLib.reporting import gen_report, send_report 
 from VirtLib import utils
+from XenKvmLib.xm_virt_util import virt2uri
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.common_util import create_netpool_conf, destroy_netpool, \
                                   create_diskpool_conf, destroy_diskpool
@@ -90,12 +91,12 @@ def remove_old_logs(ogroup):
     print "Cleaned log files."
 
 def pre_check(ip, virt):
-    cmd = "virsh -c %s list --all" % utils.virt2uri(virt)
+    cmd = "virsh -c %s list --all" % virt2uri(virt)
     ret, out = utils.run_remote(ip, cmd)
     if ret != 0:
         return "This libvirt install does not support %s"  % virt
 
-    cmd = "virsh -c %s version" % utils.virt2uri(virt)
+    cmd = "virsh -c %s version" % virt2uri(virt)
     ret, out = utils.run_remote(ip, cmd)
     if ret != 0:
         return "Encountered an error querying libvirt with: %s" % cmd

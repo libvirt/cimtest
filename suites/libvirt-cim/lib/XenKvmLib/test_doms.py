@@ -24,7 +24,7 @@
 import tempfile
 import os
 from VirtLib import utils
-from XenKvmLib.xm_virt_util import domain_list
+from XenKvmLib.xm_virt_util import domain_list, virt2uri
 from CimTest.Globals import CIM_FUUID
 
 try:
@@ -47,19 +47,19 @@ def define_test_domain(xml, server, virt="Xen"):
     f.write(xml)
     f.close()
 
-    cmd = "virsh -c %s define %s" % (utils.virt2uri(virt), name)
+    cmd = "virsh -c %s define %s" % (virt2uri(virt), name)
     s, o = utils.run_remote(server, cmd)
 
     return s == 0
 
 def undefine_test_domain(name, server, virt="Xen"):
-    cmd = "virsh -c %s undefine %s" % (utils.virt2uri(virt), name)
+    cmd = "virsh -c %s undefine %s" % (virt2uri(virt), name)
     s, o = utils.run_remote(server, cmd)
 
     return s == 0
 
 def start_test_domain(name, server, virt="Xen"):
-    cmd = "virsh -c %s start %s" % (utils.virt2uri(virt), name)
+    cmd = "virsh -c %s start %s" % (virt2uri(virt), name)
     s, o = utils.run_remote(server, cmd)
 
     return s == 0
@@ -68,7 +68,7 @@ def virdomid_list(server, virt="Xen"):
     """Get a list of domid from virsh"""
     
     cmd = "virsh -c %s list 2>/dev/null | sed '1,2 d; /^$/d'" % \
-                utils.virt2uri(virt)
+                virt2uri(virt)
     ret, out = utils.run_remote(server, cmd)
     if ret != 0:
         return None
@@ -109,7 +109,7 @@ def get_uuid_list():
 def viruuid(name, server, virt="Xen"):
     """Return domain uuid given domid or domname"""
     cmd = "virsh -c %s domuuid %s 2>/dev/null | sed '/^$/d'" % \
-                (utils.virt2uri(virt), name)
+                (virt2uri(virt), name)
     ret, out = utils.run_remote(server, cmd)
     if ret == 0:
         return out.strip(" \n")
@@ -120,7 +120,7 @@ def destroy_and_undefine_domain(name, server, virt="Xen"):
     """Destroy and undefine a domain.
     name could be domid or domname"""
     cmd = "virsh -c %s 'destroy %s ; undefine %s'" % \
-                (utils.virt2uri(virt), name, name)
+                (virt2uri(virt), name, name)
     utils.run_remote(server, cmd)
 
 def destroy_and_undefine_all(server, virt="Xen", aggressive = False):
@@ -154,7 +154,7 @@ def test_domain_function(xmlfile_domname, server, cmd, virt="Xen"):
     else:
         name = xmlfile_domname
 
-    vcmd = "virsh -c %s %s %s" % (utils.virt2uri(virt), cmd, name)
+    vcmd = "virsh -c %s %s %s" % (virt2uri(virt), cmd, name)
     s, o = utils.run_remote(server, vcmd)
     if cmd == "define" or cmd == "create":
         f.close()
@@ -165,7 +165,7 @@ def vir_cpu_list(name_id, server, virt="Xen"):
        Get the vcpu lists. The input is either the domid or domname.
     """
     cmd = "virsh -c %s vcpuinfo %s | grep '^$' | wc -l" % \
-                (utils.virt2uri(virt), name_id)
+                (virt2uri(virt), name_id)
     ret, out = utils.run_remote(server, cmd)
 
     if ret != 0:
@@ -180,7 +180,7 @@ def create_vnet(server, net_xml, virt="Xen"):
     nf.write(net_xml)
     nf.flush()
     fname = nf.name
-    cmd = "virsh -c %s net-create %s" % (utils.virt2uri(virt), fname)
+    cmd = "virsh -c %s net-create %s" % (virt2uri(virt), fname)
     ret, out = utils.run_remote(server, cmd)
     nf.close()
     if ret != 0:
