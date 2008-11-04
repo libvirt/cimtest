@@ -32,9 +32,11 @@ from XenKvmLib.const import do_main
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 from XenKvmLib.common_util import get_host_info
+from XenKvmLib.const import get_provider_version
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 bug_sblim = '00007'
+libvirtcim_hr_crs_changes = 695
 
 @do_main(sup_types)
 def main():
@@ -61,10 +63,17 @@ def main():
         logger.error("No association return")
         return FAIL
 
-    val_serv = Set([get_typed_class(virt, "ResourcePoolConfigurationService"),
-                    get_typed_class(virt, "VirtualSystemManagementService"),
-                    get_typed_class(virt, "VirtualSystemMigrationService"),
-                    get_typed_class(virt, "ConsoleRedirectionService")])
+    val_serv = [get_typed_class(virt, "ResourcePoolConfigurationService"),
+                get_typed_class(virt, "VirtualSystemManagementService"),
+                get_typed_class(virt, "VirtualSystemMigrationService")]
+
+    # This check is required for libivirt-cim providers which do not have 
+    # CRS changes in it and the CRS provider is available with revision >= 695.
+    cim_rev, changeset = get_provider_version(virt, server) 
+    if cim_rev >= libvirtcim_hr_crs_changes:
+        val_serv.append(get_typed_class(virt, "ConsoleRedirectionService"))
+
+    val_serv = Set(val_serv)
 
     ccn_list = []
     for item in service:
