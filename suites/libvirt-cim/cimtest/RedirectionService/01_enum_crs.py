@@ -32,19 +32,28 @@ from XenKvmLib.enumclass import EnumInstances
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.const import do_main 
-from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from XenKvmLib.common_util import get_host_info
 from XenKvmLib.const import get_provider_version 
 
 SHAREMODE = 3
 REDIRECTION_SER_TYPE = 3
 CRS_MAX_SAP_REV = 724 
+libvirtcim_hr_crs_changes = 688
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 @do_main(sup_types)
 def main():
     virt = main.options.virt
     server = main.options.ip
+
+   # This check is required for libivirt-cim providers which do not have 
+   # CRS changes in it and the CRS provider is available with revision >= 688.
+    curr_cim_rev, changeset = get_provider_version(virt, server)
+    if curr_cim_rev  < libvirtcim_hr_crs_changes:
+        logger.info("ConsoleRedirectionService provider not supported, "
+                    "hence skipping the tc ....")
+        return SKIP 
 
     status, host_name, host_cn = get_host_info(server, virt)
     if status != PASS:
