@@ -50,11 +50,13 @@ from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 from XenKvmLib.test_xml import testxml
 from XenKvmLib.test_doms import destroy_and_undefine_all
+from XenKvmLib.const import get_provider_version
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 test_dom = "domgst_test"
 test_vcpus = 1
 bug_sblim='00007'
+libvirt_rasd_template_changes = 707
 
 def setup_env(server, virt="Xen"):
     status = PASS
@@ -215,7 +217,9 @@ def get_rasddetails(server, alloccap, virt="Xen"):
                                      ccn,
                                      InstanceID = ap['InstanceID'])
 
-            if 'DiskPool' in ap['InstanceID'] and virt =='Xen':
+            curr_cim_rev, changeset = get_provider_version(virt, server)
+            if 'DiskPool' in ap['InstanceID'] and virt =='Xen' and \
+                curr_cim_rev >= libvirt_rasd_template_changes:
                 # For Diskpool, we have info 1 for each of Min, Max, 
                 # default, Increment and 1 for each of PV and FV 
                 # hence 4 * 2 = 8 records
