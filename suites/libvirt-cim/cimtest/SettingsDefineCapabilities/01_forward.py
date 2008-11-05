@@ -63,8 +63,10 @@ from CimTest.Globals import logger, CIM_ERROR_GETINSTANCE, CIM_ERROR_ASSOCIATORS
 from XenKvmLib.const import do_main, default_pool_name, default_network_name
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import print_field_error
+from XenKvmLib.const import get_provider_version
 
 platform_sup = ['Xen', 'KVM', 'XenFV', 'LXC']
+libvirt_rasd_template_changes = 707
 
 memid = "MemoryPool/0"
 procid = "ProcessorPool/0"
@@ -168,7 +170,9 @@ def verify_sdc_with_ac(virt, server, pool):
             assoc_info = assoc.Associators(server, assoc_cname, cn, 
                                            InstanceID = instid)  
 
-            if 'DiskPool' in instid and (virt =='Xen' or virt == 'XenFV'):
+            curr_cim_rev, changeset = get_provider_version(virt, server)
+            if 'DiskPool' in instid and (virt =='Xen' or virt == 'XenFV') and \
+                curr_cim_rev >= libvirt_rasd_template_changes:
                 # For Diskpool, we have info 1 for each of Min, Max, 
                 # default, Increment and 1 for each of PV and FV 
                 # hence 4 * 2 = 8 records
