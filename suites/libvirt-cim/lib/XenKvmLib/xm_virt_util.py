@@ -25,6 +25,7 @@
 import os
 from VirtLib import utils
 import socket
+from VirtLib.live import fv_cap
 
 def xm_domname(ip, domid):
 
