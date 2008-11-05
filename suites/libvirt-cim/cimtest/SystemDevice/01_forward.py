@@ -8,6 +8,7 @@
 #    Kaitlin Rupert <karupert@us.ibm.com>
 #    Veerendra Chandrappa <vechandr@in.ibm.com>
 #    Zhengang Li <lizg@cn.ibm.com>
+#    Deepti B. Kalakeri <deeptik@linux.vnet.ibm.com>
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public
@@ -25,10 +26,10 @@
 #
 
 import sys
+from sets import Set
 from VirtLib import utils
 from XenKvmLib import assoc
 from XenKvmLib import vxml
-from XenKvmLib import devices
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
@@ -38,72 +39,88 @@ sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom = "test_domain"
 test_mac = "00:11:22:33:44:55"
-test_cpu = 1
+test_cpu = 3 
 
 @do_main(sup_types)
 def main():
-    options= main.options
-
-    if options.virt == 'Xen':
+    options = main.options
+    server  = options.ip
+    virt = options.virt
+    
+    if virt == 'Xen':
         test_disk = 'xvdb'
     else:
         test_disk = 'hdb'
 
     status = PASS
-    virt_xml = vxml.get_class(options.virt)
-    if options.virt == 'LXC':
-        cxml = virt_xml(test_dom)
+    virt_xml = vxml.get_class(virt)
+    if virt == 'LXC':
+        cxml = virt_xml(test_dom, vcpus = test_cpu, mac = test_mac)
     else:
-        cxml = virt_xml(test_dom, vcpus = test_cpu, mac = test_mac, disk = test_disk)
-    ret = cxml.create(options.ip)
+        cxml = virt_xml(test_dom, vcpus = test_cpu, mac = test_mac, 
+                        disk = test_disk)
+
+    ret = cxml.create(server)
     if not ret:
         logger.error('Unable to create domain %s' % test_dom)
         return FAIL
 
-    sd_classname = get_typed_class(options.virt, 'SystemDevice')
-    cs_classname = get_typed_class(options.virt, 'ComputerSystem')
+    sd_classname = get_typed_class(virt, 'SystemDevice')
+    cs_classname = get_typed_class(virt, 'ComputerSystem')
 
-    devs = assoc.AssociatorNames(options.ip, sd_classname, cs_classname,
+    devs = assoc.AssociatorNames(server, sd_classname, cs_classname,
                                  Name=test_dom, CreationClassName=cs_classname)
     if devs == None:
-        logger.error("System association failed")
+        logger.error("'%s' association failed", sd_classname)
+        cxml.destroy(server)
         return FAIL
-    elif len(devs) == 0:
+
+    if len(devs) == 0:
         logger.error("No devices returned")
+        cxml.destroy(server)
         return FAIL
 
-    cn_devid = {
-            get_typed_class(options.virt, "NetworkPort") : '%s/%s' % (test_dom, test_mac),
-            get_typed_class(options.virt, "Memory")      : '%s/mem' % test_dom,
-            get_typed_class(options.virt, "LogicalDisk") : '%s/%s' % (test_dom, test_disk),
-            get_typed_class(options.virt, "Processor")   : '%s/%s' % (test_dom, test_cpu-1)
-            }
+    mem_cn = get_typed_class(virt, "Memory")
+    exp_pllist = { mem_cn  : ['%s/mem' % test_dom] }
+    proc_cn = get_typed_class(virt, "Processor")
+    exp_pllist[proc_cn] = [] 
+    for i in range(test_cpu):
+        exp_pllist[proc_cn].append( '%s/%s' % (test_dom, i))
 
-    key_list = {'DeviceID' : '',
-                'CreationClassName' : '',
-                'SystemName' : test_dom,
-                'SystemCreationClassname' : cs_classname
-               }
- 
-    for dev_cn in cn_devid.keys():
-        for dev in devs:
-            key_list['CreationClassName'] = dev['CreationClassname']
-            key_list['DeviceID'] = dev['DeviceID']
-            device = devices.device_of(options.ip, key_list)
-            if device.CreationClassName != dev_cn:
-                continue
-            devid = device.DeviceID
+    if virt != 'LXC':
+        net_cn = get_typed_class(virt, "NetworkPort")
+        disk_cn =  get_typed_class(virt, "LogicalDisk")
+        exp_pllist[net_cn]  = ['%s/%s' % (test_dom, test_mac)]
+        exp_pllist[disk_cn] = [ '%s/%s' % (test_dom, test_disk)]
 
-            _devid = cn_devid[dev_cn]
-            if devid != _devid:
-                logger.error("DeviceID `%s` != `%s'" % (devid, _devid))
-                status = FAIL
-            else:
-                logger.info("Examined %s" % _devid)
-            
-    cxml.destroy(options.ip)
-    cxml.undefine(options.ip)
+    try:
+        res_pllist = {}
+        for items in devs: 
+            if items.classname in res_pllist.keys(): 
+                res_pllist[items.classname].append(items['DeviceID']) 
+            else: 
+                res_pllist[items.classname] = [items['DeviceID']] 
 
+        #Verifying we get all the expected device class info
+        if Set(exp_pllist.keys()) != Set(res_pllist.keys()):
+            logger.error("Device Class mismatch")
+            raise Exception("Expected Device class list: %s \n \t  Got: %s"
+                            % (sorted(exp_pllist.keys()), 
+                               sorted(res_pllist.keys())))
+
+        #Verifying that we get only the expected deviceid 
+        #for every device class 
+        for key in exp_pllist.keys():
+            if Set(exp_pllist[key]) != Set(res_pllist[key]):
+                logger.error("DeviceID mismatch")
+                raise Exception("Expected DeviceID: %s \n \t  Got: %s"
+                                 % (sorted(exp_pllist[key]), 
+                                    sorted(res_pllist[key])))
+    except Exception, details:
+         logger.error("Exception %s", details)
+         status = FAIL
+
+    cxml.destroy(server)
     return status
         
 if __name__ == "__main__":
