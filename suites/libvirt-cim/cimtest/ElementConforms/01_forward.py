@@ -51,11 +51,13 @@ from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 from XenKvmLib.enumclass import EnumInstances
 from XenKvmLib.const import default_network_name, default_pool_name 
+from XenKvmLib.const import get_provider_version
 
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 test_dom = "domU"
 bug_sblim = '00007'
+libvirt_cim_ectp_changes = 680
 
 def pool_init(verify_list, pool_cn, pool_name, virt):
     ccn = get_typed_class(virt, pool_cn)
@@ -141,9 +143,14 @@ def get_proflist(server, reg_classname, virt):
     status = PASS
     try: 
         proflist = EnumInstances(server, reg_classname) 
-        if len(proflist) < 7:
-            logger.error("'%s' returned '%d' '%s' objects, expected atleast 7", 
-                         reg_classname, len(proflist), 'Profile')
+        curr_cim_rev, changeset = get_provider_version(virt, server)
+        if curr_cim_rev < libvirt_cim_ectp_changes:
+            len_prof_list = 5
+        else:
+            len_prof_list = 7 
+        if len(proflist) < len_prof_list:
+            logger.error("'%s' returned '%d' '%s' objects, expected atleast %d",
+                          reg_classname, len(proflist), 'Profile', len_prof_list)
             status = FAIL
 
     except Exception, detail:
