@@ -47,7 +47,7 @@ def setup_rasd_mof(ip, vtype):
     vssd, rasd = vsms.default_vssd_rasd_str(default_dom, virt=vtype)
 
     class_pasd = vsms.get_pasd_class(vtype)
-    proc_inst = class_pasd(nvcpu, default_dom, weight, limit) 
+    proc_inst = class_pasd(default_dom, nvcpu, weight, limit)
     proc_mof = proc_inst.mof()
 
     for i in range(len(rasd)):
