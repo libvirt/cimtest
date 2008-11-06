@@ -48,18 +48,22 @@ def make_long_disk_path(ip):
 
     return path
 
-def get_vssd_rasd(ip, virt, addr):
+def get_vssd_rasd(ip, virt, addr, disk_type):
     vssd = get_vssd_mof(virt, test_dom)
 
     rasds = get_default_rasds(ip, virt)
 
-    for i in range(len(rasds)):
-        if 'DiskPool' in rasds[i]['PoolID']:
-            rasds[i]['Address'] = addr
-        rasds[i] = inst_to_mof(rasds[i])
+    rasd_list = []
+
+    for rasd in rasds:
+        if 'DiskPool' in rasd['PoolID']:
+            if disk_type != "" and rasd['Caption'] != disk_type:
+                continue
+            rasd['Address'] = addr
+        rasd_list.append(inst_to_mof(rasd))
 
     params = { 'vssd' : vssd,
-               'rasd' : rasds
+               'rasd' : rasd_list 
              }
 
     return params 
@@ -68,12 +72,19 @@ def get_vssd_rasd(ip, virt, addr):
 def main():
     options = main.options
 
+    if options.virt == "Xen":
+        disk_cap = "PV disk"
+    elif options.virt == "XenFV":
+        disk_cap = "FV disk"
+    else:
+        disk_cap = "" 
+
     try:
         addr = make_long_disk_path(options.ip)
         if addr is None:
             raise Exception("Unable to create large disk image")
 
-        define_params = get_vssd_rasd(options.ip, options.virt, addr)
+        define_params = get_vssd_rasd(options.ip, options.virt, addr, disk_cap)
         if len(define_params) != 2:
             raise Exception("Unable to get VSSD and RASDs for %s" %  test_dom)
 
