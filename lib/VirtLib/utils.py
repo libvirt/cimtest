@@ -24,8 +24,6 @@
 import os
 import commands
 
-CONSOLE_APP_PATH = "/tmp/Console.py"
-
 # ssh utils
 
 SSH_PARMS="-q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
@@ -103,11 +101,3 @@ t0Vm53Jlg5CzFbn9EZp3LN9D/GEwKOqPehB+P0qhz15H8j6VQQ==
         cmd = 'ssh-keygen -y -f %s' % SSH_KEY
         pubkey = commands.getoutput(cmd)
         write_pubkey(pubkey)
-
-def run_remote_guest(ip, domain, command):
-    """ Execute commands on remote guest console.
-    """
-
-    cmd = 'python %s %s "%s"' % (CONSOLE_APP_PATH, domain, command)
-
-    return run_remote(ip, cmd)

@@ -27,6 +27,7 @@ from VirtLib import utils
 import socket
 from VirtLib.live import fv_cap
 
+CONSOLE_APP_PATH = "/tmp/Console.py"
 def xm_domname(ip, domid):
 
     cmd = "xm domname %s" % domid
@@ -288,3 +289,65 @@ def virt2uri(virt):
     if virt == "LXC":
         return "lxc:///system"
     return ""
+
+def run_remote_guest(ip, domain, command):
+    """ Execute commands on remote guest console.
+    """
+
+    cmd = 'python %s %s "%s"' % (CONSOLE_APP_PATH, domain, command)
+
+    return run_remote(ip, cmd)
+
+def processors_count(ip, vs_name):
+    """Returns the number of processors of the specified VS
+    """
+
+    guest_cmd = "grep '^$' /proc/cpuinfo | wc -l"
+
+    rc, out = run_remote_guest(ip, vs_name, guest_cmd)
+    if rc != 0:
+        return -1
+
+    try:
+        cpus = int(out)
+        return cpus
+    except ValueError:
+        return -1
+
+def memory_count(ip, vs_name):
+    """Returns the memory size (in Bytes) of the specified VS.
+    """
+
+    guest_cmd = "grep MemTotal /proc/meminfo"
+
+    rc, out = run_remote_guest(ip, vs_name, guest_cmd)
+    if rc != 0:
+        return -1
+
+    try:
+        mem = int( out.split()[1] )
+        return mem * 1024
+    except (IndexError, ValueError):
+        return -1
+
+def network_macs(ip, vs_name):
+    """Returns a list of MAC address of the specified VS.
+    """
+
+    guest_cmd = "ifconfig -a | grep eth"
+
+    rc, out = run_remote_guest(ip, vs_name, guest_cmd)
+    if rc != 0:
+        return []
+
+    ret = []
+    lines = out.splitlines()
+    for l in lines:
+        try:
+            mac = l.split()[-1]
+            ret.append( mac )
+        except IndexError:
+            pass
+
+    return ret
+

@@ -26,59 +26,6 @@ import os
 import utils
 import socket
 
-def processors_count(ip, vs_name):
-    """Returns the number of processors of the specified VS
-    """
-
-    guest_cmd = "grep '^$' /proc/cpuinfo | wc -l"
-
-    rc, out = utils.run_remote_guest(ip, vs_name, guest_cmd)
-    if rc != 0:
-        return -1
-
-    try:
-        cpus = int(out)
-        return cpus
-    except ValueError:
-        return -1
-
-def memory_count(ip, vs_name):
-    """Returns the memory size (in Bytes) of the specified VS.
-    """
-
-    guest_cmd = "grep MemTotal /proc/meminfo"
-
-    rc, out = utils.run_remote_guest(ip, vs_name, guest_cmd)
-    if rc != 0:
-        return -1
-
-    try:
-        mem = int( out.split()[1] )
-        return mem * 1024
-    except (IndexError, ValueError):
-        return -1
-
-def network_macs(ip, vs_name):
-    """Returns a list of MAC address of the specified VS.
-    """
-
-    guest_cmd = "ifconfig -a | grep eth"
-
-    rc, out = utils.run_remote_guest(ip, vs_name, guest_cmd)
-    if rc != 0:
-        return []
-
-    ret = []
-    lines = out.splitlines()
-    for l in lines:
-        try:
-            mac = l.split()[-1]
-            ret.append( mac )
-        except IndexError:
-            pass
-
-    return ret 
-
 def available_bridges(ip):
     """Return a list of the available bridges in the running dom0.
     """
