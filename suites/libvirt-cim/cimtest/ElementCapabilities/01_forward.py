@@ -32,10 +32,12 @@ from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL, SKIP, XFAIL_RC
 from XenKvmLib.enumclass import EnumInstances
 from XenKvmLib.common_util import get_host_info
+from XenKvmLib.const import get_provider_version
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 test_dom  = "dom_elecap"
 bug_sblim = "00007"
+libvirtcim_crsc_changes = 723 
 
 def append_to_list(server, virt, poolname, valid_elc_id):
     poolname = get_typed_class(virt, poolname)
@@ -79,12 +81,17 @@ def main():
         logger.error(CIM_ERROR_ASSOCIATORNAMES, an)
         return FAIL
 
-
     valid_elc_name = [get_typed_class(virt, "VirtualSystemManagementCapabilities"),
                       get_typed_class(virt, "VirtualSystemMigrationCapabilities")]
 
     valid_elc_id = ["ManagementCapabilities", 
                     "MigrationCapabilities"]
+
+    cim_rev, changeset = get_provider_version(virt, server)
+    if cim_rev  >= libvirtcim_crsc_changes:
+        crsc =  get_typed_class(virt, "ConsoleRedirectionServiceCapabilities")
+        valid_elc_name.append(crsc)
+        valid_elc_id.append("ConsoleRedirectionCapabilities")
 
     valid_elc_name.append(get_typed_class(virt, "AllocationCapabilities"))
     status, valid_elc_id = set_pool_info(server, virt, valid_elc_id)
