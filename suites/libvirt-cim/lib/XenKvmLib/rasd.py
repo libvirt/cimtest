@@ -34,10 +34,12 @@ pasd_cn = 'ProcResourceAllocationSettingData'
 nasd_cn = 'NetResourceAllocationSettingData'
 dasd_cn = 'DiskResourceAllocationSettingData'
 masd_cn = 'MemResourceAllocationSettingData'
+dcrasd_cn = 'GraphicsResourceAllocationSettingData'
 proccn =  'Processor'
 memcn  =  'Memory'
 netcn  =  'NetworkPort'
 diskcn =  'LogicalDisk'
+dccn = 'DisplayController'
 
 def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem):
     """
@@ -48,11 +50,13 @@ def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem):
     mem_cn = get_typed_class(virt, memcn)
     net_cn = get_typed_class(virt, netcn)
     disk_cn = get_typed_class(virt, diskcn)
+    dc_cn = get_typed_class(virt, dccn)
 
-    in_list = { 'proc'  :      proc_cn,
-                 'mem'  :      mem_cn,
-                 'net'  :      net_cn,
-                 'disk' :      disk_cn
+    in_list = { 'proc'    :      proc_cn,
+                'mem'     :      mem_cn,
+                'net'     :      net_cn,
+                'disk'    :      disk_cn,
+                'display' :      dc_cn
                }
     try:
 
@@ -79,6 +83,9 @@ def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem):
                                     "ResourceType"    : 4, 
                                     "AllocationUnits" : "KiloBytes",
                                     "VirtualQuantity" : (t_mem * 1024),
+                                  },
+                        dc_cn   : {
+                                    "InstanceID" : "%s/%s" %(t_dom, "graphics")
                                   }
                       } 
     except Exception, details:
@@ -106,6 +113,13 @@ def InstId_err(assoc_info, list):
     logger.error("%s Mismatch", 'InstanceID')
     logger.error("Returned %s instead of %s", 
                   assoc_info['InstanceID'], list['InstanceID'])
+
+def verify_displayrasd_values(assoc_info, displayrasd_list):
+    status = PASS
+    if assoc_info['InstanceID'] != displayrasd_list['InstanceID']:
+        InstId_err(assoc_info, displayrasd_list)
+        status = FAIL
+    return status
 
 def verify_procrasd_values(assoc_info, procrasd_list):
     status = PASS

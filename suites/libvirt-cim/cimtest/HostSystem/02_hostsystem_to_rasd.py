@@ -57,7 +57,8 @@ from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES, \
 CIM_ERROR_ASSOCIATORS
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 from XenKvmLib.rasd import verify_procrasd_values, verify_netrasd_values, \
-verify_diskrasd_values, verify_memrasd_values, rasd_init_list
+verify_diskrasd_values, verify_memrasd_values, verify_displayrasd_values, \
+rasd_init_list
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 bug_sblim = '00007'
@@ -179,6 +180,8 @@ def verify_RASD_values(server, sd_assoc_info, vsxml, virt="Xen"):
                 status = verify_diskrasd_values(assoc_info[index], rasd)
             elif 'MemResourceAllocationSettingData' in CCName:
                 status  = verify_memrasd_values(assoc_info[index], rasd)
+            elif 'GraphicsResourceAllocationSettingData' in CCName:
+                status = verify_displayrasd_values(assoc_info[index], rasd)
             else:
                 status = FAIL
             if status != PASS:
