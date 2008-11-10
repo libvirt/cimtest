@@ -53,7 +53,8 @@ from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib import rasd
 from XenKvmLib.rasd import verify_procrasd_values, verify_netrasd_values, \
-verify_diskrasd_values, verify_memrasd_values, rasd_init_list
+verify_diskrasd_values, verify_memrasd_values, verify_displayrasd_values, \
+rasd_init_list
 from XenKvmLib.const import default_network_name 
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
@@ -174,6 +175,7 @@ def verify_rasd_values(rasd_values_info):
     netrasd  =  rasd_values_list['%s'  %in_list['net']]
     diskrasd =  rasd_values_list['%s'  %in_list['disk']]
     memrasd  =  rasd_values_list['%s'  %in_list['mem']]
+    displayrasd = rasd_values_list['%s' %in_list['display']]
 
     try:
         for rasd_instance in rasd_values_info:
@@ -186,6 +188,8 @@ def verify_rasd_values(rasd_values_info):
                 status = verify_diskrasd_values(rasd_instance, diskrasd)
             elif 'MemResourceAllocationSettingData' in CCName :
                 status  = verify_memrasd_values(rasd_instance, memrasd)
+            elif 'GraphicsResourceAllocationSettingData' in CCName :
+                status = verify_displayrasd_values(rasd_instance, displayrasd)
             else:
                 status = FAIL
             if status != PASS:
