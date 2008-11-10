@@ -30,7 +30,9 @@ from VirtLib import utils
 from XenKvmLib import vxml
 from XenKvmLib.common_util import poll_for_state_change
 from XenKvmLib import vsmigrations
-from XenKvmLib.vsmigrations import check_possible_host_migration, migrate_guest_to_host, check_migration_job
+from XenKvmLib.vsmigrations import check_possible_host_migration, \
+                                   migrate_guest_to_host, \
+                                   check_migration_job
 from XenKvmLib import enumclass
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from XenKvmLib.const import do_main
@@ -47,19 +49,20 @@ def start_guest_get_ref(ip, guest_name, virt):
     ret = cxml.create(ip)
     if not ret:
         logger.error("Error create domain %s" % guest_name)
-        return FAIL
+        return FAIL, None, cxml
 
     status, dom_cs = poll_for_state_change(ip, virt, guest_name,
                                            REQUESTED_STATE)
     if status != PASS:
         raise Exception("%s didn't change state as expected" % guest_name)
-        return FAIL
+        return FAIL, None, cxml
 
     classname = 'Xen_ComputerSystem'
     cs_ref = CIMInstanceName(classname, keybindings = {
                                         'Name':guest_name,
                                         'CreationClassName':classname})
 
+    print cs_ref
     if cs_ref is None:
         return FAIL, None, cxml
 

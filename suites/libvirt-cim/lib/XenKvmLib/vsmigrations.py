@@ -28,6 +28,9 @@ from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from XenKvmLib import enumclass
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.xm_virt_util import domain_list 
+from XenKvmLib.const import get_provider_version
+
+libvirt_mig_changes = 668
 
 class CIM_VirtualSystemMigrationService(CIMMethodClass):
     conn = None
@@ -106,7 +109,12 @@ def migrate_guest_to_host(service, ref, ip, msd=None):
 def get_migration_job_instance(ip, virt, id):
     job = []
     key_list = ["instanceid"]
-    mig_job_cn   = get_typed_class(virt, 'MigrationJob')
+    curr_cim_rev, changeset = get_provider_version(virt, ip)
+    if curr_cim_rev < libvirt_mig_changes:
+        mig_job_cn   =  'Virt_MigrationJob'
+    else:
+        mig_job_cn   = get_typed_class(virt, 'MigrationJob')
+
     try:
         job = enumclass.EnumInstances(ip, mig_job_cn)
     except Exception, details:
