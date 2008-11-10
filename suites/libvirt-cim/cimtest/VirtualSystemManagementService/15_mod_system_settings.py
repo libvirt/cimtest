@@ -30,6 +30,7 @@ from XenKvmLib.const import do_main, default_network_name
 from XenKvmLib.classes import get_typed_class, inst_to_mof
 from XenKvmLib.enumclass import GetInstance 
 from XenKvmLib.common_util import poll_for_state_change 
+from XenKvmLib.const import get_provider_version
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 default_dom = 'rstest_domain'
@@ -37,6 +38,7 @@ cpu = 2
 RECOVERY_VAL = 3
 DEFINED_STATE = 3
 bug = "00008"
+libvirt_modify_setting_changes = 694
 
 def cleanup_env(ip, cxml):
     cxml.cim_destroy(ip)
@@ -97,10 +99,12 @@ def main():
         vssd = inst_to_mof(inst)
 
         ret = service.ModifySystemSettings(SystemSettings=vssd) 
-        if ret[0] != 0:
-            logger.error("Failed to modify dom: %s", default_dom)
-            cleanup_env(options.ip, cxml)
-            return FAIL
+        curr_cim_rev, changeset = get_provider_version(options.virt, options.ip)
+        if curr_cim_rev >= libvirt_modify_setting_changes:
+            if ret[0] != 0:
+                logger.error("Failed to modify dom: %s", default_dom)
+                cleanup_env(options.ip, cxml)
+                return FAIL
 
         if case == "start":
             #This should be replaced with a RSC to shutdownt he guest
