@@ -210,6 +210,8 @@ def main():
     virt = options.virt
     if virt == "Xen":
         test_disk = "xvda"
+    if virt == "LXC":
+        test_disk = "/tmp"
     else:
         test_disk = "hda"
 

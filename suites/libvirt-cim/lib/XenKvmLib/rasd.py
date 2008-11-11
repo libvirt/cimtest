@@ -61,6 +61,8 @@ def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem):
     try:
 
         disk_path = vsxml.xml_get_disk_source()
+        if virt == 'LXC':
+           disk_path = '/tmp/lxc_files'
 
         rasd_values = { 
                         proc_cn  : {
