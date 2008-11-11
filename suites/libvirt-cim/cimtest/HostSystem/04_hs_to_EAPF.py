@@ -95,8 +95,13 @@ def pool_init_list(virt, pool_assoc, net_name, dp_InstID):
     for p_inst in pool_assoc:
         CName = p_inst.classname
         InstID = p_inst['InstanceID']
-        if exp_pllist[CName] == InstID:
-            in_pllist[CName] = InstID 
+        if virt == 'LXC':
+            if CName == 'LXC_MemoryPool':
+                if exp_pllist[CName] == InstID:
+                    in_pllist[CName] = InstID
+        else:
+            if exp_pllist[CName] == InstID:
+                in_pllist[CName] = InstID 
 
     return in_pllist
 
@@ -245,7 +250,10 @@ def main():
 
     in_pllist = pool_init_list(virt, pool, net_name, default_pool_name)
     # One pool for each Device type, hence len should be 4
-    exp_len = 4
+    if virt == 'LXC':
+        exp_len = 1
+    else:
+        exp_len = 4
     status = check_len(an, in_pllist, qcn, exp_len)
     if status != PASS:
         vsxml.undefine(server)
