@@ -75,6 +75,8 @@ def setup_env(server, virt="Xen"):
     global test_disk
     if virt == "Xen":
         test_disk = "xvda"
+    if virt == "LXC":
+        test_disk = "/tmp"
     else: 
         test_disk = "hda"
     virt_xml =  get_class(virt)
