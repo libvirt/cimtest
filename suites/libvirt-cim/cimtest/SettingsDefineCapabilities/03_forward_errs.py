@@ -32,11 +32,11 @@ from CimTest.ReturnCodes import PASS
 from XenKvmLib.common_util import try_assoc
 from XenKvmLib import assoc
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
-from XenKvmLib.const import do_main
+from XenKvmLib.const import do_main, get_provider_version
 from XenKvmLib.classes import get_typed_class
 
 platform_sup = ['Xen', 'KVM', 'XenFV', 'LXC']
-
+libvirt_modify_setting_changes = 721
 expr_values = {
    "invalid_instid_keyname"  : { 'rc'   : pywbem.CIM_ERR_FAILED, 
                                  'desc' : 'Missing InstanceID'},
@@ -64,7 +64,7 @@ def err_invalid_instid_keyname(virt, conn, field):
                      expr_values=expr_values['invalid_instid_keyname'], 
                      bug_no="")
 
-def err_invalid_instid_keyvalue(virt, conn, field):
+def err_invalid_instid_keyvalue(server, virt, conn, field):
 # Input:
 # ------
 # wbemcli ai -ac Xen_SettingsDefineCapabilities \
@@ -79,6 +79,12 @@ def err_invalid_instid_keyvalue(virt, conn, field):
     assoc_classname = get_typed_class(virt, "SettingsDefineCapabilities")
     classname = get_typed_class(virt, "AllocationCapabilities")
     keys = { 'InstanceID' : field }
+    curr_cim_rev, changeset = get_provider_version(virt, server)
+    if curr_cim_rev >= libvirt_modify_setting_changes:
+        expr_values['invalid_instid_keyvalue'] = { 
+        'rc'   : pywbem.CIM_ERR_NOT_FOUND,
+        'desc' : 'No such instance'
+                                                 }
     return try_assoc(conn, classname, assoc_classname, keys, field_name=field, \
                      expr_values=expr_values['invalid_instid_keyvalue'], 
                      bug_no="")
@@ -95,7 +101,7 @@ def main():
     if ret_value != PASS:
         logger.error("------ FAILED: Invalid InstanceID Key Name.------")
         return ret_value
-    ret_value = err_invalid_instid_keyvalue(virt, conn, 
+    ret_value = err_invalid_instid_keyvalue(options.ip, virt, conn, 
                                             field='INVALID_InstID_KeyValue')
     if ret_value != PASS:
         logger.error("------ FAILED: Invalid InstanceID Key Value.------")
