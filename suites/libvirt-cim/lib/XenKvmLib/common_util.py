@@ -205,41 +205,24 @@ def poll_for_state_change(server, virt, dom, exp_state, timeout=30):
 
     return PASS, dom_cs 
 
-def get_host_info(server, virt="Xen"):
-    status = PASS
-    host_name = ''
-    host_ccn  = ''
-    keys = ['Name', 'CreationClassName']
-
+def get_host_info(server, virt):
     try:
+        status, linux_cs = check_sblim(server)
+        if status == PASS:
+            return status, linux_cs
 
-        # This following modification is req to accomadate the 
-        # sblim-base-provider provider related changes
-
-        ret, linux_cs = check_sblim(server)
         hs_class = get_typed_class(virt, 'HostSystem')
         host_info = enumclass.EnumInstances(server, hs_class)
-        if ret == PASS:
-            host_sys = linux_cs
-        elif len(host_info) == 1:
-            host_sys = host_info[0]
+        if len(host_info) == 1:
+            return PASS, host_info[0]
         else:
-            logger.error("Error in getting HostSystem information, Exiting...")
-            return FAIL,  host_name, host_ccn
-
-        if host_sys.Name == "":
-            logger.error("HostName seems to be empty")
-            status = FAIL
-        else:
-            # Instance of the HostSystem
-            host_ccn = host_sys.CreationClassName
-            host_name = host_sys.Name
+            logger.error("Error in getting HostSystem instance")
+            return FAIL, None 
 
     except Exception,detail:
-        logger.error(CIM_ERROR_ENUMERATE, 'Hostsystem')
         logger.error("Exception: %s", detail)
-        status = FAIL
-    return status, host_name, host_ccn
+
+    return FAIL, None 
 
 def try_assoc(conn, classname, assoc_classname, keys, field_name, \
                                               expr_values, bug_no):
@@ -497,6 +480,7 @@ def libvirt_cached_data_poll(ip, virt, dom_name):
 
 def check_sblim(server, virt='Xen'):
     status = FAIL
+    prev_namespace = Globals.CIM_NS
     Globals.CIM_NS = 'root/cimv2'
     keys = ['Name', 'CreationClassName']
     linux_cs = None
@@ -512,5 +496,5 @@ def check_sblim(server, virt='Xen'):
         logger.error(CIM_ERROR_ENUMERATE, 'Linux_ComputerSystem')
         logger.error("Exception: %s", detail)
 
-    Globals.CIM_NS = 'root/virt'
+    Globals.CIM_NS = prev_namespace 
     return status, linux_cs 
