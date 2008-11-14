@@ -26,7 +26,7 @@ from CimTest import Globals
 from VirtLib import utils
 import pywbem
 from pywbem.cim_obj import CIMInstanceName
-from XenKvmLib.classes import get_typed_class
+from XenKvmLib.classes import get_typed_class, get_class_type
 from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import logger
 
@@ -36,6 +36,10 @@ def AssociatorNames(host, assoc_cn, classname, **keys):
     Return a list of CIMInstanceName objects, if an valid
     @keys is provided, or CIMClassName objects, if no 
     @keys is provided, or None on failure'''
+
+    if (get_class_type(classname) == "Linux"):
+        prev_namespace = Globals.CIM_NS
+        Globals.CIM_NS = 'root/cimv2'
 
     conn = myWBEMConnection('http://%s' % host,
                             (Globals.CIM_USER, Globals.CIM_PASS),
@@ -51,6 +55,9 @@ def AssociatorNames(host, assoc_cn, classname, **keys):
         print arg[1]
         return names
     
+    if (get_class_type(classname) == "Linux"):
+        Globals.CIM_NS = prev_namespace
+
     return names
 
 def Associators(host, assoc_cn, classname, **keys):
@@ -59,6 +66,10 @@ def Associators(host, assoc_cn, classname, **keys):
     Return a list of CIMInstanceName objects, if an valid
     @keys is provided, or CIMClassName objects, if no 
     @keys is provided, or None on failure'''
+
+    if (get_class_type(classname) == "Linux"):
+        prev_namespace = Globals.CIM_NS
+        Globals.CIM_NS = 'root/cimv2'
 
     conn = myWBEMConnection('http://%s' % host,
                             (Globals.CIM_USER, Globals.CIM_PASS),
@@ -72,6 +83,9 @@ def Associators(host, assoc_cn, classname, **keys):
         names = conn.Associators(instanceref, AssocClass=assoc_cn)
     except pywbem.CIMError, arg:
         print arg[1]
+
+    if (get_class_type(classname) == "Linux"):
+        Globals.CIM_NS = prev_namespace
 
     return names
     
