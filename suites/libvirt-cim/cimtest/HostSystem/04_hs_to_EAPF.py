@@ -56,7 +56,7 @@ from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from XenKvmLib.assoc import AssociatorNames, Associators
 from XenKvmLib.common_util import get_host_info
 from XenKvmLib.classes import get_typed_class
-from CimTest.ReturnCodes import PASS, FAIL, SKIP, XFAIL_RC
+from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.logicaldevices import verify_device_values
 
@@ -66,7 +66,6 @@ test_dom   = "CrossClass_GuestDom"
 test_mac   = "00:11:22:33:44:aa"
 test_mem   = 128 
 test_vcpus = 1 
-bug_sblim='00007'
 
 def print_err(err, detail, cn):
     logger.error(err % cn)
@@ -161,12 +160,9 @@ def get_assocname_info(server, host_cn, an, qcn, hostname):
                                      CreationClassName=host_cn,
                                      Name = hostname)
         if len(assoc_info) < 1:
-            if host_cn == 'Linux_ComputerSystem':
-               return XFAIL_RC(bug_sblim), assoc_info
-            else:
-               logger.error("%s returned %i %s objects",
-                             an, len(assoc_info), qcn)
-               return FAIL, assoc_info
+            logger.error("%s returned %i %s objects",
+                         an, len(assoc_info), qcn)
+            return FAIL, assoc_info
 
     except Exception, detail:
         print_err(CIM_ERROR_ASSOCIATORNAMES, detail, host_cn)
@@ -213,7 +209,7 @@ def main():
     server = options.ip
     virt=options.virt
     # Get the host info 
-    status, host_name, classname = get_host_info(server, virt)
+    status, host_inst = get_host_info(server, virt)
     if status != PASS:
         return status
 
@@ -239,7 +235,8 @@ def main():
     net_name = vsxml.xml_get_net_network()
 
     # Get the hostedResourcePool info first
-    host_cn  = classname
+    host_name = host_inst.Name
+    host_cn  = host_inst.CreationClassName 
     an  = get_typed_class(virt, "HostedResourcePool")
     qcn = "Device Pool"
     logger.error("DEBUG host_name is %s", host_name)

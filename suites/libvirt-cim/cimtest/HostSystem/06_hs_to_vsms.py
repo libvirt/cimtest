@@ -99,9 +99,12 @@ def get_assocnames_info(server, cn, an, qcn, name):
 
 
 def get_vsms_info():
-    status, host_name, classname = get_host_info(server, virt)
+    status, host_inst = get_host_info(server, virt)
     if status != PASS:
         return status, []
+
+    classname = host_inst.CreationClassName
+    host_name = host_inst.Name
     status, service_assoc_info = get_assocnames_info(server, classname, 
                                                      assoc_name, req_cn, host_name)
     if status != PASS or len(service_assoc_info) == 0:

@@ -47,7 +47,7 @@ from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES
 from XenKvmLib.const import do_main
-from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
+from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.test_xml import testxml
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.const import get_provider_version
@@ -55,7 +55,6 @@ from XenKvmLib.const import get_provider_version
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 test_dom = "domgst_test"
 test_vcpus = 1
-bug_sblim='00007'
 libvirt_rasd_template_changes = 707
 
 def setup_env(server, virt="Xen"):
@@ -102,8 +101,8 @@ def get_hostsys(server, virt="Xen"):
     host = live.hostname(server)
 
     try:
-        status, hostname, clsname = get_host_info(server, virt)
-        if hostname != host:
+        status, host_inst = get_host_info(server, virt)
+        if host_inst.Name != host:
             status = FAIL
             logger.error("Hostname mismatch") 
 
@@ -111,7 +110,7 @@ def get_hostsys(server, virt="Xen"):
         logger.error("Exception in %s : %s" % (cn, detail))
         status = FAIL 
 
-    return status, hostname, clsname
+    return status, host_inst.Name, host_inst.CreationClassName 
 
 def get_hostrespool(server, hostsys, clsname, virt="Xen"):
     an1 = get_typed_class(virt, "HostedResourcePool")
@@ -132,12 +131,9 @@ def get_hostrespool(server, hostsys, clsname, virt="Xen"):
                                  CreationClassName = clsname,
                                  Name = hostsys)
         if len(assoc_info) < 4:
-            if clsname == 'Linux_ComputerSystem':
-                return XFAIL_RC(bug_sblim), devpool
-            else:
-                logger.error("'%s' has returned %i instances, expected 4"
-                             " instances", an1, len(assoc_info))
-                return FAIL, devpool
+            logger.error("'%s' has returned %i instances, expected 4"
+                         " instances", an1, len(assoc_info))
+            return FAIL, devpool
 
         for inst in assoc_info:
             for a, val in ccnlist.items():

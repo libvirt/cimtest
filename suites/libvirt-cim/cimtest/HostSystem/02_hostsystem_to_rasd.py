@@ -55,13 +55,12 @@ from XenKvmLib.assoc import Associators, AssociatorNames
 from XenKvmLib.common_util import get_host_info
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES, \
 CIM_ERROR_ASSOCIATORS
-from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
+from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.rasd import verify_procrasd_values, verify_netrasd_values, \
 verify_diskrasd_values, verify_memrasd_values, verify_displayrasd_values, \
 rasd_init_list
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
-bug_sblim = '00007'
 
 test_dom    = "CrossClass_GuestDom"
 test_vcpus  = 1
@@ -125,11 +124,8 @@ def get_assoc_info(server, cn, an, qcn, name, vsxml):
                                      CreationClassName = cn,
                                      Name = name)
         if len(assoc_info) < 1:
-            if cn == 'Linux_ComputerSystem':
-                status = XFAIL_RC(bug_sblim)
-            else:
-                logger.error("%s returned %i %s objects", an, len(assoc_info), qcn)
-                status = FAIL
+            logger.error("%s returned %i %s objects", an, len(assoc_info), qcn)
+            status = FAIL
 
     except Exception, detail:
         print_err(CIM_ERROR_ASSOCIATORNAMES, detail, cn)
@@ -199,16 +195,17 @@ def main():
     options = main.options
     server = options.ip
     status = PASS
-    status, host_name, classname = get_host_info(server, options.virt)
+    status, host_inst = get_host_info(server, options.virt)
     if status != PASS:
         return status
+    
     status, vsxml = setup_env(server, options.virt)
     if status != PASS or vsxml == None:
         return status
-    cn   = classname
+    cn   = host_inst.CreationClassName 
     an   = get_typed_class(options.virt, 'HostedDependency')
     qcn  = get_typed_class(options.virt, 'ComputerSystem')
-    name = host_name
+    name = host_inst.Name
     status, cs_assoc_info = get_assoc_info(server, cn, an, qcn, name, vsxml)
     if status != PASS or len(cs_assoc_info) == 0:
         return status

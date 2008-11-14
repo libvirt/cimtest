@@ -78,7 +78,7 @@ from XenKvmLib import assoc
 from XenKvmLib.common_util import get_host_info, try_getinstance
 from XenKvmLib.classes import get_typed_class
 from optparse import OptionParser
-from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
+from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from XenKvmLib.const import do_main
 
@@ -92,7 +92,6 @@ expr_values = {
                                     'desc' : "No such instance (Name)" }
               }
 
-bug_sblim='00007'
 
 @do_main(sup_types)
 def main():
@@ -102,9 +101,16 @@ def main():
     if options.virt == "XenFV":
         options.virt = 'Xen'
 
-    status, host_name, classname = get_host_info(options.ip, options.virt)
+    status, host_inst = get_host_info(options.ip, options.virt)
     if status != PASS:
         return status
+
+    classname = host_inst.CreationClassName
+    host_name = host_inst.CreationClassName
+
+    #Test calls GetInstance() - no need to test GetInstance() of SBLIM providers
+    if (classname == "Linux_ComputerSystem"):
+        return SKIP
 
     conn = assoc.myWBEMConnection('http://%s' % options.ip, 
                                   (CIM_USER, CIM_PASS), CIM_NS)
@@ -116,11 +122,8 @@ def main():
                                 expr_values=expr_values['invalid_ccname'], 
                                 bug_no="")
     if ret_value != PASS:
-        if classname == 'Linux_ComputerSystem':
-            return XFAIL_RC(bug_sblim)
-        else:
-            logger.error("------ FAILED: Invalid CCName Key Name.------")
-            return ret_value
+        logger.error("------ FAILED: Invalid CCName Key Name.------")
+        return ret_value
 
     # 2) Test by passing Invalid CCName Key Value
     field = 'INVALID_CCName_KeyValue'
@@ -129,11 +132,8 @@ def main():
                                 expr_values=expr_values['invalid_ccname'], 
                                 bug_no="")
     if ret_value != PASS:
-        if classname == 'Linux_ComputerSystem':
-            return XFAIL_RC(bug_sblim)
-        else:
-            logger.error("------ FAILED: Invalid CCName Key Value.------")
-            return ret_value
+        logger.error("------ FAILED: Invalid CCName Key Value.------")
+        return ret_value
 
     # 3) Test by giving Invalid Name Key Name
     field = 'INVALID_Name_KeyName'
@@ -142,11 +142,8 @@ def main():
                                 expr_values=expr_values['invalid_name'], 
                                 bug_no="")
     if ret_value != PASS:
-        if classname == 'Linux_ComputerSystem':
-            return XFAIL_RC(bug_sblim)
-        else:
-            logger.error("------ FAILED: Invalid Name Key Name.------")
-            return ret_value
+        logger.error("------ FAILED: Invalid Name Key Name.------")
+        return ret_value
 
     # 4) Test by passing Invalid Name Key Value
     field = 'INVALID_Name_KeyValue'
@@ -155,11 +152,8 @@ def main():
                                 expr_values=expr_values['invalid_name'], 
                                 bug_no="")
     if ret_value != PASS:
-        if classname == 'Linux_ComputerSystem':
-            return XFAIL_RC(bug_sblim)
-        else:
-            logger.error("------ FAILED: Invalid Name Key Value.------")
-            return ret_value
+        logger.error("------ FAILED: Invalid Name Key Value.------")
+        return ret_value
 
     return PASS
 
