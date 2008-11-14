@@ -31,21 +31,24 @@ from XenKvmLib.common_util import get_host_info
 from XenKvmLib.const import default_network_name
 from CimTest import Globals
 from CimTest.Globals import logger
-from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
+from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.const import do_main, default_pool_name
 from XenKvmLib.classes import get_typed_class
 
-bug = '00007'
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 @do_main(sup_types)
 def main():
     options = main.options
     virt = options.virt
     keys = ['Name', 'CreationClassName']
-    status, host_sys, host_cn = get_host_info(options.ip, virt)
+    status, host_inst = get_host_info(options.ip, virt)
     if status != PASS:
         logger.error("Error in calling get_host_info function")
         return FAIL
+
+    host_cn = host_inst.CreationClassName
+    host_sys = host_inst.Name
+
     try:
         assoc_cn = get_typed_class(virt, "HostedResourcePool")
         pool = assoc.AssociatorNames(options.ip,
@@ -62,11 +65,8 @@ def main():
         logger.error("System association failed")
         return FAIL
     elif len(pool) == 0:
-        if host_cn == 'Linux_ComputerSystem':
-            return XFAIL_RC(bug)
-        else:
-            logger.error("No pool returned")
-            return FAIL
+        logger.error("No pool returned")
+        return FAIL
 
     mpool =  get_typed_class(virt, 'MemoryPool')
     exp_pllist = { mpool   : ['MemoryPool/0'] }
