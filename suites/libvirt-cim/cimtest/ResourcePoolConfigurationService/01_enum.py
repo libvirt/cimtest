@@ -40,10 +40,13 @@ def main():
     server = options.ip
     classname =  get_typed_class(options.virt, "ResourcePoolConfigurationService")
     keys = ['Name', 'CreationClassName']
-    status, host_sys, host_cn = get_host_info(server, options.virt)
+    status, host_inst = get_host_info(server, options.virt)
     if status != PASS:
         logger.error("Error in calling get_host_info function")
         return FAIL
+
+    host_cn = host_inst.CreationClassName
+    host_sys = host_inst.Name
 
     try:
         rpcservice = rpcs.enumerate(server, classname)

@@ -55,9 +55,12 @@ def main():
                     "hence skipping the tc ....")
         return SKIP 
 
-    status, host_name, host_cn = get_host_info(server, virt)
+    status, host_inst = get_host_info(server, virt)
     if status != PASS:
         return status
+
+    host_cn = host_inst.CreationClassName
+    host_name = host_inst.Name
 
     cname = 'ConsoleRedirectionService'
     classname = get_typed_class(virt, cname)
