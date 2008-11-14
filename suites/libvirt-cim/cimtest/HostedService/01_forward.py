@@ -30,12 +30,11 @@ from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
 from XenKvmLib.const import do_main
 from CimTest.Globals import logger
-from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
+from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.common_util import get_host_info
 from XenKvmLib.const import get_provider_version
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
-bug_sblim = '00007'
 libvirtcim_hr_crs_changes = 695
 
 @do_main(sup_types)
@@ -44,16 +43,20 @@ def main():
     virt = options.virt
     server = options.ip
     try:
-        status, host_name, host_ccn = get_host_info(server, virt)
+        status, host_inst = get_host_info(server, virt)
         if status != PASS:
             logger.error("Failed to get host info.")
             return status
+
+        host_ccn = host_inst.CreationClassName
+        host_name = host_inst.Name
 
         an = get_typed_class(virt, "HostedService")
         service = assoc.AssociatorNames(server,
                                         an, host_ccn,
                                         CreationClassName = host_ccn,
                                         Name = host_name)
+
     except Exception, deatils:
         logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % host_name)
         logger.error("Exception: details %s", details)
@@ -82,13 +85,9 @@ def main():
     ccn_list = Set(ccn_list) 
  
     if len((val_serv) - (ccn_list)) != 0:
-        if host_ccn == 'Linux_ComputerSystem':
-            return XFAIL_RC(bug_sblim)
-        else:
-
-            logger.error("Mismatching services values")
-            logger.error("'%s' returned %d, expected %d", 
-                         an, len(ccn_list), len(val_serv))
+        logger.error("Mismatching services values")
+        logger.error("'%s' returned %d, expected %d", 
+                     an, len(ccn_list), len(val_serv))
         return FAIL
 
     return PASS 

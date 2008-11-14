@@ -52,11 +52,14 @@ def main():
     if cim_rev >= libvirtcim_hr_crs_changes:   
         servicelist['ConsoleRedirectionService'] =  "ConsoleRedirectionService"
 
-    status, host_name, host_ccn = get_host_info(server, virt)
+    status, host_inst = get_host_info(server, virt)
     if status != PASS:
         logger.error("Failed to get host info.")
         return status
     
+    host_ccn = host_inst.CreationClassName
+    host_name = host_inst.Name
+
     an = get_typed_class(virt, "HostedService")
     for k, v in servicelist.iteritems():
         cn = get_typed_class(virt, k)
