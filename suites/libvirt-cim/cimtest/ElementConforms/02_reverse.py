@@ -109,17 +109,19 @@ def main():
     inst_list[cs.CreationClassName] = cs.Name    
 
     try:
-        status, host_name, classname = get_host_info(server, virt)
+        status, host_inst = get_host_info(server, virt)
         if status != PASS:
             logger.error("Unable to get host information")
             cxml.undefine(server)
             return status
+
+
     except Exception, details:
         logger.error("DEBUG Exception: %s" % details)
         cxml.undefine(server)
         return FAIL 
 
-    inst_list[classname] = host_name
+    inst_list[host_inst.CreationClassName] = host_inst.Name
 
     prev_namespace = Globals.CIM_NS
     Globals.CIM_NS = 'root/interop'

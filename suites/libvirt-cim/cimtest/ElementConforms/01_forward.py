@@ -43,7 +43,7 @@ from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib import vxml
 from CimTest import Globals 
-from XenKvmLib.common_util import print_field_error, check_sblim, get_host_info 
+from XenKvmLib.common_util import print_field_error, get_host_info 
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from XenKvmLib.const import do_main, get_provider_version 
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL, XFAIL_RC
@@ -65,18 +65,12 @@ def  init_vs_pool_values(server, virt):
                      "ProcessorPool", "MemoryPool"]
         cn_names.extend(cn_names2)
 
-    status, host_name, host_ccn = get_host_info(server, virt)
+    status, host_inst = get_host_info(server, virt)
     if status != PASS:
         logger.error("Unable to get host system instance objects")
         return FAIL, verify_ectp_list
 
-    #FIXME - get_host_info() should be updated to return the host instance
-    insts = EnumInstances(server, host_ccn, True)
-    if len(insts) < 1: 
-        logger.error("Expected 1 %s instance", host_ccn)
-        return FAIL, verify_ectp_list
-
-    verify_ectp_list[host_ccn] = insts
+    verify_ectp_list[host_inst.CreationClassName] = [host_inst]
 
     for cn_base in cn_names:
         cn = get_typed_class(virt, cn_base)
@@ -165,19 +159,21 @@ def main():
         return FAIL
 
     prev_namespace = Globals.CIM_NS
-    Globals.CIM_NS = 'root/interop'
+    verify_ectp_list = {} 
 
     try:
+        status, verify_ectp_list = init_vs_pool_values(server, virt)
+        if status != PASS:
+            raise Exception("Failed to get instances needed for verification") 
+
+        Globals.CIM_NS = 'root/interop'
+
         reg_classname = get_typed_class(virt, "RegisteredProfile")
         an = get_typed_class(virt,"ElementConformsToProfile")
 
         status, prof_inst_lst = get_proflist(server, reg_classname, virt)
         if status != PASS:
             raise Exception("Failed to get profile list") 
-
-        status, verify_ectp_list = init_vs_pool_values(server, virt)
-        if status != PASS:
-            raise Exception("Failed to get instances needed for verification") 
 
         for prof_id in prof_inst_lst:
             logger.info("Verifying '%s' with '%s'", an, prof_id)
@@ -187,14 +183,8 @@ def main():
                                            InstanceID = prof_id)
 
             if len(assoc_info) < 1:
-                ret_val, linux_cs = check_sblim(server, virt)
-                if ret_val != PASS:
-                    status = FAIL
-                    raise Exception(" '%s' returned (%d) '%s' objects" % \
-                                    (len(assoc_info), reg_classname))
-                else:
-                    status = XFAIL_RC(bug_sblim)
-                    raise Exception("Known failure")
+                raise Exception(" '%s' returned (%d) '%s' objects" % \
+                                (an, len(assoc_info), reg_classname))
 
             for inst in assoc_info:
                 status, verify_ectp_list = verify_fields(inst, verify_ectp_list)
@@ -214,6 +204,10 @@ def main():
     Globals.CIM_NS = prev_namespace
     cxml.destroy(server)
     cxml.undefine(server)
+
+    if "Linux_ComputerSystem" in verify_ectp_list:
+        return XFAIL_RC(bug_sblim)
+    
     return status
 
 if __name__ == "__main__":

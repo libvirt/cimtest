@@ -50,6 +50,14 @@ class CIM_CimtestClass(CIM_Instance):
         CIM_Instance.__init__(self, inst)
 
     def __invoke(self, method, params):
+        if method == "__iter__" or method == "items":
+            return self.inst.items()
+        if method == "__repr__":
+            items = "" 
+            for item in self.inst.items():
+                items += "('%s' %s)," % item
+            return items.rstrip(",")
+
         try:
             return self.conn.InvokeMethod(method,
                                           self.ref,
@@ -63,6 +71,7 @@ class CIM_CimtestClass(CIM_Instance):
             return self.inst[attr]
         else:
             return CimExt._Method(self.__invoke, attr)
+
 
 def EnumNames(host, cn):
     '''Resolve the enumeration given the @cn.
