@@ -44,14 +44,13 @@ from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS, \
 CIM_ERROR_GETINSTANCE
 from XenKvmLib.const import do_main
 from XenKvmLib.devices import CIM_Instance
-from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
+from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 
 TIME = "00000000000000.000000:000"
 test_dom = "hd_domain1"
 test_mac = "00:11:22:33:44:55"
-bug_sblim = "00007"
 
 def create_list(instance):
     new_list = {
@@ -128,12 +127,15 @@ def main():
         cxml.undefine(server)
         return FAIL 
 
-    status, host_name, host_ccn = get_host_info(server, virt)
+    status, host_inst = get_host_info(server, virt)
     if status != PASS:
         logger.error("Failed to get host info")
         cxml.destroy(server)
         cxml.undefine(server)
         return status 
+    
+    host_ccn = host_inst.CreationClassName
+    host_name = host_inst.Name
 
     try: 
 
@@ -157,7 +159,6 @@ def main():
             logger.error("HostedDependency didn't return any instances.")
             cxml.destroy(server)
             cxml.undefine(server)
-            return XFAIL_RC(bug_sblim)
 
         hs_field_list = []
         for hsi in hs:

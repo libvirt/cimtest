@@ -48,7 +48,7 @@ from XenKvmLib import assoc
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
-from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
+from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.common_util import get_host_info, call_request_state_change
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
@@ -56,7 +56,6 @@ sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 test_dom = "hd_domain"
 test_mac = "00:11:22:33:44:55"
 TIME = "00000000000000.000000:000"
-bug_sblim = "00007"
 
 @do_main(sup_types)
 def main():
@@ -83,11 +82,14 @@ def main():
         return FAIL
 
     try:
-        status, host_name, host_ccn = get_host_info(server, virt)
+        status, host_inst = get_host_info(server, virt)
         if status != PASS:
             cxml.destroy(server)
             cxml.undefine(server)
             return status
+
+        host_ccn = host_inst.CreationClassName
+        host_name = host_inst.Name
 
         cs_class = get_typed_class(options.virt, 'ComputerSystem')
         cs = enumclass.EnumInstances(server, cs_class)
@@ -118,8 +120,6 @@ def main():
                           len(systems))
             cxml.destroy(server)
             cxml.undefine(server)
-            return XFAIL_RC(bug_sblim)
-            
 
         ccn = cs[0].CreationClassName
         for guest in systems:

@@ -29,6 +29,7 @@
 #                                                Date : 17-01-2008 
 
 import sys
+import pywbem 
 from VirtLib import utils
 from XenKvmLib import assoc
 from XenKvmLib import vxml
@@ -36,36 +37,40 @@ from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from XenKvmLib.const import do_main
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import get_host_info, try_assoc
-from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
+from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom = "hd_domain1"
 test_mac = "00:11:22:33:44:55"
-bug_sblim='00007'
 
-exp_rc = 6 #CIM_ERR_NOT_FOUND
-exp_d1 = "No such instance (Name)"
-exp_d2 = "No such instance (CreationClassName)" 
+def set_expr_values(host_ccn):
+    if (host_ccn == "Linux_ComputerSystem"):
+        exp_rc =  pywbem.CIM_ERR_INVALID_PARAMETER
+        exp_d1 = "INVALID"
+        exp_d2 = "INVALID"
+    else:
+        exp_rc =  pywbem.CIM_ERR_NOT_FOUND
+        exp_d1 = "No such instance (Name)"
+        exp_d2 = "No such instance (CreationClassName)" 
 
-expr_values = {
-                "INVALID_KeyName"     : { 'rc' : exp_rc, 'desc' : exp_d1 },
-                "INVALID_NameValue"   : { 'rc' : exp_rc, 'desc' : exp_d1 },
-                "INVALID_CCNKeyName"  : { 'rc' : exp_rc, 'desc' : exp_d2 },
-                "INVALID_CCNameValue" : { 'rc' : exp_rc, 'desc' : exp_d2 }
-              }
+    expr_values = {
+                    "INVALID_KeyName"     : { 'rc' : exp_rc, 'desc' : exp_d1 },
+                    "INVALID_NameValue"   : { 'rc' : exp_rc, 'desc' : exp_d1 },
+                    "INVALID_CCNKeyName"  : { 'rc' : exp_rc, 'desc' : exp_d2 },
+                    "INVALID_CCNameValue" : { 'rc' : exp_rc, 'desc' : exp_d2 }
+                  }
+
+    return expr_values 
 
 def verify_err_fields(cxml, server, conn, keys, classname, 
-                      assoc_classname, msg, field):
+                      assoc_classname, msg, field, expr_values):
     try:
         ret = try_assoc(conn, classname, assoc_classname, keys, 
                         field_name=field, expr_values=expr_values[field], 
                         bug_no="")
         if ret != PASS:
-            if classname == 'Linux_ComputerSystem':
-                return XFAIL_RC(bug_sblim)
-            else:
-                logger.error("--- FAILED: %s---", msg)
+            logger.error("--- FAILED: %s---", msg)
             cxml.destroy(server)
     except Exception, details:
         logger.error("Exception: %s", details)
@@ -93,17 +98,22 @@ def main():
                                   (CIM_USER, CIM_PASS), CIM_NS)
 
     acn = get_typed_class(virt, 'HostedDependency')
-    status, host_name, classname = get_host_info(server, virt)
+    status, host_inst = get_host_info(server, virt)
     if status:
         logger.error("Unable to get host info")
         cxml.destroy(server)
         return status
 
+    classname = host_inst.CreationClassName 
+    host_name = host_inst.Name
+
+    expr_values = set_expr_values(classname)
+
     msg = 'Invalid Name Key Name'
     field = 'INVALID_KeyName'
     keys = { 'CreationClassName' : classname, field : host_name }
     ret_value = verify_err_fields(cxml, server, conn, keys, classname, 
-                                  acn, msg, field) 
+                                  acn, msg, field, expr_values) 
     if ret_value != PASS: 
         return ret_value
       
@@ -111,7 +121,7 @@ def main():
     field='INVALID_NameValue'
     keys = { 'CreationClassName' : classname, 'Name'   : field }
     ret_value = verify_err_fields(cxml, server, conn, keys, classname, 
-                                  acn, msg, field) 
+                                  acn, msg, field, expr_values) 
     if ret_value != PASS: 
         return ret_value
 
@@ -119,7 +129,7 @@ def main():
     field='INVALID_CCNKeyName'
     keys = {  field : classname, 'Name' : host_name }
     ret_value = verify_err_fields(cxml, server, conn, keys, classname, 
-                                  acn, msg, field)
+                                  acn, msg, field, expr_values)
     if ret_value != PASS: 
         return ret_value
 
@@ -127,7 +137,7 @@ def main():
     field='INVALID_CCNameValue'
     keys = { 'CreationClassName'  : field, 'Name'  : host_name }
     ret_value = verify_err_fields(cxml, server, conn, keys, classname, 
-                                  acn, msg, field)
+                                  acn, msg, field, expr_values)
     cxml.destroy(server)
     return ret_value 
 if __name__ == "__main__":

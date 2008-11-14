@@ -78,11 +78,13 @@ def main():
         status = FAIL
         return status
 
-    status, host_name, host_ccn = get_host_info(server, virt)
+    status, host_inst = get_host_info(server, virt)
     if status != PASS:
         cxml.undefine(server)
         return status
 
+    host_ccn = host_inst.CreationClassName
+    host_name = host_inst.Name
     cs_class = get_typed_class(options.virt, 'ComputerSystem')
     try: 
         cs = enumclass.EnumInstances(server, cs_class)
