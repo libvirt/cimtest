@@ -119,10 +119,13 @@ def main():
     cap_list = {"VirtualSystemManagementCapabilities" : "ManagementCapabilities",
                 "VirtualSystemMigrationCapabilities"  : "MigrationCapabilities"}
 
-    status, host_name, host_ccn = get_host_info(options.ip, options.virt)
+    status, host_inst = get_host_info(options.ip, options.virt)
     if status != PASS:
         logger.error("Failed to get host info")
         return status
+
+    host_ccn = host_inst.CreationClassName
+    host_name = host_inst.Name
 
     for k, v in cap_list.iteritems():
         cn = get_typed_class(options.virt, k)

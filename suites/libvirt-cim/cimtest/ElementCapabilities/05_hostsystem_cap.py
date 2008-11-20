@@ -54,10 +54,9 @@ from XenKvmLib.common_util import get_host_info
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES
 from XenKvmLib.const import do_main
-from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
+from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
-bug_sblim = '00007'
 
 def print_err(err, detail, cn):
     logger.error(err % cn)
@@ -92,12 +91,9 @@ def get_assoc_info(server, cn, an, qcn, name):
                      CreationClassName = cn,
                                 Name = name)
         if len(assoc_info) < 1:
-            if cn == 'Linux_ComputerSystem':
-               return XFAIL_RC(bug_sblim), assoc_info
-            else:
-               logger.error("%s returned %i %s objects", an,
-                            len(assoc_info), qcn)
-               return FAIL, assoc_info
+            logger.error("%s returned %i %s objects", an,
+                         len(assoc_info), qcn)
+            return FAIL, assoc_info
     except Exception, detail:
         print_err(CIM_ERROR_ASSOCIATORNAMES, detail, cn)
         status = FAIL
@@ -192,14 +188,14 @@ def main():
                }
     
     # Get the host info
-    status, host_name, classname = get_host_info(server, virt)
+    status, host_inst = get_host_info(server, virt)
     if status != PASS:
         return status
 
     an   = get_typed_class(virt, 'HostedService')
-    cn   = classname
+    cn   = host_inst.CreationClassName 
     qcn  = 'Service'
-    name = host_name
+    name = host_inst.Name
     # Get the service available on the host
     status, service_assoc_info = get_assoc_info(server, cn, an, qcn, name)
     if status != PASS or len(service_assoc_info) == 0:

@@ -29,14 +29,13 @@ from XenKvmLib import enumclass
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES
 from XenKvmLib.const import do_main
-from CimTest.ReturnCodes import PASS, FAIL, SKIP, XFAIL_RC
+from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from XenKvmLib.enumclass import EnumInstances
 from XenKvmLib.common_util import get_host_info
 from XenKvmLib.const import get_provider_version
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 test_dom  = "dom_elecap"
-bug_sblim = "00007"
 libvirtcim_crsc_changes = 723 
 
 def append_to_list(server, virt, poolname, valid_elc_id):
@@ -66,10 +65,13 @@ def main():
     server = options.ip
     virt = options.virt
 
-    status, host_name, host_ccn = get_host_info(server, virt)
+    status, host_inst = get_host_info(server, virt)
     if status != PASS:
         logger.error("Failed to get host info")
         return status
+
+    host_ccn = host_inst.CreationClassName
+    host_name = host_inst.Name
 
     try:
         an = get_typed_class(virt, "ElementCapabilities")
@@ -101,10 +103,7 @@ def main():
     if len(elc) == 0:
         logger.error("'%s' association failed, expected at least one instance",
                      an)
-        if host_ccn == 'Linux_ComputerSystem':
-           return XFAIL_RC(bug_sblim)
-        else:
-           return FAIL
+        return FAIL
 
     for i in elc:
         if i.classname not in valid_elc_name:
