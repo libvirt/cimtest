@@ -34,6 +34,7 @@ import os
 import sys
 import platform
 import tempfile
+from time import sleep
 import pywbem
 from xml.dom import minidom, Node
 from xml import xpath
@@ -43,8 +44,9 @@ from XenKvmLib.test_doms import set_uuid, viruuid
 from XenKvmLib import vsms
 from XenKvmLib import const
 from CimTest.Globals import logger, CIM_IP, CIM_PORT, CIM_NS, CIM_USER, CIM_PASS
-from CimTest.ReturnCodes import SKIP
+from CimTest.ReturnCodes import SKIP, PASS, FAIL
 from XenKvmLib.classes import virt_types, get_typed_class
+from XenKvmLib.enumclass  import GetInstance
 
 class XMLClass:
     xml_string = ""
@@ -523,6 +525,98 @@ class VirtCIM:
                     % (details, details.__class__.__name__))
             return False
         return ret[0] == 0
+
+    def poll_for_state_change(self, server, domain_name, cs_class, keys, 
+                              req_state, timeout):
+        dom_cs = None
+        try:
+
+            for i in range(1, (timeout + 1)):
+                dom_cs = GetInstance(server, cs_class, keys)
+                if dom_cs is None or dom_cs.Name != domain_name:
+                    continue
+
+                sleep(1)
+                if dom_cs.EnabledState == req_state:
+                    break
+        
+        except Exception, detail:
+            logger.error("In fn poll_for_state_change()")
+            logger.error("Exception: %s" % detail)
+            return FAIL
+
+        if dom_cs is None or dom_cs.Name != domain_name:
+            logger.error("CS instance not returned for %s." % domain_name)
+            return FAIL
+
+        if dom_cs.EnabledState != req_state:
+            logger.error("EnabledState is %i instead of %i.", 
+                         dom_cs.EnabledState, req_state)
+            logger.error("Try to increase the timeout and run the test again")
+            return FAIL
+
+        return PASS
+
+    def cim_state_change(self, server, virt, domain_name,
+                         req_state, req_timeout, poll_time):
+        cs = None
+        cs_class = get_typed_class(virt, 'ComputerSystem')
+        keys = { 'Name' : domain_name, 'CreationClassName' : cs_class }
+        cs = GetInstance(server, cs_class, keys)
+        if cs is None or cs.Name != domain_name:
+            return status
+
+        try:
+            req_state_change   = pywbem.cim_types.Uint16(req_state)
+            time_period = pywbem.cim_types.CIMDateTime(req_timeout)
+            cs.RequestStateChange(RequestedState=req_state_change,
+                                  TimeoutPeriod=time_period)
+
+        except Exception, detail:
+            logger.error("In fn cim_state_change()")
+            logger.error("Failed to change state of the domain '%s'", cs.Name)
+            logger.error("Exception: %s", detail)
+            return FAIL 
+
+        status = self.poll_for_state_change(server, domain_name, cs_class, keys, 
+                                            req_state, poll_time)
+        return status
+
+    def cim_start(self, server, virt, domain_name, 
+                  req_time=const.TIME, poll_time=30):
+        return self.cim_state_change(server, virt, domain_name, 
+                                     const.CIM_START, req_time, poll_time)
+
+    def cim_shutdown(self, server, virt, domain_name, 
+                     req_time=const.TIME, poll_time=30):
+        return self.cim_state_change(server, virt, domain_name, 
+                                     const.CIM_SHUTDOWN, req_time, poll_time)
+
+    def cim_no_state_change(self, server, virt, domain_name, 
+                            req_time=const.TIME, poll_time=30):
+        return self.cim_state_change(server, virt, domain_name, 
+                                     const.CIM_NOCHANGE, req_time, poll_time)
+
+    def cim_suspend(self, server, virt, domain_name, 
+                    req_time=const.TIME, poll_time=30):
+        return self.cim_state_change(server, virt, domain_name, 
+                                     const.CIM_SUSPEND, req_time, poll_time)
+
+    def cim_pause(self, server, virt, domain_name, 
+                    req_time=const.TIME, poll_time=30):
+        return self.cim_state_change(server, virt, domain_name,
+                                     const.CIM_PAUSE, req_time, poll_time)
+        
+    def cim_reboot(self, server, virt, domain_name, 
+                   req_time=const.TIME, poll_time=30):
+        return self.cim_state_change(server, virt, domain_name, 
+                                     const.CIM_REBOOT, req_time, poll_time)
+
+    def cim_reset(self, server, virt, domain_name, 
+                  req_time=const.TIME, poll_time=30):
+        return self.cim_state_change(server, virt, domain_name, 
+                                     const.CIM_RESET, req_time, poll_time)
+
 
 class XenXML(VirtXML, VirtCIM):
 

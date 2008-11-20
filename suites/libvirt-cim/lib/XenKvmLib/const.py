@@ -31,6 +31,19 @@ platform_sup = ["Xen", "KVM", "XenFV"]
 
 VIRSH_ERROR_DEFINE = "Failed to define a domain with the name %s from virsh"
 
+#CIM values for VS State transitions
+CIM_START      = 2
+CIM_DEFINE     = 3
+CIM_SHUTDOWN   = 4
+CIM_NOCHANGE   = 5
+CIM_SUSPEND    = 6
+CIM_PAUSE      = 9
+CIM_REBOOT     = 10
+CIM_RESET      = 11
+
+# Default TimeoutPeriod param for CS.RequestedStateChange()
+TIME           = "00000000000000.000000:000"
+
 # vxml.NetXML
 default_bridge_name = 'testbridge'
 default_network_name = 'cimtest-networkpool'

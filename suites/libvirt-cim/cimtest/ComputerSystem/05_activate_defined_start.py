@@ -48,7 +48,6 @@ from VirtLib import utils
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.common_util import call_request_state_change
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
@@ -57,8 +56,6 @@ mem = 128 # MB
 bug_no  = "00002"
 START_STATE = 3 
 FINAL_STATE = 2
-REQUESTED_STATE = FINAL_STATE 
-TIME = "00000000000000.000000:000"
 
 @do_main(sup_types)
 def main():
@@ -66,66 +63,64 @@ def main():
     status = FAIL
 
     cxml = vxml.get_class(options.virt)(test_dom, mem) 
+    ret = cxml.cim_define(options.ip)
+    #Define a VS
+    if not ret :
+        logger.error("ERROR: VS '%s' was not defined", test_dom)
+        return status 
 
-#Define a VS
+    cs_class = get_typed_class(options.virt, 'ComputerSystem')
+    keys = { 'Name' : test_dom, 'CreationClassName' : cs_class }
+
     try:
-        ret = cxml.cim_define(options.ip)
-        if not ret :
-            logger.error("ERROR: VS %s was not defined" % test_dom)
-            return status 
-        cs_class = get_typed_class(options.virt, 'ComputerSystem')
-        keys = {
-                'Name' : test_dom,
-                'CreationClassName' : cs_class
-               }
         cs = enumclass.GetInstance(options.ip, cs_class, keys)
-
         if cs.Name == test_dom:
             from_State =  cs.EnabledState
         else:
-            logger.error("ERROR: VS %s is not available" % test_dom)
+            logger.error("VS '%s' is not available", test_dom)
             return status
 
     except Exception, detail:
         logger.error("Exception: %s" % detail)
         cxml.undefine(options.ip)
         return status
-        
-#Change the state of the  VS to Start
-    rc = call_request_state_change(test_dom, options.ip, REQUESTED_STATE,
-                                   TIME, options.virt)
-    if rc != 0:
-        logger.error("Unable start dom %s using RequestedStateChange()", test_dom)
-        cxml.undefine(options.ip)
-        return status
 
-#Get the value of the EnabledState property and RequestedState property.
     try:
+        #Change the state of the  VS to Start
+        status = cxml.cim_start(options.ip, options.virt, test_dom)
+        if status != PASS:      
+            logger.error("Unable start dom '%s' using "
+                         "RequestedStateChange()", test_dom)
+            cxml.undefine(options.ip)
+            return status
+
+        #Get the value of the EnabledState property and RequestedState property.
         cs= enumclass.GetInstance(options.ip, cs_class, keys)
         if cs.Name == test_dom:
             to_RequestedState = cs.RequestedState
             enabledState = cs.EnabledState
         else: 
-            logger.error("VS %s is not found" % test_dom)
+            logger.error("VS '%s' is not found", test_dom)
             return status 
-# Success: 
-# if  
-# From state == 3
-# To state == 2
-# Enabled_state == RequestedState
+
+        # Success: 
+        # if  
+        # From state == defined
+        # To state == running
+        # Enabled_state == RequestedState
 
         if from_State == START_STATE and \
            to_RequestedState == FINAL_STATE and \
            enabledState == to_RequestedState:
             status = PASS
         else:
-            logger.error("ERROR: VS %s transition from Defined State to Activate state\
- was not Successful" % test_dom)
+            logger.error("VS '%s' transition from Defined State to "
+                         "Activate state was not Successful", test_dom)
             status = XFAIL_RC(bug_no)
     except Exception, detail:
         logger.error("Exception: %s" % detail)
 
-    cxml.destroy(options.ip)
+    cxml.cim_destroy(options.ip)
     cxml.undefine(options.ip)
     return status
 if __name__ == "__main__":
