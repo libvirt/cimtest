@@ -585,7 +585,12 @@ class VirtCIM:
     def cim_start(self, server, virt, domain_name, 
                   req_time=const.TIME, poll_time=30):
         return self.cim_state_change(server, virt, domain_name, 
-                                     const.CIM_START, req_time, poll_time)
+                                     const.CIM_ENABLE, req_time, poll_time)
+
+    def cim_disable(self, server, virt, domain_name, 
+                    req_time=const.TIME, poll_time=30):
+        return self.cim_state_change(server, virt, domain_name, 
+                                     const.CIM_DISABLE, req_time, poll_time)
 
     def cim_shutdown(self, server, virt, domain_name, 
                      req_time=const.TIME, poll_time=30):
