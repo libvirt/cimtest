@@ -97,19 +97,29 @@ def gen_ind(test_dom, ip, vtype, ind):
         
     return FAIL 
 
-def handle_request(sub, ind_name):
-    sub.server.handle_request() 
-    if len(sub.server.indications) == 0:
-        logger.error("No valid indications received")
-        return FAIL
-    elif str(sub.server.indications[0]) != ind_name:
-        logger.error("Received indication %s instead of %s" % \
-                     (str(sub.server.indications[0])), ind_name)
-        return FAIL
+def handle_request(sub, ind_name, dict, exp_ind_ct):
+    #sfcb delivers indications to all registrations, even if the indication
+    #isn't what the registration was subscribed to.  So, for modified and 
+    #deleted indications, we must loop through until the indication we are
+    #looking for is triggered.
+    for i in range(0, exp_ind_ct):
+        sub.server.handle_request() 
+        if len(sub.server.indications) < 1:
+            logger.error("No valid indications received")
+            return FAIL
 
-    return PASS
+        if str(sub.server.indications[0]) == ind_name:
+                sub.unsubscribe(dict['default_auth'])
+                logger.info("Cancelling subscription for %s" % ind_name)
+                return PASS
+        else:
+                sub.server.indications.remove(sub.server.indications[0])
 
-def poll_for_ind(pid):
+    logger.error("Did not recieve indication %s" % ind_name)
+    return FAIL
+
+def poll_for_ind(pid, ind_name):
+    status = FAIL
     for i in range(0, 20):
         pw = os.waitpid(pid, os.WNOHANG)
 
@@ -118,17 +128,17 @@ def poll_for_ind(pid):
         # Only return a success if waitpid returns the expected pid
         # and the return code is 0.
         if pw[0] == pid and pw[1] == 0:
-            logger.info("Great, got indication successfuly")
+            logger.info("Great, got %s indication successfuly", ind_name)
             status = PASS
             break
         elif pw[1] == 0 and i < 19:
             if i % 10 == 0:
-                logger.info("In child process, waiting for indication")
+                logger.info("In child, waiting for %s indication", ind_name)
             time.sleep(1)
         else:
             # Time is up and waitpid never returned the expected pid
             if pw[0] != pid:
-                logger.error("Waited too long for indication")
+                logger.error("Waited too long for %s indication", ind_name)
                 os.kill(pid, signal.SIGKILL)
             else:
                 logger.error("Received indication error: %d" % pw[1])
@@ -154,7 +164,7 @@ def main():
         try:
             pid = os.fork()
             if pid == 0:
-                status = handle_request(sub, ind_name)
+                status = handle_request(sub, ind_name, dict, len(ind_list))
                 if status != PASS:
                     os._exit(1)
 
@@ -164,18 +174,18 @@ def main():
                     status = gen_ind(test_dom, options.ip, options.virt, ind)
                     if status != PASS:
                         os.kill(pid, signal.SIGKILL)
-                        return FAIL
+                        raise Exception("Unable to generate indication") 
 
-                    status = poll_for_ind(pid)
+                    status = poll_for_ind(pid, ind)
                 except Exception, details:
-                    logger.error("Exception: %s" % details)
                     os.kill(pid, signal.SIGKILL)
-                    return FAIL
+                    raise Exception(details)
 
         except Exception, details:
             logger.error("Exception: %s" % details)
-            return FAIL
+            status = FAIL
 
+    #Make sure all subscriptions are really unsubscribed
     for ind, sub in sub_list.iteritems():
         sub.unsubscribe(dict['default_auth'])
         logger.info("Cancelling subscription for %s" % ind_names[ind])
