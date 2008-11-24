@@ -86,10 +86,14 @@ def pool_init_list(virt, pool_assoc, net_name, dp_InstID):
         npool =  get_typed_class(virt, 'NetworkPool')
         dpool =  get_typed_class(virt, 'DiskPool')
         ppool =  get_typed_class(virt, 'ProcessorPool')
+        gpool = get_typed_class(virt, 'GraphicsPool')
+        ipool = get_typed_class(virt, 'InputPool')
         exp_pllist[dpool] = 'DiskPool/%s' % dp_InstID
         exp_pllist[npool] = '%s/%s' %('NetworkPool', net_name)
         exp_pllist[ppool] = 'ProcessorPool/0'
         exp_pllist[mpool] = 'MemoryPool/0'
+        exp_pllist[gpool] = 'GraphicsPool/0'
+        exp_pllist[ipool] = 'InputPool/0'
 
     for p_inst in pool_assoc:
         CName = p_inst.classname
@@ -109,6 +113,8 @@ def eapf_list(server, virt, test_disk):
     proc_inst = get_typed_class(virt, "Processor")
     net_inst = get_typed_class(virt, "NetworkPort")
     mem_inst = get_typed_class(virt, "Memory")
+    display_inst = get_typed_class(virt, "DisplayController")
+    point_inst = get_typed_class(virt, "PointingDevice")
 
     disk  = {
               'SystemName'        : test_dom, 
@@ -133,13 +139,27 @@ def eapf_list(server, virt, test_disk):
               'DeviceID'          : "%s/%s" % (test_dom, "mem"), 
               'NumberOfBlocks'    : test_mem * 1024
            }
+    display =  {
+              'SystemName'        : test_dom,
+              'CreationClassName' : display_inst,
+              'DeviceID'          : "%s/%s" % (test_dom, "graphics"),
+           }
+   
+    point = {
+              'SystemName'        : test_dom,
+              'CreationClassName' : point_inst,
+              'DeviceID'          : "%s/%s" % (test_dom, "mouse:ps2")
+           }
+
     if virt == "LXC":
         eaf_values = { mem_inst : mem}
     else:
         eaf_values = {  proc_inst   : proc, 
                         disk_inst   : disk, 
                         net_inst    : net, 
-                        mem_inst    : mem
+                        mem_inst    : mem,
+                        display_inst: display,      
+                        point_inst  : point
                       }
     return eaf_values 
 
@@ -250,7 +270,7 @@ def main():
     if virt == 'LXC':
         exp_len = 1
     else:
-        exp_len = 4
+        exp_len = 6
     status = check_len(an, in_pllist, qcn, exp_len)
     if status != PASS:
         vsxml.undefine(server)

@@ -56,7 +56,8 @@ def spec_err(fieldvalue, field_list, fieldname):
 
 
 def verify_device_values(assoc_info, list_values, virt='Xen'): 
-    dev_cnames = ['LogicalDisk', 'Memory', 'NetworkPort', 'Processor']
+    dev_cnames = ['LogicalDisk', 'Memory', 'NetworkPort', 'Processor', \
+                  'DisplayController', 'PointingDevice']
     for i in range(len(dev_cnames)):
         dev_cnames[i] = get_typed_class(virt, dev_cnames[i])
 
