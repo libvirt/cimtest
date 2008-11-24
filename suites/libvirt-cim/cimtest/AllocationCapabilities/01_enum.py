@@ -87,7 +87,9 @@ def main():
     pt = [get_typed_class(options.virt, 'MemoryPool'), 
           get_typed_class(options.virt, 'ProcessorPool'), 
           get_typed_class(options.virt, 'DiskPool'), 
-          get_typed_class(options.virt, 'NetworkPool')]
+          get_typed_class(options.virt, 'NetworkPool'),
+          get_typed_class(options.virt, 'GraphicsPool'),
+          get_typed_class(options.virt, 'InputPool')]
 
     pools, ac = enum_pools_and_ac(options.ip, cn, pt)
     if len(pools) < 4:
