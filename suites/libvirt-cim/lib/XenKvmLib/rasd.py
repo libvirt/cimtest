@@ -35,11 +35,13 @@ nasd_cn = 'NetResourceAllocationSettingData'
 dasd_cn = 'DiskResourceAllocationSettingData'
 masd_cn = 'MemResourceAllocationSettingData'
 dcrasd_cn = 'GraphicsResourceAllocationSettingData'
+irasd_cn = 'InputResourceAllocationSettingData'
 proccn =  'Processor'
 memcn  =  'Memory'
 netcn  =  'NetworkPort'
 diskcn =  'LogicalDisk'
 dccn = 'DisplayController'
+pdcn = 'PointingDevice'
 
 def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem):
     """
@@ -51,12 +53,14 @@ def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem):
     net_cn = get_typed_class(virt, netcn)
     disk_cn = get_typed_class(virt, diskcn)
     dc_cn = get_typed_class(virt, dccn)
+    pd_cn = get_typed_class(virt, pdcn)
 
     in_list = { 'proc'    :      proc_cn,
                 'mem'     :      mem_cn,
                 'net'     :      net_cn,
                 'disk'    :      disk_cn,
-                'display' :      dc_cn
+                'display' :      dc_cn,
+                'point'    :     pd_cn
                }
     try:
 
@@ -88,6 +92,9 @@ def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem):
                                   },
                         dc_cn   : {
                                     "InstanceID" : "%s/%s" %(t_dom, "graphics")
+                                  },
+                        pd_cn   : {
+                                    "InstanceID" : "%s/%s" %(t_dom, "mouse:ps2")
                                   }
                       } 
     except Exception, details:
@@ -120,6 +127,15 @@ def verify_displayrasd_values(assoc_info, displayrasd_list):
     status = PASS
     if assoc_info['InstanceID'] != displayrasd_list['InstanceID']:
         InstId_err(assoc_info, displayrasd_list)
+        status = FAIL
+    return status
+
+def verify_inputrasd_values(assoc_info, inputrasd_list):
+    status = PASS
+    logger.info('a %s p is %s' %(assoc_info['InstanceID'], inputrasd_list['InstanceID']))
+    if assoc_info['InstanceID'] != inputrasd_list['InstanceID']:
+        logger.info('a % p is %s' %(assoc_info['InstanceID'], inputrasd_list['InstanceID']))
+        InstId_err(assoc_info, inputrasd_list)
         status = FAIL
     return status
 
