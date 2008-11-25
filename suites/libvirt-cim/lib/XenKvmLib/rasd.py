@@ -132,9 +132,7 @@ def verify_displayrasd_values(assoc_info, displayrasd_list):
 
 def verify_inputrasd_values(assoc_info, inputrasd_list):
     status = PASS
-    logger.info('a %s p is %s' %(assoc_info['InstanceID'], inputrasd_list['InstanceID']))
     if assoc_info['InstanceID'] != inputrasd_list['InstanceID']:
-        logger.info('a % p is %s' %(assoc_info['InstanceID'], inputrasd_list['InstanceID']))
         InstId_err(assoc_info, inputrasd_list)
         status = FAIL
     return status
