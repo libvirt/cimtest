@@ -35,7 +35,7 @@ from XenKvmLib.classes import get_typed_class
 from XenKvmLib.assoc import AssociatorNames
 from XenKvmLib.test_xml import dumpxml
 
-sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
+sup_types = ['Xen', 'XenFV', 'KVM']
 test_dom = 'rstest_domain'
 test_dom2 = 'rstest_domain2'
 
