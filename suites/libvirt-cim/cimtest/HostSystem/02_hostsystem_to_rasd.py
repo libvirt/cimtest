@@ -55,11 +55,12 @@ from XenKvmLib.assoc import Associators, AssociatorNames
 from XenKvmLib.common_util import get_host_info
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES, \
 CIM_ERROR_ASSOCIATORS
-from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 from XenKvmLib.rasd import verify_procrasd_values, verify_netrasd_values, \
 verify_diskrasd_values, verify_memrasd_values, verify_displayrasd_values, \
 rasd_init_list, verify_inputrasd_values
 
+libvirt_bug = "00009"
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom    = "CrossClass_GuestDom"
@@ -182,6 +183,8 @@ def verify_RASD_values(server, sd_assoc_info, vsxml, virt="Xen"):
                 status = verify_displayrasd_values(assoc_info[index], rasd)
             elif 'InputResourceAllocationSettingData' in CCName:
                 status = verify_inputrasd_values(assoc_info[index], rasd)
+                if status != PASS and virt == 'LXC':
+                    return XFAIL_RC(libvirt_bug)
             else:
                 status = FAIL
             if status != PASS:
