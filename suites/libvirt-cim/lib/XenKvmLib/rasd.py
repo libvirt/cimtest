@@ -68,6 +68,12 @@ def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem):
         if virt == 'LXC':
            disk_path = '/tmp/lxc_files'
 
+        if virt == 'LXC' or virt == 'XenFV':
+           point_device = "%s/%s" %(t_dom, "mouse:usb")
+        elif virt == 'XenPV':
+           point_device = "%s/%s" %(t_dom, "mouse:xen")
+        else:
+           point_device = "%s/%s" %(t_dom, "mouse:ps2")
         rasd_values = { 
                         proc_cn  : {
                                      "InstanceID"   : '%s/%s' %(t_dom, "proc"),
@@ -94,7 +100,7 @@ def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem):
                                     "InstanceID" : "%s/%s" %(t_dom, "graphics")
                                   },
                         pd_cn   : {
-                                    "InstanceID" : "%s/%s" %(t_dom, "mouse:ps2")
+                                    "InstanceID" : point_device
                                   }
                       } 
     except Exception, details:
