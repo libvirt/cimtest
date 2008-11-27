@@ -46,7 +46,7 @@ import XenKvmLib
 from XenKvmLib import enumclass
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS, CIM_ERROR_ENUMERATE
 from XenKvmLib.const import do_main 
-from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib import assoc
 from XenKvmLib.vxml import get_class
@@ -57,6 +57,7 @@ verify_diskrasd_values, verify_memrasd_values, verify_displayrasd_values, \
 rasd_init_list, verify_inputrasd_values
 from XenKvmLib.const import default_network_name 
 
+libvirt_bug = "00009"
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom    = "VSSDC_dom"
@@ -193,6 +194,8 @@ def verify_rasd_values(rasd_values_info):
                 status = verify_displayrasd_values(rasd_instance, displayrasd)
             elif 'InputResourceAllocationSettingData' in CCName:
                 status = verify_inputrasd_values(rasd_instance, inputrasd)
+                if status != PASS and virt== 'LXC':
+                    return XFAIL_RC(libvirt_bug)
             else:
                 status = FAIL
             if status != PASS:
