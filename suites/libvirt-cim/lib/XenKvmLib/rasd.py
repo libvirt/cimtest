@@ -70,7 +70,7 @@ def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem):
 
         if virt == 'LXC' or virt == 'XenFV':
            point_device = "%s/%s" %(t_dom, "mouse:usb")
-        elif virt == 'XenPV':
+        elif virt == 'Xen':
            point_device = "%s/%s" %(t_dom, "mouse:xen")
         else:
            point_device = "%s/%s" %(t_dom, "mouse:ps2")
