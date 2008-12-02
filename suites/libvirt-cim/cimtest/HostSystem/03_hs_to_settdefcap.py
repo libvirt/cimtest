@@ -40,7 +40,7 @@
 # Feb 13 2008
 
 import sys
-from VirtLib import live 
+from VirtLib.live import full_hostname 
 from XenKvmLib.common_util import get_host_info
 from XenKvmLib.assoc import Associators
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
@@ -98,7 +98,7 @@ def get_inst_from_list(cn, qcn, list, filter, exp_val):
 
 def get_hostsys(server, virt="Xen"):
     status = PASS 
-    host = live.hostname(server)
+    host = full_hostname(server)
 
     try:
         status, host_inst = get_host_info(server, virt)

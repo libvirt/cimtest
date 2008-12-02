@@ -80,7 +80,8 @@
 
 import sys
 import pywbem
-from VirtLib import utils, live
+from VirtLib import utils
+from VirtLib.live import full_hostname
 from XenKvmLib import assoc
 from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class 
@@ -146,7 +147,7 @@ def main():
 
     hs = get_typed_class(options.virt, "HostSystem")
     cs = get_typed_class(options.virt, "ComputerSystem")
-    host_name = live.hostname(options.ip)
+    host_name = full_hostname(options.ip)
     host_name_val = [
                         'CreationClassName', hs, \
                         'Name',              host_name

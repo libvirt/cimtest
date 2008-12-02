@@ -28,7 +28,7 @@
 import sys
 from XenKvmLib import enumclass
 from XenKvmLib.classes import get_typed_class
-from VirtLib import live
+from VirtLib.live import full_hostname 
 from VirtLib import utils
 from XenKvmLib.common_util import check_sblim
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
@@ -40,7 +40,7 @@ SUPPORTED_TYPES = ['Xen', 'KVM', 'XenFV', 'LXC']
 @do_main(SUPPORTED_TYPES)
 def main():
     options = main.options
-    host = live.hostname(options.ip) 
+    host = full_hostname(options.ip) 
    
     status = FAIL
     keys = ['Name', 'CreationClassName']
