@@ -27,28 +27,35 @@
 
 import sys
 from XenKvmLib.enumclass import EnumInstances 
-from XenKvmLib.const import do_main, platform_sup
+from XenKvmLib.const import do_main, platform_sup, get_provider_version
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.common_util import cleanup_restore 
 from XenKvmLib.classes import get_typed_class
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
+input_graphics_pool_rev = 757
 
-def enum_pools_and_ac(ip, ac_cn, p_names):
+def enum_pools(ip, ac_cn, virt):
+    pt = [get_typed_class(virt, 'MemoryPool'), 
+          get_typed_class(virt, 'ProcessorPool'), 
+          get_typed_class(virt, 'DiskPool'), 
+          get_typed_class(virt, 'NetworkPool')]
+
+    curr_cim_rev, changeset = get_provider_version(virt, ip)
+    if curr_cim_rev >= input_graphics_pool_rev:
+          pt.append(get_typed_class(virt, 'GraphicsPool'))
+          pt.append(get_typed_class(virt, 'InputPool'))
+
     pools = {}
-    ac = []
 
     try:
-        ac = EnumInstances(ip, ac_cn)
-
-        for p_cn in p_names:
+        for p_cn in pt:
             
             enum_list = EnumInstances(ip, p_cn)
 
             if len(enum_list) < 1:
-                logger.error("%s did not return any instances" % p_cn)
-                return pools, ac 
+                raise Exception("%s did not return any instances" % p_cn)
 
             for pool in enum_list:
                 pools[pool.InstanceID] = pool 
@@ -56,12 +63,13 @@ def enum_pools_and_ac(ip, ac_cn, p_names):
     except Exception, details:
         logger.error(CIM_ERROR_ENUMERATE, ac_cn)
         logger.error(details)
-        return pools, ac 
+        return pools, FAIL 
 
-    if len(ac) != len(pools):
-        logger.error("%s returned %s instances, expected %s" % (ac_cn, len(ac), 
-                     len(pools)))
-    return pools, ac 
+    if len(pools) < len(pt):
+        logger.error("%d pools returned, exp at least %d", len(pools), len(pt))
+        return pools, FAIL
+
+    return pools, PASS
 
 def compare_pool_to_ac(ac, pools, cn):
     try:
@@ -84,17 +92,21 @@ def main():
     options = main.options
 
     cn = get_typed_class(options.virt, 'AllocationCapabilities')
-    pt = [get_typed_class(options.virt, 'MemoryPool'), 
-          get_typed_class(options.virt, 'ProcessorPool'), 
-          get_typed_class(options.virt, 'DiskPool'), 
-          get_typed_class(options.virt, 'NetworkPool'),
-          get_typed_class(options.virt, 'GraphicsPool'),
-          get_typed_class(options.virt, 'InputPool')]
 
-    pools, ac = enum_pools_and_ac(options.ip, cn, pt)
-    if len(pools) < 4:
-        logger.error("Only %d pools returned, expected at least 4" % len(pools))
-        cleanup_restore(options.ip, options.virt)
+    try:
+        ac = EnumInstances(options.ip, cn)
+
+    except Exception, details:
+        logger.error(CIM_ERROR_ENUMERATE, cn)
+        logger.error(details)
+        return FAIL
+
+    pools, status = enum_pools(options.ip, cn, options.virt)
+    if status != PASS:
+        return status
+
+    if len(ac) != len(pools):
+        logger.error("%d %s insts != %d pool insts" % (len(ac), cn, len(pools)))
         return FAIL
 
     status = compare_pool_to_ac(ac, pools, cn)
