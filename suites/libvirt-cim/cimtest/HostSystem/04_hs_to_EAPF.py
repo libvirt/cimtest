@@ -59,6 +59,7 @@ from XenKvmLib.classes import get_typed_class
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.logicaldevices import verify_device_values
+from XenKvmLib.const import get_provider_version
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
@@ -66,6 +67,7 @@ test_dom   = "CrossClass_GuestDom"
 test_mac   = "00:11:22:33:44:aa"
 test_mem   = 128 
 test_vcpus = 1 
+libvirt_input_graphics_changeset = 757
 
 def print_err(err, detail, cn):
     logger.error(err % cn)
@@ -266,11 +268,14 @@ def main():
         return status
 
     in_pllist = pool_init_list(virt, pool, net_name, default_pool_name)
+    curr_cim_rev, changeset = get_provider_version(virt, server)
     # One pool for each Device type, hence len should be 4
     if virt == 'LXC':
         exp_len = 1
+    elif curr_cim_rev >= libvirt_input_graphics_changeset:
+       exp_len = 6
     else:
-        exp_len = 6
+       exp_len = 4
     status = check_len(an, in_pllist, qcn, exp_len)
     if status != PASS:
         vsxml.undefine(server)
