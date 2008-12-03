@@ -502,7 +502,7 @@ def main():
                                                           disk = test_disk)
 
     bridge = vsxml.set_vbridge(options.ip, default_network_name)
-    ret = vsxml.define(options.ip)
+    ret = vsxml.cim_define(options.ip)
     if not ret:
         logger.error("Failed to define the dom: %s", test_dom)
         return FAIL

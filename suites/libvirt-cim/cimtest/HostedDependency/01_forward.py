@@ -72,7 +72,7 @@ def main():
         cxml = virtxml(test_dom)
     else:
         cxml = virtxml(test_dom, mac = test_mac)
-    ret = cxml.define(server)
+    ret = cxml.cim_define(server)
     if not ret:
         logger.error("Failed to define the dom: %s", test_dom)
         status = FAIL

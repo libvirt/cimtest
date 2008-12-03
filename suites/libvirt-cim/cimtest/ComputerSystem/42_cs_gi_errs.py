@@ -102,7 +102,7 @@ def main():
     inst_ccname = classname = get_typed_class(options.virt, 'ComputerSystem')
     inst_name = 'ETdomain'
     cxml = vxml.get_class(options.virt)(inst_name)
-    ret = cxml.define(options.ip)
+    ret = cxml.cim_define(options.ip)
     if not ret:
         logger.error(VIRSH_ERROR_DEFINE % inst_name)
         return FAIL

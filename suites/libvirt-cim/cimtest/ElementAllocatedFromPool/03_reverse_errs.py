@@ -185,7 +185,7 @@ def main():
     vsxml = virt_type (test_dom, vcpus = test_vcpus, mac = test_mac, 
                        disk = test_disk)
 
-    ret = vsxml.define(options.ip)
+    ret = vsxml.cim_define(options.ip)
     if not ret:
         logger.error("Failed to define the dom: %s", test_dom)
         return FAIL

@@ -92,7 +92,7 @@ def main():
     else:
         test_dom = "qemu"
         vsxml = get_class(options.virt)(test_dom)
-        ret = vsxml.define(options.ip)
+        ret = vsxml.cim_define(options.ip)
         if not ret:
             logger.error("Failed to Define the dom: %s", test_dom)
             return FAIL    

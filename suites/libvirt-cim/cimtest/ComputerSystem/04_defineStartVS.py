@@ -48,7 +48,7 @@ def main():
     enabState = 0
 
     cxml = vxml.get_class(options.virt)(test_dom)
-    cxml.define(options.ip)
+    cxml.cim_define(options.ip)
     ret = cxml.start(options.ip)
     
     if not ret :

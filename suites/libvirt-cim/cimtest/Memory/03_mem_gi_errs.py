@@ -177,7 +177,7 @@ def main():
     # Getting the VS list and deleting the test_dom if it already exists.
     destroy_and_undefine_all(options.ip)
     vsxml = get_class(options.virt)(test_dom, test_mem)
-    ret = vsxml.define(options.ip)
+    ret = vsxml.cim_define(options.ip)
     if not ret:
         logger.error("Failed to Create the dom: %s", test_dom)
         return FAIL
