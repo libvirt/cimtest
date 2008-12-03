@@ -140,7 +140,7 @@ def main():
     conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, CIM_PASS), CIM_NS)
     virt_xml = vxml.get_class(options.virt)
     cxml = virt_xml(test_dom)
-    ret = cxml.define(options.ip)
+    ret = cxml.cim_define(options.ip)
     if not ret:
         logger.error('Unable to define domain %s' % test_dom)
         return FAIL

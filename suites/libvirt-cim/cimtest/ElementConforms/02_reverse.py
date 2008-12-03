@@ -91,7 +91,7 @@ def main():
     virt_xml = get_class(virt)
     cxml = virt_xml(test_dom)
 
-    ret = cxml.define(server)
+    ret = cxml.cim_define(server)
     if not ret:
         logger.error("ERROR: Failed to Define the dom: %s" % test_dom)
         return status
