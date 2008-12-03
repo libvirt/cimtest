@@ -44,7 +44,7 @@ def define_guest_get_ref(ip, guest_name, virt):
     try:
         virt_xml = vxml.get_class(virt)
         cxml = virt_xml(guest_name)
-        cxml.define(ip)
+        cxml.cim_define(ip)
     except Exception:
         logger.error("Error define domain %s" % guest_name)
         cxml.undefine(ip)

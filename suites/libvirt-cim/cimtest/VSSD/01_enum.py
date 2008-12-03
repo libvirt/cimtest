@@ -47,7 +47,7 @@ def main():
 
     destroy_and_undefine_all(options.ip)
     vsxml = get_class(options.virt)(test_dom)
-    ret = vsxml.define(options.ip)
+    ret = vsxml.cim_define(options.ip)
     if not ret :
         logger.error("error while create of VS")
         status = FAIL

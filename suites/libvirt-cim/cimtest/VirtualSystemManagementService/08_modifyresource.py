@@ -75,7 +75,7 @@ def main():
         #Each time through, define guest using a default XML
         cxml.undefine(options.ip)
         cxml = vxml.get_class(options.virt)(default_dom, vcpus=cpu)
-        ret = cxml.define(options.ip)
+        ret = cxml.cim_define(options.ip)
         if not ret:
             logger.error("Failed to define the dom: %s", default_dom)
             cleanup_env(options.ip, options.virt, cxml)

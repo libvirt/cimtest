@@ -53,7 +53,7 @@ def main():
     status = PASS
     rc = -1
     try:
-        cxml.define(options.ip)
+        cxml.cim_define(options.ip)
         bad_inst = 'instance of what ever { dd = 3; //\ ]&'
         ret = service.AddResourceSettings(AffectedConfiguration=vssd_ref, 
                                     ResourceSettings=[bad_inst])

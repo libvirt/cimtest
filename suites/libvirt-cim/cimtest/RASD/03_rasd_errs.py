@@ -144,7 +144,7 @@ def main():
                                 disk = test_disk)
         bridge = vsxml.set_vbridge(server, default_network_name)
     try:
-        ret = vsxml.define(options.ip)
+        ret = vsxml.cim_define(options.ip)
         if not ret:
             logger.error("Failed to Define the domain: %s", test_dom)
             return FAIL 

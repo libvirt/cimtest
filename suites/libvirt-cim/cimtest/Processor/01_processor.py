@@ -44,7 +44,7 @@ def main():
     options = main.options
     status = PASS
     vsxml = get_class(options.virt)(test_dom, vcpus=test_vcpus)
-    vsxml.define(options.ip)
+    vsxml.cim_define(options.ip)
     vsxml.start(options.ip)
 
     # Processor instance enumerate need the domain to be active

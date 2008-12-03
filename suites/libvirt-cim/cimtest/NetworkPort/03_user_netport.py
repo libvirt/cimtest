@@ -43,7 +43,7 @@ test_mac = "00:11:22:33:44:55"
 def main():
     options = main.options
     cxml = KVMXML(test_dom, mac = test_mac, ntype='user')
-    ret = cxml.define(options.ip)
+    ret = cxml.cim_define(options.ip)
     if not ret:
         logger.error('Unable to define domain %s' % test_dom)
         return FAIL

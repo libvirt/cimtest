@@ -92,7 +92,7 @@ def main():
     else:
         VSType = options.virt
     vsxml = get_class(options.virt)(test_dom)
-    ret = vsxml.define(options.ip)
+    ret = vsxml.cim_define(options.ip)
     if not ret :
         logger.error("error while define of VS")
         return FAIL

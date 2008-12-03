@@ -245,7 +245,7 @@ def main():
     test_mac = "00:11:22:33:44:55"
    
     vsxml = get_class(options.virt)(test_dom, mac=test_mac)
-    ret = vsxml.define(options.ip)
+    ret = vsxml.cim_define(options.ip)
     if ret != 1:
         logger.error("Define domain failed!")
         return SKIP

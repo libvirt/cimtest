@@ -45,7 +45,7 @@ def main():
     
     service = vsms.get_vsms_class(options.virt)(options.ip)
     cxml = vxml.get_class(options.virt)(default_dom)
-    ret = cxml.define(options.ip)
+    ret = cxml.cim_define(options.ip)
     if not ret:
         logger.error("Failed to define the dom: %s", default_dom)
         return FAIL

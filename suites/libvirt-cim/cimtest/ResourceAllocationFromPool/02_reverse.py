@@ -58,7 +58,7 @@ def setup_env(server, virt):
                         mac = test_mac, disk = test_disk,
                         ntype = 'network', net_name = test_npool)
     try:
-        ret = vsxml.define(server)
+        ret = vsxml.cim_define(server)
         if not ret:
             logger.error("Failed to Define the domain: %s", test_dom)
             return FAIL, vsxml, test_disk

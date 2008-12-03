@@ -131,7 +131,7 @@ def main():
     else:
         cxml = virt_xml(test_dom, vcpus = test_vcpus, \
                         mac = test_mac, disk = test_disk)
-    ret = cxml.define(options.ip)
+    ret = cxml.cim_define(options.ip)
     if not ret:
         logger.error("Failed to define the dom: %s", test_dom)
         return FAIL 
