@@ -49,7 +49,7 @@ from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib import enumclass
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from XenKvmLib.classes import get_typed_class
-from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
+from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.common_util import libvirt_cached_data_poll, get_cs_instance, \
                                   get_host_info
 
@@ -150,16 +150,15 @@ def main():
                                       CreationClassName=cn,
                                       Name=name)
             if len(profs) != 1:
-                if cn == 'Linux_ComputerSystem':
-                    status = XFAIL_RC(bug_sblim)
-                else:   
-                    logger.error("ElementConformsToProfile assoc failed")
-                    status = FAIL
+                logger.error("ElementConformsToProfile assoc failed")
+                status = FAIL
 
             if status != PASS:
                 cxml.undefine(server)
                 return status
-
+ 
+            if cn == "Linux_ComputerSystem":
+                cn = get_typed_class(virt, "HostSystem")
             status = verify_profile(profs[0], exp_list[cn])
             if status != PASS:
                 logger.error("Verification of profile instance failed")
