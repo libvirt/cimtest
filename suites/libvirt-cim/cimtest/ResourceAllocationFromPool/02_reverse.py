@@ -24,26 +24,22 @@
 #
 
 import sys
-from VirtLib import utils
-from XenKvmLib import assoc
-from XenKvmLib.test_doms import destroy_and_undefine_all
+from CimTest.Globals import logger
+from CimTest.ReturnCodes import PASS, FAIL
+from XenKvmLib.assoc import AssociatorNames 
 from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
-from CimTest import Globals
-from CimTest.Globals import logger
-from XenKvmLib.const import do_main, default_pool_name, default_network_name
-from CimTest.ReturnCodes import PASS, FAIL
-from XenKvmLib import enumclass
+from XenKvmLib.const import do_main, default_pool_name, default_network_name, \
+                            LXC_netns_support
+from XenKvmLib.rasd import rasd_cn_to_pool_cn, enum_rasds
+from XenKvmLib.pool import enum_pools
+from XenKvmLib.common_util import parse_instance_id
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
+
 test_dom    = "RAFP_dom"
-test_vcpus  = 1
-test_mem    = 128
-test_mac    = "00:11:22:33:44:aa"
-test_npool  = default_network_name
 
 def setup_env(server, virt):
-    destroy_and_undefine_all(server)
     vsxml = None
     if virt == "Xen":
         test_disk = "xvda"
@@ -54,9 +50,8 @@ def setup_env(server, virt):
     if virt == 'LXC':
         vsxml = virtxml(test_dom)
     else:
-        vsxml = virtxml(test_dom, mem=test_mem, vcpus = test_vcpus,
-                        mac = test_mac, disk = test_disk,
-                        ntype = 'network', net_name = test_npool)
+        vsxml = virtxml(test_dom, disk=test_disk)
+
     try:
         ret = vsxml.cim_define(server)
         if not ret:
@@ -69,93 +64,91 @@ def setup_env(server, virt):
 
     return PASS, vsxml, test_disk
 
-def init_list(test_disk, diskid, virt='Xen'):
+def init_rasd_list(virt, ip, guest_name):
+    disk_rasd_cn = get_typed_class(virt, "DiskResourceAllocationSettingData")
 
-    proc = { 'rasd_id' : '%s/%s' % (test_dom, 'proc'),
-             'pool_id' : 'ProcessorPool/0'
-           }
+    rasd_insts = {}
 
-    mem = { 'rasd_id' : '%s/%s' % (test_dom,'mem'),
-            'pool_id' : 'MemoryPool/0'
-          }
-
-    net  = { 
-             'rasd_id' : '%s/%s' % (test_dom, test_mac),
-             'pool_id' : 'NetworkPool/%s' % test_npool
-           }
-
-    disk = { 'rasd_id' : '%s/%s' % (test_dom, test_disk),
-             'pool_id' : 'DiskPool/%s' % default_pool_name 
-           }
-
-    if virt == 'LXC':
-        cn_id_list = {
-                       'MemResourceAllocationSettingData'  : mem,
-                     }
-    else:
-        cn_id_list = {
-                       'MemResourceAllocationSettingData'  : mem,
-                       'ProcResourceAllocationSettingData' : proc,
-                       'NetResourceAllocationSettingData'  : net,
-                       'DiskResourceAllocationSettingData' : disk
-                     }
-
-    return cn_id_list
-
-def get_rasd_instance(server, virt, key_list, cn):
-    inst = None 
-    try:
-        inst = enumclass.GetInstance(server, cn, key_list)
-    except Exception, details:
-        logger.error(Globals.CIM_ERROR_GETINSTANCE, cn)
-        logger.error("Exception details: %s", details)
-        return inst, FAIL
-
-    return inst, PASS
-
-def verify_pool_from_RAFP(server, virt, inst, pool_id, cn):
-    pool = []
-    try:
-        an = get_typed_class(virt, "ResourceAllocationFromPool")
-        cn = get_typed_class(virt, cn)
-        pool = assoc.AssociatorNames(server, an, cn, InstanceID=inst.InstanceID)
-    except Exception:
-        logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES, inst.InstanceID)
-        return FAIL
-
-    if len(pool) != 1:
-        logger.error("No associated pool for %s", inst.InstanceID)
-        return FAIL
-
-    if pool[0]['InstanceID'] != pool_id:
-        logger.error("InstanceID Mismatch")
-        logger.error("Returned %s instead of %s", pool[0]['InstanceID'] ,
-                      pool_id)
-        return FAIL
-
-    return PASS
-
-def get_rasdinst_verify_pool_from_RAFP(server, virt, vsxml, cn, id_info):
-    try:
-        key_list = {  'InstanceID' : id_info['rasd_id'] }
-        rasd_cn =  get_typed_class(virt, cn) 
-        rasdinst, status = get_rasd_instance(server, virt, key_list, rasd_cn)
-        if status != PASS or rasdinst.InstanceID == None:
-            vsxml.undefine(server)    
-            return status
-
-        status = verify_pool_from_RAFP(server, virt, rasdinst, 
-                                       id_info['pool_id'], cn)
-    except Exception, details:
-        logger.error("Exception in get_rasdinst_verify_pool_from_RAFP() fn")
-        logger.error("Exception Details %s", details)
-        status = FAIL
-
+    rasds, status = enum_rasds(virt, ip)
     if status != PASS:
-        vsxml.undefine(server)    
+        logger.error("Enum RASDs failed")
+        return rasd_insts, status
 
-    return status
-    
+    for rasd_cn, rasd_list in rasds.iteritems():
+        if virt == "LXC" and rasd_cn == disk_rasd_cn:
+            continue
+
+        for rasd in rasd_list:
+            guest, dev, status = parse_instance_id(rasd.InstanceID)
+            if status != PASS:
+                logger.error("Unable to parse InstanceID: %s" % rasd.InstanceID)
+                return rasd_insts, FAIL
+
+            if guest == guest_name:
+                rasd_insts[rasd.Classname] = rasd
+
+    return rasd_insts, PASS
+
+def filter_pool_list(virt, list, cn):
+    diskp_cn = get_typed_class(virt, "DiskPool")
+    netp_cn = get_typed_class(virt, "NetworkPool")
+
+    if cn == diskp_cn:
+        exp_id = default_pool_name
+    elif cn == netp_cn:
+        exp_id = default_network_name
+    else:
+         return None, PASS
+
+    if len(list) < 1:
+        logger.error("%s did not return any instances", cn)
+        return None, FAIL
+
+    for inst in list:
+        guest, id, status = parse_instance_id(inst.InstanceID)
+        if status != PASS:
+            logger.error("Unable to parse InstanceID: %s" % inst.InstanceID)
+            return None, FAIL
+
+        if id == exp_id:
+            return inst, PASS
+
+    return None, FAIL
+
+def init_pool_list(virt, ip):
+    pool_insts = {}
+
+    pools, status = enum_pools(virt, ip)
+    if status != PASS:
+        return pool_insts, status
+
+    for pool_cn, pool_list in pools.iteritems():
+        inst, status = filter_pool_list(virt, pool_list, pool_cn)
+        if status != PASS:
+            logger.error("Unable to find exp %s inst", pool_cn)
+            return pool_insts, FAIL
+
+        if inst is None:
+            if len(pool_list) != 1:
+                logger.error("Got %d %s, exp 1", len(pool_list), pool_cn)
+                return pool_insts, FAIL
+            inst = pool_list[0]
+
+        pool_insts[pool_cn] = inst
+
+    if len(pool_insts) != len(pools):
+        logger.error("Got %d pool insts, exp %d", len(pool_insts), len(pools))
+        return pool_insts, FAIL
+
+    if virt == "LXC":
+        diskp_cn = get_typed_class(virt, "DiskPool")
+        del pool_insts[diskp_cn]
+
+        if LXC_netns_support is False:
+            netp_cn = get_typed_class(virt, "NetworkPool")
+            del pool_insts[netp_cn]
+
+    return pool_insts, PASS
 
 @do_main(sup_types)
 def main():
@@ -169,13 +162,41 @@ def main():
         vsxml.undefine(server)
         return status
 
-    cn_id_list = init_list(test_disk, default_pool_name, options.virt)
-
-    for rasd_cn, id_info in cn_id_list.iteritems():
-        status = get_rasdinst_verify_pool_from_RAFP(server, virt, vsxml, 
-                                                    rasd_cn, id_info)
+    try:
+        rasds, status = init_rasd_list(virt, options.ip, test_dom)
         if status != PASS:
-            return status
+            raise Exception("Unable to build rasd instance list")
+
+        pools, status = init_pool_list(virt, options.ip)
+        if status != PASS:
+            raise Exception("Unable to build pool instance list")
+
+        if len(rasds) != len(pools):
+            raise Exception("%d RASD insts != %d pool insts" % (len(rasds),
+                            len(pools)))
+
+        an = get_typed_class(virt, "ResourceAllocationFromPool")
+        for rasd_cn, rasd in rasds.iteritems():
+            pool = AssociatorNames(server, 
+                                   an, 
+                                   rasd_cn, 
+                                   InstanceID=rasd.InstanceID)
+
+            if len(pool) != 1:
+                raise Exception("No associated pool with %s" % rasd.InstanceID)
+
+            pool = pool[0]
+            pool_cn = rasd_cn_to_pool_cn(rasd_cn, virt)
+            exp_pool = pools[pool_cn]
+
+            if pool['InstanceID'] != exp_pool.InstanceID:
+                logger.error("InstanceID Mismatch")
+                raise Exception("Got %s instead of %s" % (pool['InstanceID'],
+                                exp_pool.InstanceID))
+
+    except Exception, details:
+        logger.error(details)
+        status = FAIL
 
     vsxml.undefine(server)    
     return status
