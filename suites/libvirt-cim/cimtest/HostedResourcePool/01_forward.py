@@ -28,13 +28,14 @@ from sets import Set
 from XenKvmLib import assoc
 from XenKvmLib import enumclass
 from XenKvmLib.common_util import get_host_info
-from XenKvmLib.const import default_network_name
+from XenKvmLib.const import default_network_name, get_provider_version
 from CimTest import Globals
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.const import do_main, default_pool_name
 from XenKvmLib.classes import get_typed_class
 
+input_graphics_pool_rev = 757
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 @do_main(sup_types)
 def main():
@@ -77,6 +78,13 @@ def main():
         exp_pllist[dpool] = ['DiskPool/%s' % default_pool_name]
         exp_pllist[npool] = ['NetworkPool/%s' %default_network_name]
         exp_pllist[ppool] = ['ProcessorPool/0']
+
+        curr_cim_rev, changeset = get_provider_version(virt, options.ip)
+        if curr_cim_rev >= input_graphics_pool_rev:
+            ipool = get_typed_class(virt, 'InputPool')
+            gpool = get_typed_class(virt, 'GraphicsPool')
+            exp_pllist[ipool] = ['InputPool/0']
+            exp_pllist[gpool] = ['GraphicsPool/0']
     
     try:
         res_pllist = {}
