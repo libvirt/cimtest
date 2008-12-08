@@ -51,7 +51,8 @@ def main():
         devlist = ["Memory"]
     else:
         cxml = virt_xml(test_dom, mac=test_mac)
-        devlist = [ "NetworkPort", "Memory", "LogicalDisk", "Processor" ]
+        devlist = [ "NetworkPort", "Memory", "LogicalDisk", "Processor",
+                    "PointingDevice", "DisplayController" ]
     cxml.create(options.ip)
 
 
