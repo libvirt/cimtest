@@ -498,3 +498,15 @@ def check_sblim(server, virt='Xen'):
 
     Globals.CIM_NS = prev_namespace 
     return status, linux_cs 
+
+def parse_instance_id(instid):
+    str_arr = instid.split("/")
+    if len(str_arr) < 2:
+        return None, None, FAIL
+
+    guest_name = str_arr[0] 
+
+    devid = instid.lstrip("%s/" % guest_name)
+
+    return guest_name, devid, PASS
+
