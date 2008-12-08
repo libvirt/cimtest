@@ -67,6 +67,8 @@ class CIM_CimtestClass(CIM_Instance):
             raise
 
     def __getattr__(self, attr):
+        if attr == 'Classname':
+            return self.inst.classname
         if self.inst.has_key(attr):
             return self.inst[attr]
         else:
