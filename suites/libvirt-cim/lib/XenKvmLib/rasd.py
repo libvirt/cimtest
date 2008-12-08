@@ -26,7 +26,7 @@ from CimTest.ReturnCodes import FAIL, PASS
 from XenKvmLib import vxml
 from XenKvmLib import const
 from XenKvmLib.classes import get_typed_class, get_class_type
-from XenKvmLib.enumclass import GetInstance
+from XenKvmLib.enumclass import GetInstance, EnumInstances
 from XenKvmLib.assoc import Associators 
 from XenKvmLib.const import default_pool_name, default_network_name 
 
@@ -263,4 +263,42 @@ def get_default_rasd_mofs(host_ip, type):
         rasd_mofs.append(inst_to_mof(rasd))
 
     return rasd_mofs
+
+def rasd_cn_to_pool_cn(rasd_cn, virt):
+    if rasd_cn.find('ProcResourceAllocationSettingData') >= 0:
+        return get_typed_class(virt, "ProcessorPool")
+    elif rasd_cn.find('NetResourceAllocationSettingData') >= 0:
+        return get_typed_class(virt, "NetworkPool")
+    elif rasd_cn.find('DiskResourceAllocationSettingData') >= 0:
+        return get_typed_class(virt, "DiskPool")
+    elif rasd_cn.find('MemResourceAllocationSettingData') >= 0:
+        return get_typed_class(virt, "MemoryPool")
+    elif rasd_cn.find('GraphicsResourceAllocationSettingData') >= 0:
+        return get_typed_class(virt, "GraphicsPool")
+    elif rasd_cn.find('InputResourceAllocationSettingData') >= 0:
+        return get_typed_class(virt, "InputPool")
+    else:
+        return None 
+
+def enum_rasds(virt, ip):
+    rasd_insts = {}
+
+    try:
+        rasd_cn = get_typed_class(virt, 'ResourceAllocationSettingData')
+        enum_list = EnumInstances(ip, rasd_cn)
+
+        if enum_list < 1:
+            logger.error("No RASD instances returned")
+            return rasd_insts, FAIL
+
+        for rasd in enum_list:
+            if rasd.Classname not in rasd_insts.keys():
+                rasd_insts[rasd.Classname] = []
+            rasd_insts[rasd.Classname].append(rasd)
+
+    except Exception, details:
+        logger.error(details)
+        return rasd_insts, FAIL
+
+    return rasd_insts, PASS
 
