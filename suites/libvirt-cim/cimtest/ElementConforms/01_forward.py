@@ -46,15 +46,16 @@ from CimTest import Globals
 from XenKvmLib.common_util import print_field_error, get_host_info 
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from XenKvmLib.const import do_main, get_provider_version 
-from CimTest.ReturnCodes import PASS, FAIL, XFAIL, XFAIL_RC
+from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.enumclass import EnumInstances
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 test_dom = "domU"
 bug_sblim = '00007'
 libvirt_cim_ectp_changes = 686
+libvirt_cim_input_graphics_ectp = 773 
 
-def  init_vs_pool_values(server, virt):
+def  init_managed_ele_values(server, virt):
     verify_ectp_list = {} 
 
     cn_names = ["ComputerSystem"]
@@ -64,6 +65,8 @@ def  init_vs_pool_values(server, virt):
         cn_names2 = ["VirtualSystemMigrationService", "DiskPool", "NetworkPool",
                      "ProcessorPool", "MemoryPool"]
         cn_names.extend(cn_names2)
+    if curr_cim_rev >= libvirt_cim_input_graphics_ectp:
+        cn_names.append("ConsoleRedirectionService")
 
     status, host_inst = get_host_info(server, virt)
     if status != PASS:
@@ -91,15 +94,14 @@ def verify_fields(assoc_val, managed_ele_values):
 
         for ele in elements:
             if assoc_val.items() == ele.items():
-                managed_ele_values[cn].remove(ele)
-                return PASS, managed_ele_values
+                return PASS
 
     except Exception, details:
         logger.error("verify_fields() exception: %s", details)
-        return FAIL, managed_ele_values
+        return FAIL
       
     logger.error("%s not in expected list %s", assoc_val, elements)
-    return FAIL, managed_ele_values
+    return FAIL
 
 def get_proflist(server, reg_classname, virt):
     profiles_instid_list = []
@@ -162,7 +164,7 @@ def main():
     verify_ectp_list = {} 
 
     try:
-        status, verify_ectp_list = init_vs_pool_values(server, virt)
+        status, verify_ectp_list = init_managed_ele_values(server, virt)
         if status != PASS:
             raise Exception("Failed to get instances needed for verification") 
 
@@ -175,6 +177,7 @@ def main():
         if status != PASS:
             raise Exception("Failed to get profile list") 
 
+        found = []
         for prof_id in prof_inst_lst:
             logger.info("Verifying '%s' with '%s'", an, prof_id)
             assoc_info = assoc.Associators(server,
@@ -187,15 +190,15 @@ def main():
                                 (an, len(assoc_info), reg_classname))
 
             for inst in assoc_info:
-                status, verify_ectp_list = verify_fields(inst, verify_ectp_list)
+                status = verify_fields(inst, verify_ectp_list)
                 if status != PASS:
                     raise Exception("Failed to verify instance") 
+                found.append(inst.classname)
 
-        if status == PASS:
-            for k, l in verify_ectp_list.iteritems():
-                if len(l) != 0:
-                    status = FAIL
-                    raise Exception("%s items weren't returned: %s" % (k, l))
+        for key, list in verify_ectp_list.iteritems():
+            if key not in found:
+                status = FAIL
+                raise Exception("%s items weren't returned: %s" % (key, list))
 
     except Exception, detail:
         logger.error("Exception: %s" % detail)
@@ -205,9 +208,6 @@ def main():
     cxml.destroy(server)
     cxml.undefine(server)
 
-    if "Linux_ComputerSystem" in verify_ectp_list:
-        return XFAIL_RC(bug_sblim)
-    
     return status
 
 if __name__ == "__main__":

@@ -58,14 +58,14 @@ sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 test_dom  ="domgst"
 bug_sblim ='00007'
 
-def build_exp_prof_list(proflist, virt="Xen"):
+def build_exp_prof_list(proflist, virt, host_inst):
     list = {} 
     
     for item in proflist:
         if item.InstanceID.find('-VirtualSystem-') >= 0:
             list[get_typed_class(virt, 'ComputerSystem')] = item 
         elif item.InstanceID.find('-SystemVirtualization-') >= 0:
-            list[get_typed_class(virt, 'HostSystem')] = item 
+            list[host_inst.CreationClassName] = item 
 
     return list
 
@@ -115,7 +115,6 @@ def main():
             cxml.undefine(server)
             return status
 
-
     except Exception, details:
         logger.error("DEBUG Exception: %s" % details)
         cxml.undefine(server)
@@ -137,7 +136,7 @@ def main():
 
     Globals.CIM_NS = prev_namespace
 
-    exp_list = build_exp_prof_list(proflist, virt)
+    exp_list = build_exp_prof_list(proflist, virt, host_inst)
 
     # Loop through the assoc results returned on test_dom and hostsystem 
     try:
@@ -149,7 +148,7 @@ def main():
                                       cn,
                                       CreationClassName=cn,
                                       Name=name)
-            if len(profs) != 1:
+            if len(profs) < 1:
                 logger.error("ElementConformsToProfile assoc failed")
                 status = FAIL
 
@@ -157,8 +156,6 @@ def main():
                 cxml.undefine(server)
                 return status
  
-            if cn == "Linux_ComputerSystem":
-                cn = get_typed_class(virt, "HostSystem")
             status = verify_profile(profs[0], exp_list[cn])
             if status != PASS:
                 logger.error("Verification of profile instance failed")
