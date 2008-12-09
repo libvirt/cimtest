@@ -83,11 +83,21 @@ def assoc_values(ip, assoc_info, virt="Xen"):
         verified. 
     """
     status = PASS
+    if virt == 'LXC' or virt == 'XenFV':
+        input_device = "mouse:usb"
+    elif virt == 'Xen':
+        input_device = "mouse:xen"
+    else:
+        input_device = "mouse:ps2"
+
     rasd_list = {
                  "proc_rasd" : '%s/%s' %(test_dom, "proc"), 
                  "net_rasd"  : '%s/%s' %(test_dom,test_mac),
                  "disk_rasd" : '%s/%s' %(test_dom, test_disk),
-                 "mem_rasd"  : '%s/%s' %(test_dom, "mem")
+                 "mem_rasd"  : '%s/%s' %(test_dom, "mem"),
+                 "input_rasd": '%s/%s' %(test_dom, input_device),
+                 "grap_rasd" : '%s/%s' %(test_dom, "graphics")
+
                 }
 
     try: 
@@ -99,6 +109,8 @@ def assoc_values(ip, assoc_info, virt="Xen"):
         net_cn = get_typed_class(virt, 'NetResourceAllocationSettingData')
         disk_cn = get_typed_class(virt, 'DiskResourceAllocationSettingData')
         mem_cn = get_typed_class(virt, 'MemResourceAllocationSettingData')
+        input_cn = get_typed_class(virt, 'InputResourceAllocationSettingData')
+        grap_cn = get_typed_class(virt, 'GraphicsResourceAllocationSettingData')
     
         for inst in assoc_info: 
             if inst.classname == proc_cn:
@@ -113,6 +125,12 @@ def assoc_values(ip, assoc_info, virt="Xen"):
             elif inst.classname == mem_cn: 
                 status = check_rasd_values(inst['InstanceID'], 
                                            rasd_list['mem_rasd'])
+            elif inst.classname == input_cn:
+                status = check_rasd_values(inst['InstanceID'],
+                                           rasd_list['input_rasd'])
+            elif inst.classname == grap_cn:
+                status = check_rasd_values(inst['InstanceID'],
+                                           rasd_list['grap_rasd'])
             else:
                 logger.error("Unexpected RASD instance type" )
                 status = FAIL
