@@ -663,6 +663,10 @@ class XenXML(VirtXML, VirtCIM):
         self.add_sub_node(disk, 'source', file=disk_img)
         self.add_sub_node(disk, 'target', dev=disk_dev)
         self.set_interface_details(devices, net_mac, net_type, net_name, 'Xen')
+        self.add_sub_node(devices, 'input', type='mouse', bus='xen')
+        self.add_sub_node(devices, 'graphics', type='vnc', port='5900',
+                          keymap='en-us')
+
 
     def set_bootloader(self, ip, gtype=0):
         bldr = bootloader(ip, gtype)
@@ -713,6 +717,9 @@ class KVMXML(VirtXML, VirtCIM):
         disk = self.add_sub_node(devices, 'disk', type='file', device='disk')
         self.add_sub_node(disk, 'source', file=disk_img)
         self.add_sub_node(disk, 'target', dev=disk_dev)
+        self.add_sub_node(devices, 'input', type='mouse', bus='ps2')
+        self.add_sub_node(devices, 'graphics', type='vnc', port='5900',
+                          keymap='en-us')
 
         self.set_interface_details(devices, net_mac, net_type, net_name, 'KVM')
 

@@ -32,10 +32,11 @@ from XenKvmLib import assoc
 from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger
-from XenKvmLib.const import do_main
+from XenKvmLib.const import do_main, get_provider_version
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
+input_graphics_pool_rev = 757
 
 test_dom = "test_domain"
 test_mac = "00:11:22:33:44:55"
@@ -93,6 +94,14 @@ def main():
         exp_pllist[net_cn]  = ['%s/%s' % (test_dom, test_mac)]
         exp_pllist[disk_cn] = [ '%s/%s' % (test_dom, test_disk)]
 
+        curr_cim_rev, changeset = get_provider_version(virt, server)
+        if curr_cim_rev >= input_graphics_pool_rev:
+            input_cn = get_typed_class(virt, "PointingDevice")
+            graphics_cn = get_typed_class(virt, "DisplayController")
+            exp_pllist[input_cn] = ['%s/mouse:ps2' % test_dom]
+            exp_pllist[graphics_cn] = ['%s/graphics' % test_dom]
+
+ 
     try:
         res_pllist = {}
         for items in devs: 
