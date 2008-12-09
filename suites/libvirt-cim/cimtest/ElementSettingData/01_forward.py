@@ -55,9 +55,10 @@ from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.vxml import get_class
-from XenKvmLib.const import do_main 
+from XenKvmLib.const import do_main, get_provider_version
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
+input_graphics_pool_rev = 757
 
 test_dom = "esd_dom"
 vmac = "00:11:22:33:44:aa"
@@ -125,6 +126,14 @@ def main():
         vdisk = "xvda"
     else:
         vdisk = "hda"
+    
+    if options.virt == 'LXC' or options.virt == 'XenFV':
+        input_device = "%s/%s" %(test_dom, "mouse:usb")
+    elif options.virt == 'Xen':
+        input_device = "%s/%s" %(test_dom, "mouse:xen")
+    else:
+        input_device = "%s/%s" %(test_dom, "mouse:ps2")
+
 
     virt_class = get_class(options.virt)
     if options.virt == 'LXC':
@@ -134,6 +143,11 @@ def main():
         keys['ProcResourceAllocationSettingData'] = "%s/proc" % test_dom
         keys['DiskResourceAllocationSettingData'] = "%s/%s" % (test_dom, vdisk)
         keys['NetResourceAllocationSettingData'] = "%s/%s" % (test_dom, vmac)
+        
+        curr_cim_rev, changeset = get_provider_version(options.virt, options.ip)
+        if curr_cim_rev >= input_graphics_pool_rev:
+            keys['InputResourceAllocationSettingData'] = input_device
+            keys['GraphicsResourceAllocationSettingData'] = "%s/graphics" % test_dom
                
     ret = cxml.cim_define(options.ip)
     if not ret:
