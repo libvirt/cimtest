@@ -59,16 +59,17 @@ from XenKvmLib import assoc
 from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger
-from XenKvmLib.const import do_main
+from XenKvmLib.const import do_main, get_provider_version
 from CimTest.ReturnCodes import FAIL, PASS
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
+input_graphics_pool_rev = 757
 
 test_dom    = "VSSDC_dom"
 test_vcpus  = 2
 test_mac    = "00:11:22:33:44:aa"
 
-def init_list(test_disk, test_mac, virt='Xen'):
+def init_list(test_disk, test_mac, server, virt='Xen'):
     """
         Creating the lists that will be used for comparisons.
     """
@@ -84,6 +85,23 @@ def init_list(test_disk, test_mac, virt='Xen'):
                  rlist[2] : "%s/%s" % (test_dom, test_mac),
                  rlist[3] : "%s/%s" % (test_dom, "proc")
                 }
+
+    if virt == 'LXC' or virt == 'XenFV':
+        input_device = "mouse:usb"
+    elif virt == 'Xen':
+        input_device = "mouse:xen"
+    else:
+        input_device = "mouse:ps2"
+        
+    curr_cim_rev, changeset = get_provider_version(virt, server)
+    if curr_cim_rev >= input_graphics_pool_rev:
+        input = get_typed_class(virt,'InputResourceAllocationSettingData')
+        graphics = get_typed_class(virt,'GraphicsResourceAllocationSettingData')
+        rlist.append(input)
+        rlist.append(graphics)
+        prop_list[input] = "%s/%s" % (test_dom, input_device)
+        prop_list[graphics] = "%s/%s" % (test_dom, "graphics")
+
     if virt == 'LXC':
         prop_list = {rlist[1] : "%s/%s" % (test_dom, "mem")}        
 
@@ -124,7 +142,7 @@ def main():
     else:
         test_disk = "hdb"
 
-    prop_list = init_list(test_disk, test_mac, options.virt)
+    prop_list = init_list(test_disk, test_mac, options.ip, options.virt)
     virt_xml = vxml.get_class(options.virt)
     if options.virt == 'LXC':
         cxml = virt_xml(test_dom)
