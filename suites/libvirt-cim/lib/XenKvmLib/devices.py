@@ -24,22 +24,15 @@
 import pywbem
 from pywbem.cim_obj import CIMInstanceName
 from CimTest import CimExt
-from CimTest import Globals
+from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.Globals import logger
 from XenKvmLib import assoc
 from XenKvmLib.classes import get_typed_class
+from XenKvmLib.const import get_provider_version
+from XenKvmLib.enumclass import EnumInstances
 
-
-class CIM_Instance:
-    def __init__(self, inst):
-        self.inst = inst
-
-
-    def __getattr__(self, attr):
-        return self.inst[attr]
-
-    def __str__(self):
-        print self.inst.items()
-
+graphics_dev_rev = 725
+input_dev_rev = 745
 
 def get_class(classname):
     return eval(classname)
@@ -55,10 +48,10 @@ def get_dom_devs(vs_type, ip, dom_name):
     devs = assoc.AssociatorNames(ip, an, cn, Name=dom_name,
                                  CreationClassName= cn)
     if devs == None:
-        Globals.logger.error("System association failed")
+        logger.error("System association failed")
         return 1
     elif len(devs) == 0:
-        Globals.logger.error("No devices returned")
+        logger.error("No devices returned")
         return 1
 
     return (0, devs)
@@ -92,4 +85,51 @@ def get_dom_mem_inst(vs_type, ip, dom_name):
             mem_list.append(item)
 
     return mem_list
+
+def dev_cn_to_rasd_cn(dev_cn, virt):
+    if dev_cn.find('Processor') >= 0:
+        return get_typed_class(virt, "ProcResourceAllocationSettingData")
+    elif dev_cn.find('NetworkPort') >= 0:
+        return get_typed_class(virt, "NetResourceAllocationSettingData")
+    elif dev_cn.find('LogicalDisk') >= 0:
+        return get_typed_class(virt, "DiskResourceAllocationSettingData")
+    elif dev_cn.find('Memory') >= 0:
+        return get_typed_class(virt, "MemResourceAllocationSettingData")
+    elif dev_cn.find('DisplayController') >= 0:
+        return get_typed_class(virt, "GraphicsResourceAllocationSettingData")
+    elif dev_cn.find('PointingDevice') >= 0:
+        return get_typed_class(virt, "InputResourceAllocationSettingData")
+    else:
+        return None
+
+def enum_dev(virt, ip):
+    dev_list = ['Processor', 'Memory', 'NetworkPort', 'LogicalDisk']
+
+    curr_cim_rev, changeset = get_provider_version(virt, ip)
+    if curr_cim_rev >= graphics_dev_rev:
+        dev_list.append('DisplayController')
+
+    if curr_cim_rev >= input_dev_rev:
+        dev_list.append('PointingDevice')
+
+    dev_insts = {}
+
+    try:
+        for dev in dev_list:
+            dev_cn = get_typed_class(virt, dev)
+            list = EnumInstances(ip, dev_cn)
+
+            if len(list) < 1:
+                continue
+
+            for dev in list:
+                if dev.Classname not in dev_insts.keys():
+                    dev_insts[dev.Classname] = []
+                dev_insts[dev.Classname].append(dev)
+
+    except Exception, details:
+        logger.error(details)
+        return dev_insts, FAIL
+
+    return dev_insts, PASS
 
