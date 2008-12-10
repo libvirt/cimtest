@@ -31,7 +31,6 @@ from XenKvmLib import vsms
 from CimTest import Globals 
 from XenKvmLib import enumclass 
 from pywbem.cim_obj import CIMInstanceName
-from XenKvmLib.devices import CIM_Instance
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, \
                             CIM_ERROR_GETINSTANCE

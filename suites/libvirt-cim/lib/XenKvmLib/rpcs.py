@@ -20,7 +20,7 @@
 #
 import pywbem
 from pywbem.cim_obj import CIMInstanceName
-from XenKvmLib.devices import CIM_Instance
+from XenKvmLib.enumclass import CIM_Instance
 from CimTest import Globals
 
 class CIM_MyClass(CIM_Instance):

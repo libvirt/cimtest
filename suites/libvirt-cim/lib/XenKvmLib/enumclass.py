@@ -25,12 +25,21 @@
 #
 import pywbem
 from pywbem.cim_obj import CIMInstanceName
-from XenKvmLib.devices import CIM_Instance
 from XenKvmLib.classes import get_typed_class
 from CimTest import Globals, CimExt
 from VirtLib import utils
 from CimTest.Globals import logger
 
+class CIM_Instance:
+    def __init__(self, inst):
+        self.inst = inst
+
+
+    def __getattr__(self, attr):
+        return self.inst[attr]
+
+    def __str__(self):
+        print self.inst.items()
 
 class CIM_CimtestClass(CIM_Instance):
     def __init__(self, host, ref):
