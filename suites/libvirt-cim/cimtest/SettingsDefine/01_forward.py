@@ -27,129 +27,162 @@
 # Date : 29-11-2007
 
 import sys
-from VirtLib import utils
-from XenKvmLib import vxml
-from XenKvmLib import assoc
-from XenKvmLib.enumclass import GetInstance
+from CimTest.Globals import logger
+from CimTest.ReturnCodes import PASS, FAIL
+from XenKvmLib.vxml import get_class
+from XenKvmLib.assoc import AssociatorNames
 from XenKvmLib.classes import get_typed_class
-from CimTest import Globals
 from XenKvmLib.const import do_main, get_provider_version
-from CimTest.ReturnCodes import PASS, FAIL 
+from XenKvmLib.rasd import enum_rasds
+from XenKvmLib.devices import enum_dev, dev_cn_to_rasd_cn 
+from XenKvmLib.common_util import parse_instance_id
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
-input_graphics_pool_rev = 757
 
 test_dom = "domu1"
-test_mac = "00:11:22:33:44:aa"
-test_vcpus = 1
 
-def print_error(cn, detail):
-    Globals.logger.error(Globals.CIM_ERROR_GETINSTANCE, cn)
-    Globals.logger.error("Exception: %s", detail)
+def setup_env(server, virt):
+    if virt == 'Xen':
+        test_disk = 'xvda'
+    else:
+        test_disk = 'hda'
+    virt_xml = get_class(virt)
+    if virt == 'LXC':
+        cxml = virt_xml(test_dom)
+    else:
+        cxml = virt_xml(test_dom, disk = test_disk)
 
-def get_keys(baseccn, device_id, basesccn, virt):
-    id = "%s/%s" % (test_dom, device_id)
+    ret = cxml.cim_define(server)
+    if not ret:
+        logger.error("Failed to Create the dom: %s", test_dom)
+        return FAIL, cmxl 
 
-    key_list = { 'DeviceID' : id,
-                 'CreationClassName' : get_typed_class(virt, baseccn),
-                 'SystemName' : test_dom,
-                 'SystemCreationClassName' : get_typed_class(virt, basesccn)
-               }
+    status = cxml.cim_start(server, virt, test_dom)
+    if status != PASS:
+        logger.error("Unable start dom '%s'", test_dom)
+        cxml.undefine(server)
+        return status, cxml 
 
-    return key_list
+    return PASS, cxml 
+
+def init_device_list(virt, ip, guest_name):
+    dev_insts = {}
+    
+    devs, status = enum_dev(virt, ip)
+    if status != PASS:
+        logger.error("Enum device instances failed")
+        return dev_insts, status
+        
+    for dev_cn, dev_list in devs.iteritems():
+        for dev in dev_list:
+            guest, dev_id, status = parse_instance_id(dev.DeviceID)
+            if status != PASS:
+                logger.error("Unable to parse InstanceID: %s" % dev.DeviceID)
+                return dev_insts, FAIL
+
+            if guest == guest_name:
+                dev_insts[dev.Classname] = dev 
+
+    return dev_insts, PASS
+
+def init_rasd_list(virt, ip, guest_name):
+    proc_rasd_cn = get_typed_class(virt, "ProcResourceAllocationSettingData")
+
+    rasd_insts = {}
+
+    rasds, status = enum_rasds(virt, ip)
+    if status != PASS:
+        logger.error("Enum RASDs failed")
+        return rasd_insts, status
+
+    for rasd_cn, rasd_list in rasds.iteritems():
+        if virt == "LXC" and rasd_cn == proc_rasd_cn:
+            continue
+
+        for rasd in rasd_list:
+            guest, dev, status = parse_instance_id(rasd.InstanceID)
+            if status != PASS:
+                logger.error("Unable to parse InstanceID: %s" % rasd.InstanceID)
+                return rasd_insts, FAIL
+
+            if guest == guest_name:
+                rasd_insts[rasd.Classname] = rasd
+
+    return rasd_insts, PASS
+
+def verify_rasd(enum_list, rasds, rasd_cn, guest_name):
+    for rasd in enum_list:
+        guest, dev, status = parse_instance_id(rasd['InstanceID'])
+        if status != PASS:
+            logger.error("Unable to parse InstanceID: %s", rasd['InstanceID'])
+            return status
+
+        if guest != guest_name:
+            continue
+
+        exp_rasd = rasds[rasd_cn]
+
+        print rasd['InstanceID'], exp_rasd.InstanceID
+        if rasd['InstanceID'] == exp_rasd.InstanceID:
+            status = PASS
+        else:
+            logger.info("Got %s instead of %s" % (rasd['InstanceID'],
+                        exp_rasd.InstanceID))
+            status = FAIL
+
+    if status != PASS:
+        logger.error("RASD with id %s not returned", exp_rasd.InstanceID)
+        return FAIL
+
+    return PASS
 
 @do_main(sup_types)
 def main():
     options = main.options
-    status = PASS
-    idx = 0
+    status = FAIL 
 
-    if options.virt == 'Xen':
-        test_disk = 'xvda'
-    else:
-        test_disk = 'hda'
-    virt_xml = vxml.get_class(options.virt)
-    if options.virt == 'LXC':
-        cxml = virt_xml(test_dom)
-        cn_id = {'Memory' : 'mem'}
-    else:
-        cxml = virt_xml(test_dom, vcpus = test_vcpus, mac = test_mac, 
-                        disk = test_disk)
-        if options.virt == 'LXC' or options.virt == 'XenFV':
-            input_device = "mouse:usb"
-        elif options.virt == 'Xen':
-            input_device = "mouse:xen"
-        else:
-            input_device = "mouse:ps2"
+    status, cxml = setup_env(options.ip, options.virt)
+    if status != PASS:
+        cxml.undefine(options.ip)
+        return status
 
-        cn_id = {
-                'LogicalDisk' : test_disk,
-                'Memory'      : 'mem',
-                'NetworkPort' : test_mac,
-                'Processor'   : test_vcpus -1 }
-        curr_cim_rev, changeset = get_provider_version(options.virt, options.ip)
-        if curr_cim_rev >= input_graphics_pool_rev:
-            cn_id['PointingDevice'] = input_device
-            cn_id['DisplayController'] = 'graphics'
- 
-    ret = cxml.create(options.ip)
-    if not ret:
-        Globals.logger.error("Failed to Create the dom: %s", test_dom)
-        return FAIL 
+    try:
+        devs, status = init_device_list(options.virt, options.ip, test_dom)
+        if status != PASS:
+            raise Exception("Unable to build device instance list")
 
+        rasds, status = init_rasd_list(options.virt, options.ip, test_dom)
+        if status != PASS:
+            raise Exception("Unable to build rasd instance list")
 
-    devlist = {}
-    logelelst = {}
-    exp_inst_id_val = {}
-    for cn in cn_id.keys():
-        key_list = get_keys(cn, cn_id[cn], 'ComputerSystem', options.virt)
+        if len(devs) != len(rasds):
+            raise Exception("%d device insts != %d RASD insts" % (len(devs),
+                            len(rasds)))
 
-        if cn == 'Processor':
-            exp_inst_id_val[cn] = "%s/%s" % (test_dom, "proc") 
-        else:
-            exp_inst_id_val[cn] = key_list['DeviceID']
-
-        try:
-            dev_class = get_typed_class(options.virt, cn)
-            devlist[cn] = GetInstance(options.ip, dev_class, key_list)
-            logelelst[cn] = devlist[cn].DeviceID
-        except Exception, detail:
-            print_error(cn, detail)
-            cxml.destroy(options.ip)
-            cxml.undefine(options.ip)
-            return FAIL
-    sccn = get_typed_class(options.virt, 'ComputerSystem')
-    for cn in logelelst.keys():
-        try:
-            ccn = get_typed_class(options.virt, cn)
-            an = get_typed_class(options.virt, 'SettingsDefineState')
-            assoc_info = assoc.AssociatorNames(options.ip, an, ccn, 
-                                               DeviceID = logelelst[cn],
-                                               CreationClassName = ccn,
-                                               SystemName = test_dom,
-                                               SystemCreationClassName = sccn)
+        an = get_typed_class(options.virt, 'SettingsDefineState')
+        for dev_cn, dev in devs.iteritems():
+            ccn = dev.CreationClassName
+            sccn = dev.SystemCreationClassName
+            assoc_info = AssociatorNames(options.ip, an, ccn, 
+                                         DeviceID = dev.DeviceID,
+                                         CreationClassName = ccn,
+                                         SystemName = dev.SystemName,
+                                         SystemCreationClassName = sccn)
 
             if len(assoc_info) != 1:
-                Globals.logger.error("Returned %i device instances for '%s'",
-                                     len(assoc_info), test_dom)
-                status = FAIL
-                break
+                raise Exception("%i RASD insts for %s" % (len(assoc_info), 
+                                dev.DeviceID))
 
-            if assoc_info[0]['InstanceID'] !=  exp_inst_id_val[cn]:
-                Globals.logger.error("InstanceID Mismatch")
-                Globals.logger.error("Returned %s instead of %s" \
-                        % (assoc_info[0]['InstanceID'], exp_inst_id_val[cn]))
-                status = FAIL
-
+            rasd_cn = dev_cn_to_rasd_cn(dev_cn, options.virt)
+            status = verify_rasd(assoc_info, rasds, rasd_cn, test_dom)
             if status != PASS:
-                break
+                raise Exception("Failed to verify RASDs")
 
-        except Exception, detail:
-            Globals.logger.error(Globals.CIM_ERROR_ASSOCIATORS, sds_classname)
-            Globals.logger.error("Exception: %s", detail)
-            status = FAIL
+    except Exception, details:
+        logger.error(details)
+        status = FAIL
 
-    cxml.destroy(options.ip)
+    cxml.cim_destroy(options.ip)
     cxml.undefine(options.ip)
     return status
     
