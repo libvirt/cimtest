@@ -33,10 +33,11 @@ from XenKvmLib import assoc
 from XenKvmLib.enumclass import GetInstance
 from XenKvmLib.classes import get_typed_class
 from CimTest import Globals
-from XenKvmLib.const import do_main
+from XenKvmLib.const import do_main, get_provider_version
 from CimTest.ReturnCodes import PASS, FAIL 
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
+input_graphics_pool_rev = 757
 
 test_dom = "domu1"
 test_mac = "00:11:22:33:44:aa"
@@ -74,13 +75,23 @@ def main():
     else:
         cxml = virt_xml(test_dom, vcpus = test_vcpus, mac = test_mac, 
                         disk = test_disk)
+        if options.virt == 'LXC' or options.virt == 'XenFV':
+            input_device = "mouse:usb"
+        elif options.virt == 'Xen':
+            input_device = "mouse:xen"
+        else:
+            input_device = "mouse:ps2"
+
         cn_id = {
                 'LogicalDisk' : test_disk,
                 'Memory'      : 'mem',
                 'NetworkPort' : test_mac,
                 'Processor'   : test_vcpus -1 }
-
-
+        curr_cim_rev, changeset = get_provider_version(options.virt, options.ip)
+        if curr_cim_rev >= input_graphics_pool_rev:
+            cn_id['PointingDevice'] = input_device
+            cn_id['DisplayController'] = 'graphics'
+ 
     ret = cxml.create(options.ip)
     if not ret:
         Globals.logger.error("Failed to Create the dom: %s", test_dom)
