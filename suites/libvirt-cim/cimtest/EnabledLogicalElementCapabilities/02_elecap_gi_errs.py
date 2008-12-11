@@ -23,7 +23,7 @@
 # Test Case Info:
 # --------------
 # This tc is used to verify if appropriate exceptions are
-# returned by Xen_EnabledLogicalElementCapabilities on giving invalid inputs.
+# returned by EnabledLogicalElementCapabilities on giving invalid inputs.
 #
 # 1) Test by passing Invalid InstanceID Key Value
 # Input:
@@ -36,83 +36,67 @@
 # error code  : CIM_ERR_NOT_FOUND
 # error desc  : "The requested object could not be found"
 #
-# 2) Test by giving Invalid InstanceID Key Name
-# Input:
-# ------
-# wbemcli gi http://localhost:5988/root/virt:\
-# Xen_EnabledLogicalElementCapabilities.Wrong="Domain-0" -nl
-#
-# Output:
-# -------
-# error code  : CIM_ERR_FAILED
-# error desc  : "No InstanceID specified"
-#                                                   -Date 22.02.2008
 
 import sys
-import pywbem
-from VirtLib import utils
-from XenKvmLib import assoc
-from XenKvmLib.common_util import try_getinstance
-from XenKvmLib.vxml import XenXML, KVMXML, get_class
-from XenKvmLib.classes import get_typed_class
+from pywbem import CIM_ERR_NOT_FOUND, CIMError
+from pywbem.cim_obj import CIMInstanceName
 from CimTest.ReturnCodes import PASS, FAIL
-from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
+from CimTest.Globals import logger
+from XenKvmLib.vxml import get_class
+from XenKvmLib.classes import get_typed_class
 from XenKvmLib.const import do_main
+from XenKvmLib.enumclass import GetInstance, CIM_CimtestClass
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
-
-expr_values = {
-                "invalid_instid_keyname" :  {  'rc'   : pywbem.CIM_ERR_FAILED, \
-                                               'desc' : "No InstanceID specified" }, \
-                "invalid_instid_keyvalue" :  { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                               'desc' : "No such instance" }
-              }
 
 @do_main(sup_types)
 def main():
     options = main.options
-    status = PASS
 
-    classname = get_typed_class(options.virt, 'EnabledLogicalElementCapabilities')
-
-    conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, CIM_PASS), CIM_NS)
-
-    # 1) Test by passing Invalid InstanceID Key Value
-    field = 'INVALID_Instid_KeyValue'
-    keys = { 'InstanceID' : field }
-    ret_value = try_getinstance(conn, classname, keys, field_name=field, \
-                                 expr_values=expr_values['invalid_instid_keyvalue'], bug_no="")
-    if ret_value != PASS:
-        logger.error("------ FAILED: Invalid InstanceID Key Value.------")
-        status = ret_value
-
-    # 2) Test by giving Invalid InstanceID Key Name
-    if options.virt == "Xen" or options.virt == "XenFV":
-        inst_id = "Domain-0"
-    else:
-        test_dom = "qemu"
-        vsxml = get_class(options.virt)(test_dom)
-        ret = vsxml.cim_define(options.ip)
-        if not ret:
-            logger.error("Failed to Define the dom: %s", test_dom)
-            return FAIL    
-        ret = vsxml.start(options.ip)
-        if not ret:
-            logger.error("Failed to Start the dom: %s", test_dom)
-            return FAIL
-
-        inst_id = test_dom
-
-    field = 'INVALID_Instid_KeyName'
-    keys = { field : inst_id }
-    ret_value = try_getinstance(conn, classname, keys, field_name=field, \
-                                expr_values=expr_values['invalid_instid_keyname'], bug_no="")
-    if ret_value != PASS:
-        logger.error("------ FAILED: Invalid InstanceID Key Name.------")
-        status = ret_value
-    if options.virt == "KVM":
-        vsxml.destroy(options.ip)
+    test_dom = "qemu"
+    vsxml = get_class(options.virt)(test_dom)
+    ret = vsxml.cim_define(options.ip)
+    if not ret:
+        logger.error("Failed to Define the dom: %s", test_dom)
+        return FAIL    
+    status = vsxml.cim_start(options.ip, options.virt, test_dom)
+    if status != PASS:
+        logger.error("Failed to Start the dom: %s", test_dom)
         vsxml.undefine(options.ip)
+        return status 
+
+    cn = get_typed_class(options.virt, 'EnabledLogicalElementCapabilities')
+
+    expr_values = {
+                    'rc'   : CIM_ERR_NOT_FOUND,
+                    'desc' : "No such instance"
+                  }
+
+    keys = { 'InstanceID' : 'INVALID_Instid_KeyValue' }
+
+    ref = CIMInstanceName(cn, keybindings=keys)
+
+    status = FAIL
+    try:
+        inst = CIM_CimtestClass(options.ip, ref)
+
+    except CIMError, (err_no, err_desc):
+        exp_rc    = expr_values['rc']
+        exp_desc  = expr_values['desc']
+
+        if err_no == exp_rc and err_desc.find(exp_desc) >= 0:
+            logger.info("Got expected exception: %s %s", exp_desc, exp_rc)
+            status = PASS
+        else:
+            logger.error("Unexpected errno %s and desc %s", err_no, err_desc)
+            logger.error("Expected %s %s", exp_desc, exp_rc)
+            status = FAIL
+
+    if status != PASS:
+        logger.error("------ FAILED: Invalid InstanceID Key Value.------")
+
+    vsxml.cim_destroy(options.ip)
+    vsxml.undefine(options.ip)
 
     return status
 
