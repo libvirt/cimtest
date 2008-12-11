@@ -26,20 +26,15 @@
 # This tc is used to verify if appropriate exceptions are
 # returned by Xen_Processor on giving invalid inputs.
 #
-# 1) Test by passing Invalid CCName Keyname
+# Test by passing Invalid Keyvalue for following keys:
 # Input:
 # ------
-# wbemcli gi 'http://localhost:5988/root/virt:Xen_Processor.\
-# wrong="Xen_Processor",DeviceID="Domain-0/0",SystemCreationClassName=\
-# "Xen_ComputerSystem",SystemName="Domain-0"' -nl
-#
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No such instance (CreationClassName)"
+#  CreationClassName
+#  DeviceID
+#  SystemCreationClassName
+#  SystemName
 
-# 2) Test by passing Invalid CCName Keyvalue
-# Input:
+# Format:
 # ------
 # wbemcli gi 'http://localhost:5988/root/virt:Xen_Processor.\
 # CreationClassName="wrong",DeviceID="Domain-0/0",SystemCreationClassName=\
@@ -48,180 +43,126 @@
 # Output:
 # -------
 # error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No such instance (CreationClassName)"
-
-# 3) Test by passing Invalid DevId Keyname
-# Input:
-# ------
-# wbemcli gi 'http://localhost:5988/root/virt:Xen_Processor.\
-# CreationClassName="Xen_Processor",wrong="Domain-0/0",SystemCreationClassName=\
-# "Xen_ComputerSystem",SystemName="Domain-0"' -nl
+# error desc  : "No such instance (CreationClassName)" (varies by key name)
 #
-# Output:
-# -------
-# error code  : CIM_ERR_FAILED
-# error desc  : "No DeviceID specified"
-
-# 4) Test by passing Invalid DevId Keyvalue
-# ------
-# wbemcli gi 'http://localhost:5988/root/virt:Xen_Processor.\
-# CreationClassName="Xen_Processor",DeviceID="wrong",SystemCreationClassName=\
-# "Xen_ComputerSystem",SystemName="Domain-0"' -nl
-#
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No such instance (wrong)"
-
-# 5) Test by passing Invalid SCCName Keyname
-# Input:
-# ------
-# wbemcli gi 'http://localhost:5988/root/virt:Xen_Processor.\
-# CreationClassName="Xen_Processor",DeviceID="Domain-0/0",wrong=\
-# "Xen_ComputerSystem",SystemName="Domain-0"' -nl
-#
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No such instance (SystemCreationClassName)"
-
-# 6) Test by passing Invalid SCCName Keyvalue
-# Input:
-# ------
-# wbemcli gi 'http://localhost:5988/root/virt:Xen_Processor.\
-# CreationClassName="Xen_Processor",DeviceID="Domain-0/0",SystemCreationClassName=\
-# "wrong",SystemName="Domain-0"' -nl
-#
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No such instance (SystemCreationClassName)"
-
-# 7) Test by passing Invalid SysName Keyname
-# Input:
-# ------
-# wbemcli gi 'http://localhost:5988/root/virt:Xen_Processor.\
-# CreationClassName="Xen_Processor",DeviceID="Domain-0/0",SystemCreationClassName=\
-# "Xen_ComputerSystem",wrong="Domain-0"' -nl
-#
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No such instance (SystemName)"
-
-# 8) Test by passing Invalid SysName Keyvalue# Input:
-# Input:
-# ------
-# wbemcli gi 'http://localhost:5988/root/virt:Xen_Processor.\
-# CreationClassName="Xen_Processor",DeviceID="Domain-0/0",SystemCreationClassName=\
-# "Xen_ComputerSystem",SystemName="wrong"' -nl
-#
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No such instance (SystemName)"
-#                                                   -Date 26.02.2008
 
 import sys
-import pywbem
-from XenKvmLib import assoc
-from XenKvmLib.common_util import try_getinstance
+from pywbem import CIM_ERR_NOT_FOUND, CIMError
+from pywbem.cim_obj import CIMInstanceName
+from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.Globals import logger
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.vxml import get_class
 from XenKvmLib.test_doms import destroy_and_undefine_all
-from CimTest.ReturnCodes import PASS, FAIL
-from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from XenKvmLib.const import do_main, get_provider_version
+from XenKvmLib.enumclass import GetInstance, CIM_CimtestClass, EnumInstances
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 
-expr_values = {
-    "invalid_ccname"         : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
-                                'desc' : "No such instance (CreationClassName)" }, 
-    "invalid_devid_keyname"  : {'rc'   : pywbem.CIM_ERR_FAILED, 
-                                'desc' : "No DeviceID specified" }, 
-    "invalid_devid_keyvalue" : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
-                                'desc' : "No such instance "\
-                                         "(bad id INVALID_DevID_Keyvalue)" }, 
-    "invalid_sccname"        : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
-                                'desc' : "No such instance (SystemCreationClassName)" }, 
-    "invalid_sysname"        : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
-                                'desc' : "No such instance (SystemName)" }
+expected_values = {
+   "invalid_sysname" : {'rc'   : CIM_ERR_NOT_FOUND,
+                        'desc' : "No such instance (SystemName)" },
+   "invalid_ccname" : {'rc'   : CIM_ERR_NOT_FOUND,
+                       'desc' : "No such instance (CreationClassName)" },
+   "invalid_sccname" : {'rc'   : CIM_ERR_NOT_FOUND,
+                        'desc' : "No such instance (SystemCreationClassName)" },
+   "invalid_devid"  : {'rc'   : CIM_ERR_NOT_FOUND,
+                       'desc' : "No such instance " }
               }
 
 test_dom = "proc_domain"
 test_vcpus = 1
 
+err_msg_changeset = 682
 
-def try_invalid_gi(i, field1, field2):
-    j = 0
-    keys = {}
-    temp = name_val[i]
-    name_val[i] = field1
-    for j in range(len(name_val)/2):
-        k = j * 2
-        keys[name_val[k]] = name_val[k+1]
+def get_proc_inst(virt, ip, cn, guest_name):
+    try:
+        enum_list = EnumInstances(ip, cn)
 
-    ret_value = try_getinstance(conn, classname, keys, field_name=field1, 
-                                expr_values=expr_values[field2], bug_no="")
-    if ret_value != PASS:
-        logger.error("------ FAILED: %s------" % field1)
-    name_val[i] = temp
-    return ret_value
+        if enum_list < 1:
+            logger.error("No %s instances returned", cn)
+            return None, FAIL
+
+        for inst in enum_list:
+            if inst.SystemName == guest_name:
+                return inst, PASS
+
+    except Exception, details:
+        logger.error(details)
+
+    return None, FAIL
 
 @do_main(sup_types)
 def main():
     options = main.options
 
-    devid = "%s/%s" % (test_dom, "0")
-    status = PASS
-
-    # Getting the VS list and deleting the test_dom if it already exists.
-    destroy_and_undefine_all(options.ip)
     vsxml = get_class(options.virt)(test_dom, vcpus=test_vcpus)
-    vsxml.cim_define(options.ip)
-    ret = vsxml.start(options.ip)
+    ret = vsxml.cim_define(options.ip)
     if not ret:
-        logger.error("Failed to Create the dom: %s", test_dom)
+        logger.error("Failed to define the guest: %s", test_dom)
         return FAIL
-    global conn
-    conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, CIM_PASS), CIM_NS)
 
-    global name_val
-    global classname 
-    classname = get_typed_class(options.virt, 'Processor')
-    name_val = [
-                'CreationClassName',       classname, 
-                'DeviceID',                devid, 
-                'SystemCreationClassName', get_typed_class(options.virt, 'ComputerSystem'), 
-                'SystemName',              test_dom
-              ]
-
-    tc_scen = { 'INVALID_CCName_Keyname'   : 'invalid_ccname', 
-                'INVALID_CCName_Keyvalue'  : 'invalid_ccname', 
-                'INVALID_DevID_Keyname'    : 'invalid_devid_keyname', 
-                'INVALID_DevID_Keyvalue'   : 'invalid_devid_keyvalue', 
-                'INVALID_SCCName_Keyname'  : 'invalid_sccname', 
-                'INVALID_SCCName_Keyvalue' : 'invalid_sccname', 
-                'INVALID_SysName_Keyname'  : 'invalid_sysname', 
-                'INVALID_SysName_Keyvalue' : 'invalid_sysname'
-              }
+    status = vsxml.cim_start(options.ip, options.virt, test_dom)
+    if status != PASS:
+        logger.error("Failed to start the guest: %s", test_dom)
+        vsxml.undefine(options.ip)
+        return FAIL
 
     rev, changeset = get_provider_version(options.virt, options.ip)
-    if rev < 682:
-        old_ret = { 'rc' : pywbem.CIM_ERR_NOT_FOUND,
-                    'desc' : "No such instance (INVALID_DevID_Keyvalue)"
+    if rev < err_msg_changeset:
+        old_ret = { 'rc' : CIM_ERR_NOT_FOUND,
+                    'desc' : "No such instance (invalid_devid)"
                   }
-        expr_values["invalid_devid_keyvalue"] = old_ret
+        expected_values["invalid_devid"] = old_ret
 
-    i = 0
-    for field1, field2 in sorted(tc_scen.items()):
-        retval = try_invalid_gi(i, field1, field2)
-        if retval != PASS:
-            status = retval
-        i = i + 1
+    ccn  = get_typed_class(options.virt, "Processor")
 
-    vsxml.destroy(options.ip)
+    proc, status = get_proc_inst(options.virt, options.ip, ccn, test_dom)
+    if status != PASS:
+        vsxml.undefine(options.ip)
+        return status
+
+    key_vals = { 'SystemName'              : proc.SystemName,
+                 'CreationClassName'       : proc.CreationClassName,
+                 'SystemCreationClassName' : proc.SystemCreationClassName,
+                 'DeviceID'                : proc.DeviceID
+               }
+
+    tc_scen = {
+                'invalid_sysname'   : 'SystemName',
+                'invalid_ccname'    : 'CreationClassName',
+                'invalid_sccname'   : 'SystemCreationClassName',
+                'invalid_devid'     : 'DeviceID',
+              }
+
+    for tc, field in tc_scen.iteritems():
+        status = FAIL
+
+        keys = key_vals.copy()
+        keys[field] = tc 
+        expr_values = expected_values[tc]
+
+        ref = CIMInstanceName(ccn, keybindings=keys)
+
+        try:
+            inst = CIM_CimtestClass(options.ip, ref)
+
+        except CIMError, (err_no, err_desc):
+            exp_rc    = expr_values['rc']
+            exp_desc  = expr_values['desc']
+
+            if err_no == exp_rc and err_desc.find(exp_desc) >= 0:
+                logger.info("Got expected exception: %s %s", exp_desc, exp_rc)
+                status = PASS
+            else:
+                logger.error("Unexpected errno %s, desc %s", err_no, err_desc)
+                logger.error("Expected %s %s", exp_desc, exp_rc)
+
+        if status != PASS:
+            logger.error("------ FAILED: %s ------", tc)
+            break
+
+    vsxml.cim_destroy(options.ip)
     vsxml.undefine(options.ip)
     return status
 
