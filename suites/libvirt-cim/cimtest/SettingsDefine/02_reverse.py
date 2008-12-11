@@ -20,197 +20,234 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 #
 
-#
-# This test case is used to reverse verify the Xen_SettingsDefineState class. 
-# We use the cross class verification for this.
-# First we do the assoc for the Xen_VSSDC class. On the results obtained , we do assoc 
-# for the SettingsDefineState class and verify the CreationClassName and the DeviceID's
-# returned by the assoc.
-#
 # For Ex: Command and the fields that are verified are given below. 
 #
 # wbemcli ain -ac Xen_VirtualSystemSettingDataComponent            
-# 'http://localhost:5988/root/virt:Xen_VirtualSystemSettingData.InstanceID="Xen:domgst"'
+# 'http://localhost:5988/root/virt:Xen_VirtualSystemSettingData.InstanceID="Xen:
+# domgst"'
 #
 # Output:
-# localhost:5988/root/virt:Xen_ProcResourceAllocationSettingData.InstanceID="domgst/0" 
-# localhost:5988/root/virt:Xen_NetResourceAllocationSettingData.InstanceID="domgst/00:22:33:aa:bb:cc" 
-# localhost:5988/root/virt:Xen_DiskResourceAllocationSettingData.InstanceID="domgst/xvda"
-# localhost:5988/root/virt:Xen_MemResourceAllocationSettingData.InstanceID="domgst/mem"
+# localhost:5988/root/virt:Xen_ProcResourceAllocationSettingData.InstanceID=
+# "domgst/0" 
+#
+# localhost:5988/root/virt:Xen_NetResourceAllocationSettingData.InstanceID=
+# "domgst/00:22:33:aa:bb:cc" 
+#
+# localhost:5988/root/virt:Xen_DiskResourceAllocationSettingData.InstanceID=
+# "domgst/xvda"
+#
+# localhost:5988/root/virt:Xen_MemResourceAllocationSettingData.InstanceID=
+# "domgst/mem"
 # 
-# Using the above output we do the assocn for each of them on Xen_SettingsDefineState
+# Using this output we call the SettingsDefineState association for each of them
+#
 # wbemcli ain -ac Xen_SettingsDefineState 'http://localhost:5988/root/virt:\
 # Xen_ProcResourceAllocationSettingData.InstanceID="domgst/0"'
 #
 # Output:
-# localhost:5988/root/virt:Xen_Processor.CreationClassName="Xen_Processor",             \
+# localhost:5988/root/virt:Xen_Processor.CreationClassName="Xen_Processor",\
 # DeviceID="domgst/0",SystemCreationClassName="",SystemName="domgst"
 #
-# Similarly verify the assoc on all the resources like Network, Disk and Memory.
 #
 # Date : 31-01-2008
 
 import sys
-from CimTest import Globals 
 from CimTest.Globals import logger
+from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.const import do_main
-from CimTest.ReturnCodes import PASS, FAIL, SKIP
-from VirtLib import utils
-from XenKvmLib import assoc
-from XenKvmLib import vxml
-from XenKvmLib.classes import get_typed_class, get_class_basename
-from XenKvmLib.rasd import InstId_err
+from XenKvmLib.assoc import AssociatorNames
+from XenKvmLib.vxml import get_class
+from XenKvmLib.classes import get_typed_class
+from XenKvmLib.rasd import enum_rasds
+from XenKvmLib.devices import enum_dev
+from XenKvmLib.common_util import parse_instance_id
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 test_dom    = "virtgst"
-test_vcpus  = 1
-test_mem    = 128
-test_mac    = "00:11:22:33:44:aa"
 
-def call_assoc(ip, inst, exp_id, ccn, virt):
-    if inst['InstanceID'] != exp_id:
-        InstId_err(inst, exp_id)
-        return FAIL
+def setup_env(server, virt):
+    if virt == 'Xen':
+        test_disk = 'xvdb'
+    else:
+        test_disk = 'hdb'
+    virt_xml = get_class(virt)
+    if virt == 'LXC':
+        cxml = virt_xml(test_dom)
+    else:
+        cxml = virt_xml(test_dom, disk = test_disk)
 
-    try:
-        an = get_typed_class(virt, 'SettingsDefineState')
-        ccn = get_typed_class(virt, ccn)
-        associnf = assoc.Associators(ip, an, ccn, InstanceID = exp_id)
-    except  Exception, detail :
-        logger.error("Exception  %s "  % detail)
-        logger.error("Error while associating Xen_SettingsDefineState with %s" %
-                     ccn)
-        return FAIL
+    ret = cxml.cim_define(server)
+    if not ret:
+        logger.error("Failed to Create the dom: %s", test_dom)
+        return FAIL, cmxl
 
-    return SettingsDefineStateAssoc(ip, associnf, virt)
+    status = cxml.cim_start(server, virt, test_dom)
+    if status != PASS:
+        logger.error("Unable start dom '%s'", test_dom)
+        cxml.undefine(server)
+        return status, cxml
 
-def VSSDCAssoc(ip, assocn, virt):
-    """
-        The association info of Xen_VirtualSystemSettingDataComponent 
-        is verified. 
-    """
+    return PASS, cxml
 
-    status = PASS
-    if len(assocn) == 0: 
-        status = FAIL
-        return status
+def init_rasd_list(virt, ip, guest_name):
+    proc_rasd_cn = get_typed_class(virt, "ProcResourceAllocationSettingData")
 
-    try: 
-        for rasd in assocn:
-            rasd_cn = get_class_basename(rasd.classname)
-            if rasd_cn in rasd_devid.keys():
-                status = call_assoc(ip, rasd, rasd_devid[rasd_cn], rasd_cn, virt)
-            else:
-                status = FAIL
+    rasd_insts = {}
 
+    rasds, status = enum_rasds(virt, ip)
+    if status != PASS:
+        logger.error("Enum RASDs failed")
+        return rasd_insts, status
+
+    for rasd_cn, rasd_list in rasds.iteritems():
+        if virt == "LXC" and rasd_cn == proc_rasd_cn:
+            continue
+
+        for rasd in rasd_list:
+            guest, dev, status = parse_instance_id(rasd.InstanceID)
             if status != PASS:
-                logger.error("Mistmatching value for VSSDComponent association")
-                break  
+                logger.error("Unable to parse InstanceID: %s" % rasd.InstanceID)
+                return rasd_insts, FAIL
 
-    except  Exception, detail :
-        logger.error("Exception in VSSDCAssoc function: %s" % detail)
-        status = FAIL
+            if guest == guest_name:
+                rasd_insts[rasd.Classname] = rasd
 
-    return status
+    return rasd_insts, PASS
 
-def check_id(inst, exp_id):
-    if inst['DeviceID'] != exp_id:
+def init_device_list(virt, ip, guest_name):
+    dev_insts = {}
+
+    devs, status = enum_dev(virt, ip)
+    if status != PASS:
+        logger.error("Enum device instances failed")
+        return dev_insts, status
+
+    for dev_cn, dev_list in devs.iteritems():
+        for dev in dev_list:
+            guest, dev_id, status = parse_instance_id(dev.DeviceID)
+            if status != PASS:
+                logger.error("Unable to parse InstanceID: %s" % dev.DeviceID)
+                return dev_insts, FAIL
+
+            if guest == guest_name:
+                dev_insts[dev.Classname] = dev
+
+    return dev_insts, PASS
+
+def verify_rasd(virt, enum_list, rasds, guest_name):
+    proc_rasd_cn = get_typed_class(virt, "ProcResourceAllocationSettingData")
+
+    for rasd in enum_list:
+        if virt == "LXC" and rasd.classname == proc_rasd_cn:
+            enum_list.remove(rasd) 
+            continue
+
+        guest, dev, status = parse_instance_id(rasd['InstanceID'])
+        if status != PASS:
+            logger.error("Unable to parse InstanceID: %s", rasd['InstanceID'])
+            return status
+
+        if guest != guest_name:
+            continue
+
+        exp_rasd = rasds[rasd.classname]
+
+        if rasd['InstanceID'] == exp_rasd.InstanceID:
+            status = PASS
+        else:
+            logger.info("Got %s instead of %s" % (rasd['InstanceID'],
+                        exp_rasd.InstanceID))
+            status = FAIL
+
+    if status != PASS:
+        logger.error("RASD with id %s not returned", exp_rasd.InstanceID)
         return FAIL
 
     return PASS
-   
-def SettingsDefineStateAssoc(ip, associnfo_setDef, virt):
-    """
-        The association info of Xen_SettingsDefineState is verified. 
-    """
-    status = PASS
-    
-    if len(associnfo_setDef) == 0: 
-        status = FAIL
-        return status
 
-    try: 
-        for dev in associnfo_setDef:
-            dev_cn = get_class_basename(dev['CreationClassName'])
-            if dev_cn in dev_devid.keys():
-                status = check_id(dev, dev_devid[dev_cn])
-            else:
-                status = FAIL
+def verify_devices(enum_list, devs):
+    for dev in enum_list:
+        guest, dev_id, status = parse_instance_id(dev['DeviceID'])
+        if status != PASS:
+            logger.error("Unable to parse InstanceID: %s", dev['DeviceID'])
+            return status
 
-            if status != PASS:
-                logger.error("Mistmatching value for SettingsDefineState assoc")
-                break  
+        exp_dev = devs[dev.classname]
 
-    except  Exception, detail :
-        logger.error("Exception in SettingsDefineStateAssoc function: %s" 
-                     % detail)
-        status = FAIL
+        if dev['DeviceID'] == exp_dev.DeviceID:
+            status = PASS
+        else:
+            logger.info("Got %s instead of %s" % (dev['DeviceID'],
+                        exp_dev.DeviceID))
+            status = FAIL
 
-    return status
+    if status != PASS:
+        logger.error("Device with id %s not returned", exp_dev.DeviceID)
+        return FAIL
 
+    return PASS
 
 @do_main(sup_types)
 def main():
     options = main.options
+    virt = options.virt
+    status = FAIL
 
-    vt = options.virt
-    if vt == 'Xen':
-        test_disk = 'xvdb'
-    else:
-        test_disk = 'hdb'
-    
-    status = PASS 
-    virt_xml = vxml.get_class(options.virt)
-    if options.virt == 'LXC':
-        cxml = virt_xml(test_dom)
-    else:
-        cxml = virt_xml(test_dom, mem = test_mem, vcpus = test_vcpus,
-                        mac = test_mac, disk = test_disk)
-    ret = cxml.create(options.ip)
-    if not ret:
-        logger.error("Failed to create the dom: %s", test_dom)
-        status = FAIL
+    status, cxml = setup_env(options.ip, virt)
+    if status != PASS:
+        cxml.undefine(options.ip)
         return status
 
-
-    if vt == 'XenFV':
+    if virt == 'XenFV':
         VSType = 'Xen'
     else:
-        VSType = vt
+        VSType = virt 
 
     instIdval = "%s:%s" % (VSType, test_dom)
 
-    vssdc_cn = get_typed_class(vt, 'VirtualSystemSettingDataComponent')
-    vssd_cn = get_typed_class(vt, 'VirtualSystemSettingData')
-    sds_cn = get_typed_class(vt, 'SettingsDefineState')
-
-    global rasd_devid
-    rasd_devid = {
-            'ProcResourceAllocationSettingData' : '%s/%s' % (test_dom, 'proc'),
-            'NetResourceAllocationSettingData'  : '%s/%s' % (test_dom, test_mac),
-            'DiskResourceAllocationSettingData' : '%s/%s' % (test_dom, test_disk),
-            'MemResourceAllocationSettingData'  : '%s/%s' % (test_dom, 'mem')}
-
-    global dev_devid
-    dev_devid = {
-            'Processor'   : '%s/%s' % (test_dom, test_vcpus-1),
-            'NetworkPort' : '%s/%s' % (test_dom, test_mac),
-            'LogicalDisk' : '%s/%s' % (test_dom, test_disk),
-            'Memory'      : '%s/%s' % (test_dom, 'mem')}
-
     try:
-        assocn = assoc.AssociatorNames(options.ip, vssdc_cn, vssd_cn,
-                                       InstanceID = instIdval)
+        rasds, status = init_rasd_list(virt, options.ip, test_dom)
+        if status != PASS:
+            raise Exception("Unable to build rasd instance list")
+
+        vssdc_cn = get_typed_class(virt, 'VirtualSystemSettingDataComponent')
+        vssd_cn = get_typed_class(virt, 'VirtualSystemSettingData')
+
+        assoc = AssociatorNames(options.ip, vssdc_cn, vssd_cn,
+                                InstanceID = instIdval)
+
+        status = verify_rasd(virt, assoc, rasds, test_dom)
+        if status != PASS:
+            raise Exception("Failed to verify RASDs")
+
+        if len(assoc) != len(rasds):
+            raise Exception("Got %d RASDs, exp %d" % (len(assoc), len(rasds)))
+
+        sds_cn = get_typed_class(virt, 'SettingsDefineState')
+
+        devs, status = init_device_list(virt, options.ip, test_dom)
+        if status != PASS:
+            raise Exception("Unable to build device instance list")
+
+        for rasd in assoc:
+            rasd_cn = rasd.classname
+            sdc_assoc = AssociatorNames(options.ip, sds_cn, rasd_cn,
+                                        InstanceID = rasd['InstanceID'])
             
-        status = VSSDCAssoc(options.ip, assocn, options.virt)
+            if len(sdc_assoc) < 1:
+                raise Exception("%i dev insts for %s" % (len(sdc_assoc),
+                                rasd['InstanceID']))
 
-    except  Exception, detail :
-        logger.error(Globals.CIM_ERROR_ASSOCIATORS, vssdc_cn)
-        logger.error("Exception : %s" % detail)
-        status = FAIL 
+            status = verify_devices(sdc_assoc, devs)
+            if status != PASS:
+                raise Exception("Failed to verify devices")
 
-    cxml.destroy(options.ip)
+    except Exception, details:
+        logger.error(details)
+        status = FAIL
+
+    cxml.cim_destroy(options.ip)
     cxml.undefine(options.ip)
     return status
 
