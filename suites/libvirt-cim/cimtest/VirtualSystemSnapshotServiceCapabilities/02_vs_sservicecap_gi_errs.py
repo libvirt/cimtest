@@ -23,13 +23,8 @@
 # --------------
 # This tc is used to verify if appropriate exceptions are 
 # returned by VirtualSystemSnapshotServiceCapabilities on giving invalid inputs.
-# 1) Test by giving invalid Invalid InstanceID Key Name
-# Input:
-# ------
-# wbemcli gi  'http://localhost:5988/root/virt:\
-# KVM_VirtualSystemSnapshotServiceCapabilities.Wrong="SnapshotCapabilities"' -nl
 # 
-# 2) Test by passing Invalid InstanceID Key Value
+# 1) Test by passing Invalid InstanceID Key Value
 # Input:
 # ------
 # wbemcli gi  'http://localhost:5988/root/virt:\
@@ -41,50 +36,53 @@
 # -------
 # error code  : CIM_ERR_NOT_FOUND 
 # error desc  : "No such instance (InstanceID)"
-# 
-#                                                         Date: 25-03-2008
+
 import sys
-import pywbem
-from XenKvmLib import assoc
-from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
-from CimTest.ReturnCodes import PASS
-from XenKvmLib.common_util import try_getinstance
+from pywbem import CIM_ERR_NOT_FOUND, CIMError
+from pywbem.cim_obj import CIMInstanceName
+from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.Globals import logger
 from XenKvmLib.const import do_main
 from XenKvmLib.classes import get_typed_class
+from XenKvmLib.enumclass import GetInstance, CIM_CimtestClass
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
-expr_values = {
-                "invalid_instid" :  { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                      'desc' : 'No such instance (InstanceID)' }
-              }
-def verify_fields():
-    classname = get_typed_class(options.virt, "VirtualSystemSnapshotServiceCapabilities") 
-    return try_getinstance(conn, classname, keys, field_name=field, \
-                                 expr_values=expr_values['invalid_instid'], bug_no="")
 
 @do_main(sup_types)
 def main():
-    global options
     options = main.options
-    global conn
-    global keys
-    global field
-    conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, CIM_PASS), CIM_NS)
+    virt = options.virt
 
-    field = 'INVALID_Instid_KeyName'
-    keys = { field : "SnapshotCapabilities" }
-    status = verify_fields()
+    cn = get_typed_class(virt, 'VirtualSystemSnapshotServiceCapabilities')
+
+    expr_values = {
+                    'rc'   : CIM_ERR_NOT_FOUND,
+                    'desc' : "No such instance (InstanceID)"
+                  }
+
+    keys = { 'InstanceID' : 'INVALID_Instid_KeyValue' }
+
+    ref = CIMInstanceName(cn, keybindings=keys)
+
+    status = FAIL
+    try:
+        inst = CIM_CimtestClass(options.ip, ref)
+
+    except CIMError, (err_no, err_desc):
+        exp_rc    = expr_values['rc']
+        exp_desc  = expr_values['desc']
+
+        if err_no == exp_rc and err_desc.find(exp_desc) >= 0:
+            logger.info("Got expected exception: %s %s", exp_desc, exp_rc)
+            status = PASS
+        else:
+            logger.error("Unexpected errno %s and desc %s", err_no, err_desc)
+            logger.error("Expected %s %s", exp_desc, exp_rc)
+            status = FAIL
+
     if status != PASS:
-        logger.error("------ FAILED: to check INVALID_Instid_KeyName.------")
-        return status 
+        logger.error("------ FAILED: Invalid InstanceID Key Value.------")
 
-    field = 'INVALID_Instid_KeyValue'
-    keys = { 'InstanceID' : field }
-    status = verify_fields()
-    if status != PASS:
-        logger.error("------ FAILED: to check INVALID_Instid_KeyValue.------")
-        return status 
-
-    return PASS
+    return status 
 if __name__ == "__main__":
     sys.exit(main())
