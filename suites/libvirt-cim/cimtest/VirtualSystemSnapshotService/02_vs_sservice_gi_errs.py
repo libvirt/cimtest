@@ -24,236 +24,113 @@
 # This tc is used to verify if appropriate exceptions are 
 # returned by VirtualSystemSnapshotService on giving invalid inputs.
 # 
-#                                                         Date: 24-03-2008
-import sys
-import pywbem
-from XenKvmLib import assoc
-from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
-from CimTest.ReturnCodes import PASS
-from XenKvmLib.common_util import try_getinstance
-from XenKvmLib.const import do_main
-from XenKvmLib.classes import get_typed_class
-from XenKvmLib.common_util import get_host_info
-
-sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
-expr_values = {
-                "INVALID_CCName"    :  { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                          'desc' : 'No such instance (CreationClassName)' }, \
-                "INVALID_Name"      :  { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                          'desc' : 'No such instance (Name)' }, \
-                "INVALID_SCCName"   :  { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                          'desc' : 'No such instance (SystemCreationClassName)'}, \
-                "INVALID_SName"     :  { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                          'desc' : 'No such instance (SystemName)' }, 
-              }
-
-
-def verify_fields(keys):
-    classname = get_typed_class(options.virt, "VirtualSystemSnapshotService") 
-    return try_getinstance(conn, classname, keys, field_name=field, \
-                                 expr_values=expr_values[field], bug_no="")
-
-def err_invalid_ccname():
-# 1) Test by giving invalid CreationClassName Key Name
 # Input:
 # ------
-# wbemcli gi 'http://localhost:5988/root/virt:KVM_VirtualSystemSnapshotService. \
-# Wrong="KVM_VirtualSystemSnapshotService",Name="SnapshotService",\
-# SystemCreationClassName="KVM_HostSystem",SystemName="mx3650a.in.ibm.com"' -nl
-#
-# 2) Test by passing Invalid CreationClassName Key Value
-# Input:
-# ------
+# Invalid values for the following:  
+#   CreationClassName
+#   Name
+#   SystemCreationClassName
+#   SystemName
+#   
+# Format:
+# --------
 # wbemcli gi 'http://localhost:5988/root/virt:KVM_VirtualSystemSnapshotService. \
 # CreationClassName="Wrong",Name="SnapshotService",\
 # SystemCreationClassName="KVM_HostSystem",SystemName="mx3650a.in.ibm.com"' -nl
 # 
-# Inboth the cases the following exception is verified.
-# 
 # Output:
 # -------
 # error code  : CIM_ERR_NOT_FOUND 
-# error desc  :  "No such instance (CreationClassName)" 
-    keys = { field                     : ccn,  \
-             'Name'                    : name, \
-             'SystemCreationClassName' : sccn, \
-             'SystemName'              : sys_name
-           }
-    status = verify_fields(keys)
-    if status != PASS:
-        logger.error("------ FAILED: to check INVALID_CCName_KeyName.------")
-        return status
-    keys = { 'CreationClassName'       : field, \
-             'Name'                    : name,  \
-             'SystemCreationClassName' : sccn,  \
-             'SystemName'              : sys_name
-           }
-    status = verify_fields(keys)
-    if status != PASS:
-        logger.error("------ FAILED: to check INVALID_CCName_KeyValue.------")
-        return status
-    return PASS
+# error desc  :  "No such instance (CreationClassName)" (varies by key name)
 
-def err_invalid_name():
-# 1) Test by giving invalid Name Key Name
-# Input:
-# ------
-# wbemcli gi 'http://localhost:5988/root/virt:KVM_VirtualSystemSnapshotService. \
-# CreationClassName="KVM_VirtualSystemSnapshotService",Wrong="SnapshotService",\
-# SystemCreationClassName="KVM_HostSystem",SystemName="mx3650a.in.ibm.com"' -nl
-#
-# 2) Test by passing Invalid CreationClassName Key Value
-# Input:
-# ------
-# wbemcli gi 'http://localhost:5988/root/virt:KVM_VirtualSystemSnapshotService. \
-# CreationClassName="KVM_VirtualSystemSnapshotService",Name="Wrong",\
-# SystemCreationClassName="KVM_HostSystem",SystemName="mx3650a.in.ibm.com"' -nl
-# 
-# Inboth the cases the following exception is verified.
-# 
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND 
-# error desc  :  "No such instance (Name)" 
-#
-    keys = { 'CreationClassName'       : ccn,  \
-              field                    : name, \
-             'SystemCreationClassName' : sccn, \
-             'SystemName'              : sys_name
-           }
-    status = verify_fields(keys)
-    if status != PASS:
-        logger.error("------ FAILED: to check INVALID_Name_KeyName.------")
-        return status
-    keys = { 'CreationClassName'       : ccn,   \
-             'Name'                    : field, \
-             'SystemCreationClassName' : sccn,  \
-             'SystemName'              : sys_name
-           }
-    status = verify_fields(keys)
-    if status != PASS:
-        logger.error("------ FAILED: to check INVALID_Name_KeyValue.------")
-        return status
-    return PASS
+import sys
+import pywbem
+from pywbem import CIM_ERR_NOT_FOUND, CIMError
+from pywbem.cim_obj import CIMInstanceName
+from CimTest.Globals import logger
+from CimTest.ReturnCodes import PASS, FAIL
+from XenKvmLib.const import do_main
+from XenKvmLib.classes import get_typed_class
+from XenKvmLib.common_util import get_host_info
+from XenKvmLib.enumclass import GetInstance, CIM_CimtestClass, EnumInstances
 
-def err_invalid_sccname():
-# 1) Test by giving invalid SystemCreationClassName Key Name
-# Input:
-# ------
-# wbemcli gi 'http://localhost:5988/root/virt:KVM_VirtualSystemSnapshotService. \
-# CreationClassName="KVM_VirtualSystemSnapshotService",Name="SnapshotService",\
-# Wrong="KVM_HostSystem",SystemName="mx3650a.in.ibm.com"' -nl
-#
-# 2) Test by passing Invalid CreationClassName Key Value
-# Input:
-# ------
-# wbemcli gi 'http://localhost:5988/root/virt:KVM_VirtualSystemSnapshotService. \
-# CreationClassName="KVM_VirtualSystemSnapshotService",Name="SnapshotService",\
-# SystemCreationClassName="Wrong",SystemName="mx3650a.in.ibm.com"' -nl
-# 
-# Inboth the cases the following exception is verified.
-# 
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND 
-# error desc  :  "No such instance (SystemCreationClassName)" 
-#
-    keys = { 'CreationClassName'       : ccn,  \
-             'Name'                    : name, \
-             field                     : sccn, \
-             'SystemName'              : sys_name
-           }
-    status = verify_fields(keys)
-    if status != PASS:
-        logger.error("------ FAILED: to check INVALID_SCCName_KeyName.------")
-        return status
-    keys = { 'CreationClassName'       : ccn,   \
-             'Name'                    : name, \
-             'SystemCreationClassName' : field,  \
-             'SystemName'              : sys_name
-           }
-    status = verify_fields(keys)
-    if status != PASS:
-        logger.error("------ FAILED: to check INVALID_SCCName_KeyValue.------")
-        return status
-    return PASS
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
+expected_values = {
+ "invalid_ccname"  :  { 'rc'   : CIM_ERR_NOT_FOUND,
+                        'desc' : 'No such instance (CreationClassName)' },
+ "invalid_sccname" :  { 'rc'   : CIM_ERR_NOT_FOUND,
+                        'desc' : 'No such instance (SystemCreationClassName)' },
+ "invalid_name"    :  { 'rc'   : CIM_ERR_NOT_FOUND,
+                        'desc' : 'No such instance (Name)'},
+ "invalid_sysval"  :  { 'rc'   : CIM_ERR_NOT_FOUND,
+                        'desc' : 'No such instance (SystemName)' },
+              }
 
-def err_invalid_sname():
-# 1) Test by giving invalid SystemName Key Name
-# Input:
-# ------
-# wbemcli gi 'http://localhost:5988/root/virt:KVM_VirtualSystemSnapshotService. \
-# CreationClassName="KVM_VirtualSystemSnapshotService",Name="SnapshotService",\
-# SystemCreationClassName="KVM_HostSystem",Wrong="mx3650a.in.ibm.com"' -nl
-#
-# 2) Test by passing Invalid CreationClassName Key Value
-# Input:
-# ------
-# wbemcli gi 'http://localhost:5988/root/virt:KVM_VirtualSystemSnapshotService. \
-# CreationClassName="KVM_VirtualSystemSnapshotService",Name="SnapshotService",\
-# SystemCreationClassName="KVM_HostSystem",SystemName="Wrong"' -nl
-# 
-# Inboth the cases the following exception is verified.
-# 
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND 
-# error desc  :  "No such instance (SystemName)" 
-#
-    keys = { 'CreationClassName'       : ccn,  \
-             'Name'                    : name, \
-             'SystemCreationClassName' : sccn, \
-             field                     : sys_name
-           }
-    status = verify_fields(keys)
-    if status != PASS:
-        logger.error("------ FAILED: to check INVALID_SName_KeyName.------")
-        return status
-    keys = { 'CreationClassName'       : ccn,   \
-             'Name'                    : name, \
-             'SystemCreationClassName' : sccn,  \
-             'SystemName'              : field
-           }
-    status = verify_fields(keys)
-    if status != PASS:
-        logger.error("------ FAILED: to check INVALID_SName_KeyValue.------")
-        return status
-    return PASS
+def get_vsss_inst(virt, ip, cn):
+    try:
+        enum_list = EnumInstances(ip, cn)
+
+        if enum_list < 1:
+            logger.error("No %s instances returned", cn)
+            return None, FAIL
+
+        return enum_list[0], PASS
+
+    except Exception, details:
+        logger.error(details)
+
+    return None, FAIL
 
 @do_main(sup_types)
 def main():
-    global options
     options = main.options
-    global conn
-    global field
-    global ccn 
-    global name, sys_name, sccn
-    conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, CIM_PASS), CIM_NS)
-    ccn  = get_typed_class(options.virt, "VirtualSystemSnapshotService")
-    name = "SnapshotService"
-    status, host_inst = get_host_info(options.ip, options.virt)
-    if status != PASS:
-        return status
- 
-    sccn = host_inst.CreationClassName
-    sys_name = host_inst.Name
 
-    field = 'INVALID_CCName'
-    status = err_invalid_ccname()
+    ccn  = get_typed_class(options.virt, "VirtualSystemSnapshotService")
+
+    vsss, status = get_vsss_inst(options.virt, options.ip, ccn)
     if status != PASS:
         return status
-    field = 'INVALID_Name'
-    status = err_invalid_name()
-    if status != PASS:
-        return status
-    field = 'INVALID_SCCName'
-    status = err_invalid_sccname()
-    if status != PASS:
-        return status
-    field = 'INVALID_SName'
-    status = err_invalid_sname()
-    if status != PASS:
-        return status
-    return PASS
+
+    key_vals = { 'SystemName'              : vsss.SystemName,
+                 'CreationClassName'       : vsss.CreationClassName,
+                 'SystemCreationClassName' : vsss.SystemCreationClassName,
+                 'Name'                    : vsss.Name 
+               }
+
+    tc_scen = {
+                'invalid_ccname'   : 'CreationClassName',
+                'invalid_sccname'  : 'SystemCreationClassName',
+                'invalid_name'     : 'Name',
+                'invalid_sysval'   : 'SystemName',
+              }
+
+    for tc, field in tc_scen.iteritems():
+        status = FAIL
+
+        keys = key_vals.copy()
+        keys[field] = tc 
+        expr_values = expected_values[tc]
+
+        ref = CIMInstanceName(ccn, keybindings=keys)
+
+        try:
+            inst = CIM_CimtestClass(options.ip, ref)
+
+        except CIMError, (err_no, err_desc):
+            exp_rc    = expr_values['rc']
+            exp_desc  = expr_values['desc']
+
+            if err_no == exp_rc and err_desc.find(exp_desc) >= 0:
+                logger.info("Got expected exception: %s %s", exp_desc, exp_rc)
+                status = PASS
+            else:
+                logger.error("Unexpected errno %s, desc %s", err_no, err_desc)
+                logger.error("Expected %s %s", exp_desc, exp_rc)
+
+        if status != PASS:
+            logger.error("------ FAILED: %s ------", tc)
+            break
+
+    return status 
 if __name__ == "__main__":
     sys.exit(main())
