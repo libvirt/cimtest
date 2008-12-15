@@ -24,19 +24,12 @@
 # --------------
 # This tc is used to verify if appropriate exceptions are 
 # returned by Xen_RPCC on giving invalid inputs.
-# 1) Test by giving invalid Invalid InstanceID Key Name
-# Input:
-# ------
-# wbemcli gi http://localhost:5988/root/virt:\
-# Xen_ResourcePoolConfigurationCapabilities.Wrong="RPCC" -nl
 # 
-# 2) Test by passing Invalid InstanceID Key Value
+# 1) Test by passing Invalid InstanceID Key Value
 # Input:
 # ------
 # wbemcli gi http://localhost:5988/root/virt:\
 # Xen_ResourcePoolConfigurationCapabilities.InstanceID="Wrong" -nl
-# 
-# Inboth the cases the following exception is verified.
 # 
 # Output:
 # -------
@@ -46,43 +39,49 @@
 #                                                   -Date 20.02.2008
 
 import sys
-import pywbem
-from XenKvmLib import assoc
-from XenKvmLib.classes import get_typed_class
-from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
-from XenKvmLib.const import do_main
+from pywbem import CIM_ERR_NOT_FOUND, CIMError
+from pywbem.cim_obj import CIMInstanceName
 from CimTest.ReturnCodes import PASS, FAIL
-from XenKvmLib.common_util import try_getinstance
+from CimTest.Globals import logger
+from XenKvmLib.classes import get_typed_class
+from XenKvmLib.const import do_main
+from XenKvmLib.enumclass import GetInstance, CIM_CimtestClass
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
-
-expr_values = {
-                "invalid_instid" :  { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                      'desc' : 'No such instance (InstanceID)' }
-              }
 
 @do_main(sup_types)
 def main():
     options = main.options
-    status = PASS
-    conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, CIM_PASS), CIM_NS)
-    classname = get_typed_class(options.virt, 'ResourcePoolConfigurationCapabilities')
 
-    field = 'INVALID_Instid_KeyName'
-    keys = { field : "RPCC" }
-    ret_value = try_getinstance(conn, classname, keys, field_name=field, \
-                                 expr_values=expr_values['invalid_instid'], bug_no="")
-    if ret_value != PASS:
-        logger.error("------ FAILED: Invalid InstanceID Key Name.------")
-        status = ret_value
+    cn = get_typed_class(options.virt, 'ResourcePoolConfigurationCapabilities')
 
-    field = 'INVALID_Instid_KeyValue'
-    keys = { 'InstanceID' : field }
-    ret_value = try_getinstance(conn, classname, keys, field_name=field, \
-                                 expr_values=expr_values['invalid_instid'], bug_no="")
-    if ret_value != PASS:
+    expr_values = {
+                    'rc'   : CIM_ERR_NOT_FOUND,
+                    'desc' : "No such instance (InstanceID)"
+                  }
+
+    keys = { 'InstanceID' : 'INVALID_Instid_KeyValue' }
+
+    ref = CIMInstanceName(cn, keybindings=keys)
+
+    status = FAIL
+    try:
+        inst = CIM_CimtestClass(options.ip, ref)
+
+    except CIMError, (err_no, err_desc):
+        exp_rc    = expr_values['rc']
+        exp_desc  = expr_values['desc']
+
+        if err_no == exp_rc and err_desc.find(exp_desc) >= 0:
+            logger.info("Got expected exception: %s %s", exp_desc, exp_rc)
+            status = PASS
+        else:
+            logger.error("Unexpected errno %s and desc %s", err_no, err_desc)
+            logger.error("Expected %s %s", exp_desc, exp_rc)
+            status = FAIL
+
+    if status != PASS:
         logger.error("------ FAILED: Invalid InstanceID Key Value.------")
-        status = ret_value
 
     return status
 if __name__ == "__main__":
