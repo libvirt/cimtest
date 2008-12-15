@@ -20,272 +20,117 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 #
 # This tc is used to verify if appropriate exceptions are 
-# returned by Xen_RCPS on giving invalid inputs.
+# returned by ResourcePoolConfigurationService on giving invalid inputs.
 # 
-#         
-#                                                        Date : 17-02-2008
-
-import sys
-import pywbem
-from CimTest.ReturnCodes import PASS
-from XenKvmLib import assoc
-from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
-from XenKvmLib.common_util import get_host_info, try_getinstance
-from XenKvmLib.const import do_main
-from XenKvmLib.classes import get_typed_class
-
-platform_sup = ['Xen', 'KVM', 'XenFV', 'LXC']
-expr_values = {
-          "invalid_sysname" : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                'desc' : 'No such instance (SystemName)' }, \
-          "invalid_sccname" : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                'desc' : 'No such instance \
-(SystemCreationClassName)' }, \
-          "invalid_name"    : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                'desc' : 'No such instance (Name)' }, \
-          "invalid_ccname"  : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                'desc' : 'No such instance (CreationClassName)'}
-              }
-
-
-
-def err_invalid_ccname_keyname(conn, classname, hostname, sccname, field):
-# Input:
-# ------
-# wbemcli gi 'http://localhost:5988/root/virt:\
-# Xen_ResourcePoolConfigurationService.Wrong="Xen_ResourcePoolConfigurationService"\
-# ,Name="RPCS",SystemCreationClassName="Xen_HostSystem",SystemName="mx3650a.in.ibm.com"'
+# Input values for the following keys:
+# ------------------------------------
+#   CreationClassName
+#   Name
+#   SystemCreationClassName
+#   SystemName 
 # 
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND 
-# error desc  : "No such instance (CreationClassName)"
-#
-    keys = { 
-             field                     : classname, \
-             'Name'                    : 'RPCS', \
-             'SystemCreationClassName' : sccname, \
-             'SystemName'              : hostname 
-           }
-    return try_getinstance(conn, classname, keys, field_name=field, \
-                           expr_values=expr_values['invalid_ccname'], bug_no="")
-
-def err_invalid_ccname_keyvalue(conn, classname, hostname, sccname, field):
-# Input:
+# Format
 # ------
 # wbemcli gi 'http://localhost:5988/root/virt:\
 # Xen_ResourcePoolConfigurationService.CreationClassName="Wrong",\
-# Name="RPCS",SystemCreationClassName="Xen_HostSystem",SystemName="mx3650a.in.ibm.com"'
+# Name="RPCS",SystemCreationClassName="Xen_HostSystem",\
+# SystemName="mx3650a.in.ibm.com"'
+#
 # Output:
 # -------
 # error code  : CIM_ERR_NOT_FOUND 
-# error desc  : "No such instance (CreationClassName)"
+# error desc  : "No such instance (CreationClassName)" (varies by key name)
 #
-    keys = { 
-             'CreationClassName'       : field, \
-             'Name'                    : 'RPCS', \
-             'SystemCreationClassName' : sccname, \
-             'SystemName'              : hostname 
-           }
-    return try_getinstance(conn, classname, keys, field_name=field, \
-                           expr_values=expr_values['invalid_ccname'], bug_no="")
 
-def err_invalid_name_keyname(conn, classname, hostname, sccname, field):
-# Input:
-# ------
-# wbemcli gi 'http://localhost:5988/root/virt:\
-# Xen_ResourcePoolConfigurationService.CreationClassName=\
-# "Xen_ResourcePoolConfigurationService",Wrong="RCPS",\
-# SystemCreationClassName="Xen_HostSystem",SystemName="mx3650a.in.ibm.com"'
-# 
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No such instance (Name)" 
-#
-    keys = { 
-             'CreationClassName'       : classname, \
-             field                     : 'RPCS', \
-             'SystemCreationClassName' : sccname, \
-             'SystemName'              : hostname 
-           }
-    return try_getinstance(conn, classname, keys, field_name=field, \
-                           expr_values=expr_values['invalid_name'], bug_no="")
+import sys
+from pywbem import CIM_ERR_NOT_FOUND, CIMError
+from pywbem.cim_obj import CIMInstanceName
+from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.Globals import logger
+from XenKvmLib.const import do_main
+from XenKvmLib.classes import get_typed_class
+from XenKvmLib.enumclass import GetInstance, CIM_CimtestClass, EnumInstances
 
+platform_sup = ['Xen', 'KVM', 'XenFV', 'LXC']
 
-def err_invalid_name_keyvalue(conn, classname, hostname, sccname, field):
-# Input:
-# ------
-# wbemcli gi 'http://localhost:5988/root/virt:\
-# Xen_ResourcePoolConfigurationService.CreationClassName=\
-# "Xen_ResourcePoolConfigurationService",Name="Wrong",\
-# SystemCreationClassName="Xen_HostSystem",SystemName="mx3650a.in.ibm.com"'
-# 
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No such instance (Name)" 
-#
-    keys = { 
-             'CreationClassName'       : classname, \
-             'Name'                    : field, \
-             'SystemCreationClassName' : sccname, \
-             'SystemName'              : hostname 
-           }
-    return try_getinstance(conn, classname, keys, field_name=field, \
-                           expr_values=expr_values['invalid_name'], bug_no="")
+expected_values = {
+ "invalid_ccname"  :  { 'rc'   : CIM_ERR_NOT_FOUND,
+                        'desc' : 'No such instance (CreationClassName)' },
+ "invalid_sccname" :  { 'rc'   : CIM_ERR_NOT_FOUND,
+                        'desc' : 'No such instance (SystemCreationClassName)' },
+ "invalid_name"    :  { 'rc'   : CIM_ERR_NOT_FOUND,
+                        'desc' : 'No such instance (Name)'},
+ "invalid_sysval"  :  { 'rc'   : CIM_ERR_NOT_FOUND,
+                        'desc' : 'No such instance (SystemName)' },
+              }
 
+def get_rpcs_inst(virt, ip, cn):
+    try:
+        enum_list = EnumInstances(ip, cn)
 
-def err_invalid_sccname_keyname(conn, classname, hostname, sccname, field):
-# Input:
-# ------
-# wbemcli gi 'http://localhost:5988/root/virt:\
-# Xen_ResourcePoolConfigurationService.CreationClassName=\
-# "Xen_ResourcePoolConfigurationService",Name="RPCS",\
-# Wrong="Xen_HostSystem",SystemName="mx3650a.in.ibm.com"'
-# 
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No such instance (SystemCreationClassName)"  
-#
-    keys = { 
-             'CreationClassName'       : classname, \
-             'Name'                    : 'RPCS', \
-             field                     : sccname, \
-             'SystemName'              : hostname 
-           }
-    return try_getinstance(conn, classname, keys, field_name=field, \
-                           expr_values=expr_values['invalid_sccname'], 
-                           bug_no="")
+        if len(enum_list) != 1:
+            logger.error("No %s instances returned", cn)
+            return None, FAIL
 
-def err_invalid_sccname_keyvalue(conn, classname, hostname, field):
-# Input:
-# ------
-# wbemcli gi 'http://localhost:5988/root/virt:\
-# Xen_ResourcePoolConfigurationService.CreationClassName=\
-# "Xen_ResourcePoolConfigurationService",Name="RPCS",\
-# SystemCreationClassName="Wrong",SystemName="mx3650a.in.ibm.com"'
-# 
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No such instance (SystemCreationClassName)"  
-#
-    keys = { 
-             'CreationClassName'       : classname, \
-             'Name'                    : 'RPCS', \
-             'SystemCreationClassName' : field, \
-             'SystemName'              : hostname 
-           }
-    return try_getinstance(conn, classname, keys, field_name=field, \
-                           expr_values=expr_values['invalid_sccname'], 
-                           bug_no="")
+        return enum_list[0], PASS
 
-def err_invalid_sysname_keyname(conn, classname, hostname, sccname, field):
-# Input:
-# ------
-# wbemcli gi 'http://localhost:5988/root/virt:\
-# Xen_ResourcePoolConfigurationService.CreationClassName=\
-# "Xen_ResourcePoolConfigurationService",Name="RPCS",\
-# SystemCreationClassName="Xen_HostSystem",Wrong="mx3650a.in.ibm.com"'
-# 
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No such instance (SystemName)"
-#
-    keys = { 
-             'CreationClassName'       : classname, \
-             'Name'                    : 'RPCS', \
-             'SystemCreationClassName' : sccname, \
-             field                     : hostname 
-           }
-    return try_getinstance(conn, classname, keys, field_name=field, \
-                           expr_values=expr_values['invalid_sysname'], 
-                           bug_no="")
+    except Exception, details:
+        logger.error(details)
 
-def err_invalid_sysname_keyvalue(conn, classname, sccname, field):
-# Input:
-# ------
-# wbemcli gi 'http://localhost:5988/root/virt:\
-# Xen_ResourcePoolConfigurationService.CreationClassName=\
-# "Xen_ResourcePoolConfigurationService",Name="RPCS",\
-# SystemCreationClassName="Xen_HostSystem",SystemName="Wrong"'
-# 
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No such instance (SystemName)"
-#
-    keys = { 
-             'CreationClassName'       : classname, \
-             'Name'                    : 'RPCS', \
-             'SystemCreationClassName' : sccname, \
-             'SystemName'              : field 
-           }
-    return try_getinstance(conn, classname, keys, field_name=field, \
-                           expr_values=expr_values['invalid_sysname'], 
-                           bug_no="")
-
+    return None, FAIL
 
 @do_main(platform_sup)
 def main():
     options = main.options
-    status = PASS 
     server = options.ip
-    conn = assoc.myWBEMConnection('http://%s' % options.ip, 
-                                  (CIM_USER, CIM_PASS), CIM_NS)
     virt = options.virt
-    status, host_inst = get_host_info(server, virt)
+
+    cn = get_typed_class(virt, 'ResourcePoolConfigurationService')
+
+    rpcs, status = get_rpcs_inst(options.virt, options.ip, cn)
     if status != PASS:
-        logger.error("Problem getting host information")
         return status
 
-    sccname = host_inst.CreationClassName
-    hostname = host_inst.Name
+    key_vals = { 'SystemName'              : rpcs.SystemName,
+                 'CreationClassName'       : rpcs.CreationClassName,
+                 'SystemCreationClassName' : rpcs.SystemCreationClassName,
+                 'Name'                    : rpcs.Name 
+               }
 
-    classname = get_typed_class(virt, 'ResourcePoolConfigurationService')
-    ret_value = err_invalid_ccname_keyname(conn, classname, hostname, sccname, \
-                                                 field='INVALID_CCName_KeyName') 
-    if ret_value != PASS:
-        logger.error("------ FAILED: Invalid CCName Key Name.------")
-        status = ret_value
-    ret_value = err_invalid_ccname_keyvalue(conn, classname, hostname, sccname, \
-                                            field='INVALID_CCName_KeyValue') 
-    if ret_value != PASS:
-        logger.error("------ FAILED: Invalid CCName Key Value.------")
-        status = ret_value
-    ret_value = err_invalid_name_keyname(conn, classname, hostname, sccname, \
-                                         field='INVALID_Name_KeyName') 
-    if ret_value != PASS:
-        logger.error("------ FAILED: Invalid Name Key Name.------")
-        status = ret_value
-    ret_value = err_invalid_name_keyvalue(conn, classname, hostname, sccname, \
-                                          field='INVALID_CCName_KeyValue') 
-    if ret_value != PASS:
-        logger.error("------ FAILED: Invalid Name Key Value.------")
-        status = ret_value
-    ret_value = err_invalid_sccname_keyname(conn, classname, hostname, sccname,
-                                            field='INVALID_Sys_CCName_KeyName') 
-    if ret_value != PASS:
-        logger.error("------ FAILED: Invalid System CreationClassName Key Name.------")
-        status = ret_value
-    ret_value = err_invalid_sccname_keyvalue(conn, classname, hostname, \
-                                            field='INVALID_Sys_CCName_KeyValue') 
-    if ret_value != PASS:
-        logger.error("------ FAILED: Invalid System CreationClassName Key Value.------")
-        status = ret_value
-    ret_value = err_invalid_sysname_keyname(conn, classname, hostname, sccname,
-                                            field='INVALID_SysName_KeyName') 
-    if ret_value != PASS:
-        logger.error("------ FAILED: Invalid SystemName Key Name.------")
-        status = ret_value
-    ret_value = err_invalid_sysname_keyvalue(conn, classname, sccname, \
-                                             field='INVALID_SysName_KeyValue') 
-    if ret_value != PASS:
-        logger.error("------ FAILED: Invalid SystemName Key Value.------")
-        status = ret_value
+    tc_scen = {
+                'invalid_ccname'   : 'CreationClassName',
+                'invalid_sccname'  : 'SystemCreationClassName',
+                'invalid_name'     : 'Name',
+                'invalid_sysval'   : 'SystemName',
+              }
+
+    for tc, field in tc_scen.iteritems():
+        status = FAIL
+
+        keys = key_vals.copy()
+        keys[field] = tc 
+        expr_values = expected_values[tc]
+
+        ref = CIMInstanceName(cn, keybindings=keys)
+
+        try:
+            inst = CIM_CimtestClass(server, ref)
+
+        except CIMError, (err_no, err_desc):
+            exp_rc    = expr_values['rc']
+            exp_desc  = expr_values['desc']
+
+            if err_no == exp_rc and err_desc.find(exp_desc) >= 0:
+                logger.info("Got expected exception: %s %s", exp_desc, exp_rc)
+                status = PASS
+            else:
+                logger.error("Unexpected errno %s, desc %s", err_no, err_desc)
+                logger.error("Expected %s %s", exp_desc, exp_rc)
+
+        if status != PASS:
+            logger.error("------ FAILED: %s ------", tc)
+            break
+
     return status
 if __name__ == "__main__":
     sys.exit(main())
