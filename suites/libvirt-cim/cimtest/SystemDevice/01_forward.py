@@ -98,7 +98,14 @@ def main():
         if curr_cim_rev >= input_graphics_pool_rev:
             input_cn = get_typed_class(virt, "PointingDevice")
             graphics_cn = get_typed_class(virt, "DisplayController")
-            exp_pllist[input_cn] = ['%s/mouse:ps2' % test_dom]
+            if virt == 'XenFV':
+                point_device = "%s/%s" %(test_dom, "mouse:usb")
+            elif virt == 'Xen':
+                point_device = "%s/%s" %(test_dom, "mouse:xen")
+            else:
+                point_device = "%s/%s" %(test_dom, "mouse:ps2")
+
+            exp_pllist[input_cn] = [point_device]
             exp_pllist[graphics_cn] = ['%s/graphics' % test_dom]
 
  
