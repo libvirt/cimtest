@@ -38,6 +38,8 @@ cpu = 2
 RECOVERY_VAL = 3
 DEFINED_STATE = 3
 bug = "00008"
+f9_bug = "00010"
+libvirt_f9_revision=613
 libvirt_modify_setting_changes = 694
 
 def cleanup_env(ip, cxml):
@@ -127,6 +129,10 @@ def main():
             logger.error("Exp AutomaticRecoveryAction=%d, got %d", RECOVERY_VAL,
                          inst.AutomaticRecoveryAction)
             cleanup_env(options.ip, cxml)
+            curr_cim_rev, changeset = get_provider_version(options.virt, options.ip)
+            if curr_cim_rev <= libvirt_f9_revision and options.virt == "KVM":
+                return XFAIL_RC(f9_bug)
+
             if options.virt == "LXC":
                 return XFAIL_RC(bug)
             return FAIL 
