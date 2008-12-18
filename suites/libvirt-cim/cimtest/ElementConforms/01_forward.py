@@ -44,7 +44,7 @@ from XenKvmLib import vxml
 from CimTest import Globals 
 from XenKvmLib.common_util import get_host_info 
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
-from XenKvmLib.const import do_main, get_provider_version 
+from XenKvmLib.const import do_main, get_provider_version, sles11_changeset 
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.enumclass import EnumInstances
 
@@ -61,12 +61,17 @@ def  init_managed_ele_values(server, virt):
 
     cn_names = ["ComputerSystem"]
 
-    curr_cim_rev, changeset = get_provider_version(virt, server)
-    if curr_cim_rev >= libvirt_cim_ectp_changes:
+    curr_rev, changeset = get_provider_version(virt, server)
+    if curr_rev >= libvirt_cim_ectp_changes:
         cn_names2 = ["VirtualSystemMigrationService", "DiskPool", "NetworkPool",
                      "ProcessorPool", "MemoryPool", "AllocationCapabilities"]
         cn_names.extend(cn_names2)
-    if curr_cim_rev >= libvirt_cim_input_graphics_ectp:
+
+    if changeset == sles11_changeset:
+        cn_names2 = ["DiskPool", "NetworkPool", "ProcessorPool"]
+        cn_names.extend(cn_names2)
+
+    if curr_rev >= libvirt_cim_input_graphics_ectp:
         cn_names.append("ConsoleRedirectionService")
 
     status, host_inst = get_host_info(server, virt)

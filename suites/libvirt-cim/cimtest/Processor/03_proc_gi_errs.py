@@ -54,7 +54,7 @@ from CimTest.Globals import logger
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.vxml import get_class
 from XenKvmLib.test_doms import destroy_and_undefine_all
-from XenKvmLib.const import do_main, get_provider_version
+from XenKvmLib.const import do_main, get_provider_version, sles11_changeset
 from XenKvmLib.enumclass import GetInstance, CIM_CimtestClass, EnumInstances
 
 sup_types = ['Xen', 'KVM', 'XenFV']
@@ -109,7 +109,7 @@ def main():
         return FAIL
 
     rev, changeset = get_provider_version(options.virt, options.ip)
-    if rev < err_msg_changeset:
+    if rev < err_msg_changeset and changeset != sles11_changeset:
         old_ret = { 'rc' : CIM_ERR_NOT_FOUND,
                     'desc' : "No such instance (invalid_devid)"
                   }

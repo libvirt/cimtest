@@ -23,14 +23,16 @@ import platform
 import traceback
 from optparse import OptionParser
 from VirtLib.live import fv_cap
+from VirtLib.utils import run_remote 
 from CimTest.Globals import CIM_IP
 from pywbem import WBEMConnection
 from XenKvmLib.classes import get_typed_class
 
 platform_sup = ["Xen", "KVM", "XenFV"]
 
-#RPM changeset values
+#Distro changeset values
 f9_changeset="1fcf330fadf8+"
+sles11_changeset="SLES_11"
 
 VIRSH_ERROR_DEFINE = "Failed to define a domain with the name %s from virsh"
 
@@ -152,6 +154,11 @@ def do_main(types=['Xen'], p=parser):
 
 
 def get_provider_version(virt, ip):
+    cmd = "cat /etc/issue | grep 'SUSE Linux Enterprise Server 11'"
+    rc, out = run_remote(ip, cmd)
+    if rc == 0:
+        return 0, sles11_changeset 
+
     conn = WBEMConnection('http://%s' % ip,
                           (os.getenv('CIM_USER'), os.getenv('CIM_PASS')),
                           os.getenv('CIM_NS'))

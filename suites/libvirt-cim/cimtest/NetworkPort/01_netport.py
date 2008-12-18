@@ -37,9 +37,8 @@ from XenKvmLib.enumclass import GetInstance
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from CimTest.Globals import logger
-from XenKvmLib.const import do_main
+from XenKvmLib.const import do_main, get_provider_version, sles11_changeset
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
-from XenKvmLib.const import get_provider_version 
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 
@@ -53,7 +52,7 @@ def get_linktech(ip, virt):
 
     # The value of LinkTechnology should be set to 0 for rev > 599
     # else, it should be set to 2
-    if net_rev > rev:
+    if net_rev > rev and changeset != sles11_changeset:
         return 0
     else:
         return 2

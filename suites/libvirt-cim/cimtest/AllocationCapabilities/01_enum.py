@@ -27,7 +27,8 @@
 
 import sys
 from XenKvmLib.enumclass import EnumInstances 
-from XenKvmLib.const import do_main, platform_sup, get_provider_version
+from XenKvmLib.const import do_main, platform_sup, get_provider_version, \
+                            sles11_changeset
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.common_util import cleanup_restore 
@@ -42,8 +43,8 @@ def enum_pools(ip, ac_cn, virt):
           get_typed_class(virt, 'DiskPool'), 
           get_typed_class(virt, 'NetworkPool')]
 
-    curr_cim_rev, changeset = get_provider_version(virt, ip)
-    if curr_cim_rev >= input_graphics_pool_rev:
+    curr_rev, changeset = get_provider_version(virt, ip)
+    if curr_rev >= input_graphics_pool_rev and changeset != sles11_changeset:
           pt.append(get_typed_class(virt, 'GraphicsPool'))
           pt.append(get_typed_class(virt, 'InputPool'))
 
