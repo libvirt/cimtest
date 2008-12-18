@@ -22,118 +22,82 @@
 # This tc is used to verify if appropriate exceptions are
 # returned by ResourcePool providers on giving invalid inputs.
 #
+# Input:
+# ------
+# wbemcli gi 'http://localhost:5988/root/virt:KVM_DiskPool.InstanceID="Wrong"'
 #
-#                                                        Date : 19-02-2008
+# Output:
+# -------
+# error code  : CIM_ERR_NOT_FOUND
+# error desc  : "No such instance (Invalid_Keyvalue)"
+#
 
-import os
 import sys
-import pywbem
-from XenKvmLib.xm_virt_util import net_list
-from XenKvmLib import assoc
-from XenKvmLib import vxml
-from XenKvmLib.common_util import try_getinstance
+from pywbem import CIM_ERR_NOT_FOUND, CIMError
+from pywbem.cim_obj import CIMInstanceName
+from CimTest.ReturnCodes import PASS, FAIL, SKIP
+from CimTest.Globals import logger
 from XenKvmLib.classes import get_typed_class
-from distutils.file_util import move_file
-from CimTest.ReturnCodes import PASS, SKIP
-from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
-from XenKvmLib.const import do_main, default_pool_name
+from XenKvmLib.const import do_main
+from XenKvmLib.enumclass import GetInstance, CIM_CimtestClass
+from XenKvmLib.pool import enum_pools
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
-expr_values = {
-        "invalid_keyname"  : { 'rc'   : pywbem.CIM_ERR_FAILED,
-                               'desc' : 'Missing InstanceID' },
-        "invalid_keyvalue" : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND,
-                               'desc' : 'No such instance (Invalid_Keyvalue)'}
-        }
+def init_pool_list(virt, ip):
+    pool_insts = {}
 
-def err_invalid_instid_keyname(conn, classname, instid):
-    # Input:
-    # ------
-    # wbemcli gi '<scheme>://[user:pwd@]<host>:<port>/<namespace:<ClassName>.
-    # Invalid_Keyname="<InstanceID>"'
-    #
-    # Output:
-    # -------
-    # error code  : CIM_ERR_FAILED
-    # error desc  : "Missing InstanceID"
-    #
-    key = {'Invalid_Keyname' : instid}
-    return try_getinstance(conn, classname, key,
-                           field_name='INVALID_InstID_KeyName',
-                           expr_values=expr_values['invalid_keyname'],
-                           bug_no="")
+    pools, status = enum_pools(virt, ip)
+    if status != PASS:
+        return pool_insts, status
 
+    for pool_cn, pool_list in pools.iteritems():
+        if len(pool_list) < 1:
+             logger.error("Got %d %s, exp at least 1", len(pool_list), pool_cn)
+             return pool_insts, FAIL
 
-def err_invalid_instid_keyvalue(conn, classname):
-    # Input:
-    # ------
-    # wbemcli gi '<scheme>://[user:pwd@]<host>:<port>/<namespace:<ClassName>.
-    # InstanceID="Invalid_Keyvalue"
-    #
-    # Output:
-    # -------
-    # error code  : CIM_ERR_NOT_FOUND
-    # error desc  : "No such instance (Invalid_Keyvalue)"
-    #
-    key = {'InstanceID' : 'Invalid_Keyvalue'}
-    return try_getinstance(conn, classname, key,
-                           field_name='INVALID_InstID_KeyValue',
-                           expr_values=expr_values['invalid_keyvalue'],
-                           bug_no="")
-
+    return pool_insts, PASS
 
 @do_main(sup_types)
 def main():
-    ip = main.options.ip
-    if main.options.virt == "XenFV":
-        virt = "Xen"
-    else:
-        virt = main.options.virt
-    conn = assoc.myWBEMConnection('http://%s' % ip, (CIM_USER, CIM_PASS),
-                                  CIM_NS)
+    options = main.options
 
-    # Verify the Virtual Network on the machine.
-    vir_network = net_list(ip, virt)
-    if len(vir_network) > 0:
-        test_network = vir_network[0]
-    else:
-        bridgename   = 'testbridge'
-        test_network = 'default-net'
-        netxml = vxml.NetXML(ip, bridgename, test_network, virt)
-        ret = netxml.create_vnet()
-        if not ret:
-            logger.error("Failed to create the Virtual Network '%s'",
-                         test_network)
-            return SKIP
-    netid = "%s/%s" % ("NetworkPool", test_network)
+    expr_values = {
+                    'rc'   : CIM_ERR_NOT_FOUND,
+                    'desc' : 'No such instance (Invalid_Keyvalue)'
+                  }
 
-    if virt == 'LXC':
-        cn_instid_list = {
-                          get_typed_class(virt, "MemoryPool")    : "MemoryPool/0",
-                          get_typed_class(virt, "NetworkPool")   : netid,
-                          get_typed_class(virt, "ProcessorPool") : "ProcessorPool/0"
-                         }
-    else:
-        cn_instid_list = {
-                          get_typed_class(virt, "DiskPool")      : "DiskPool/foo",
-                          get_typed_class(virt, "MemoryPool")    : "MemoryPool/0",
-                          get_typed_class(virt, "NetworkPool")   : netid,
-                          get_typed_class(virt, "ProcessorPool") : "ProcessorPool/0"
-                          }
+    pools, status = init_pool_list(options.virt, options.ip)
+    if status != PASS:
+        logger.error("Unable to build pool instance list")
+        return status
+   
+    keys = { 'InstanceID' : 'INVALID_Instid_KeyValue' }
 
-    for cn, instid in cn_instid_list.items():
-        ret_value = err_invalid_instid_keyname(conn, cn, instid)
-        if ret_value != PASS:
-            logger.error("------ FAILED: Invalid InstanceID Key Name.------")
-            return  ret_value
+    for cn, pool_list in pools.iteritems():
+        status = FAIL
 
-        ret_value = err_invalid_instid_keyvalue(conn, cn)
-        if ret_value != PASS:
-            logger.error("------ FAILED: Invalid InstanceID Key Value.------")
-            return ret_value
+        ref = CIMInstanceName(cn, keybindings=keys)
 
-    return PASS
+        try:
+            inst = CIM_CimtestClass(options.ip, ref)
+
+        except CIMError, (err_no, err_desc):
+            exp_rc    = expr_values['rc']
+            exp_desc  = expr_values['desc']
+
+            if err_no == exp_rc and err_desc.find(exp_desc) >= 0:
+                logger.info("Got expected exception: %s %s", exp_desc, exp_rc)
+                status = PASS
+            else:
+                logger.error("Unexpected errno %s, desc %s", err_no, err_desc)
+                logger.error("Expected %s %s", exp_desc, exp_rc)
+
+        if status != PASS:
+            logger.error("------ FAILED: %s %s ------", cn, tc)
+            break
+
+    return status 
 
 if __name__ == "__main__":
     sys.exit(main())
