@@ -24,127 +24,114 @@
 # Test Case Info:
 # --------------
 # This tc is used to verify if appropriate exceptions are
-# returned by Xen_ComputerSystem on giving invalid inputs.
+# returned by ComputerSystem on giving invalid inputs.
 #
-# 1) Test by passing Invalid Name Key Value
+# 1) Test by passing Invalid Key Values for the following
 # Input:
 # ------
+#    CreationClassName
+#    Name
+#
+# Format:
+# --------
 # wbemcli gi http://localhost:5988/root/virt:Xen_ComputerSystem.\
 # CreationClassName="Xen_ComputerSystem",Name="INVALID_Name_KeyValue" -nl
 #
 # Output:
 # -------
 # error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No such instance (INVALID_Name_KeyValue)"
+# error desc  : "No such instance (INVALID_Name_KeyValue)" (varies by key)
 #
-# 2) Test by giving Invalid Name Key Name
-# Input:
-# ------
-# wbemcli gi http://localhost:5988/root/virt:Xen_ComputerSystem.\
-# CreationClassName="Xen_ComputerSystem",INVALID_Name_KeyName="Domain-0" -nl
-#
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No domain name specified"
-#
-# 3) Test by passing Invalid CCName Key Value
-# Input:
-# ------
-# wbemcli gi http://localhost:5988/root/virt:Xen_ComputerSystem.\
-# CreationClassName="Xen_INVALID_CCName_KeyValue",Name="Domain-0" -nl
-#
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No such instance (CreationClassName)"
-#
-# 4) Test by giving Invalid CCName Key Name
-# Input:
-# ------
-# wbemcli gi http://localhost:5988/root/virt:Xen_ComputerSystem.\
-# INVALID_CCName_KeyName="Xen_ComputerSystem",Name="Domain-0" -nl
-#
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No such instance (CreationClassName)"
-#                                                   -Date 22.02.2008
 
 import sys
-import pywbem
-from VirtLib import utils
-from XenKvmLib import assoc
+from pywbem import CIM_ERR_NOT_FOUND, CIMError
+from pywbem.cim_obj import CIMInstanceName
+from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.Globals import logger
 from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.common_util import try_getinstance
-from CimTest.ReturnCodes import PASS, FAIL
-from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
-from XenKvmLib.const import do_main, VIRSH_ERROR_DEFINE
-
+from XenKvmLib.const import do_main
+from XenKvmLib.enumclass import GetInstance, CIM_CimtestClass, EnumInstances
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
-expr_values = {
-    "invalid_name_keyvalue"   : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                 'desc' : "No such instance (INVALID_Name_KeyValue)" }, \
-    "invalid_name_keyname"    : {'rc'   : pywbem.CIM_ERR_FAILED, \
-                                 'desc' : "No domain name specified" }, \
-    "invalid_ccname"          : {'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                 'desc' : "No such instance (CreationClassName)" }
-              }
+expected_values = {
+           "invalid_name"   : {'rc'   : CIM_ERR_NOT_FOUND,
+                               'desc' : "No such instance (invalid_name)" },
+           "invalid_ccname" : {'rc'   : CIM_ERR_NOT_FOUND,
+                               'desc' : "No such instance (CreationClassName)" }
+                  }
 
+
+def get_cs_inst(virt, ip, cn, guest_name):
+    try:
+        enum_list = EnumInstances(ip, cn)
+
+        if enum_list < 1:
+            logger.error("No %s instances returned", cn)
+            return None, FAIL
+
+        for guest in enum_list:
+            if guest.Name == guest_name:
+                return guest, PASS
+
+    except Exception, details:
+        logger.error(details)
+
+    return None, FAIL
 
 @do_main(sup_types)
 def main():
     options = main.options
 
-    inst_ccname = classname = get_typed_class(options.virt, 'ComputerSystem')
     inst_name = 'ETdomain'
     cxml = vxml.get_class(options.virt)(inst_name)
     ret = cxml.cim_define(options.ip)
     if not ret:
-        logger.error(VIRSH_ERROR_DEFINE % inst_name)
+        logger.error("Unable to define guest %s", inst_name)
         return FAIL
 
-    status = PASS
-    conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, CIM_PASS), CIM_NS)
+    cn = get_typed_class(options.virt, 'ComputerSystem')
 
-    # 1) Test by passing Invalid Name Key Value
-    field = 'INVALID_Name_KeyValue'
-    keys = { 'Name' : field, 'CreationClassName' : inst_ccname }
-    ret_value = try_getinstance(conn, classname, keys, field_name=field, \
-                                 expr_values=expr_values['invalid_name_keyvalue'], bug_no="")
-    if ret_value != PASS:
-        logger.error("------ FAILED: Invalid Name Key Value.------")
-        status = ret_value
+    cs, status = get_cs_inst(options.virt, options.ip, cn, inst_name)
+    if status != PASS:
+        return status
 
-    # 2) Test by giving Invalid Name Key Name
-    field = 'INVALID_Name_KeyName'
-    keys = { field : inst_name, 'CreationClassName' : inst_ccname }
-    ret_value = try_getinstance(conn, classname, keys, field_name=field, \
-                                 expr_values=expr_values['invalid_name_keyname'], bug_no="")
-    if ret_value != PASS:
-        logger.error("------ FAILED: Invalid Name Key Name.------")
-        status = ret_value
+    key_vals = { 'Name'               : cs.Name,
+                 'CreationClassName'  : cs.CreationClassName,
+               }
 
-    # 3) Test by passing Invalid CCName Key Value
-    field = 'INVALID_CCName_KeyValue'
-    keys = { 'Name' : inst_name, 'CreationClassName' : field }
-    ret_value = try_getinstance(conn, classname, keys, field_name=field, \
-                                 expr_values=expr_values['invalid_ccname'], bug_no="")
-    if ret_value != PASS:
-        logger.error("------ FAILED: Invalid CCName Key Value.------")
-        status = ret_value
+    tc_scen = {
+                'invalid_name'     : 'Name',
+                'invalid_ccname'   : 'CreationClassName',
+              }
 
-    # 4) Test by giving Invalid CCName Key Name
-    field = 'INVALID_CCName_KeyName'
-    keys = { 'Name' : inst_name, field : inst_ccname }
-    ret_value = try_getinstance(conn, classname, keys, field_name=field, \
-                                 expr_values=expr_values['invalid_ccname'], bug_no="")
-    if ret_value != PASS:
-        logger.error("------ FAILED: Invalid CCName Key Name.------")
-        status = ret_value
+    for tc, field in tc_scen.iteritems():
+        status = FAIL
+
+        keys = key_vals.copy()
+        keys[field] = tc
+        expr_values = expected_values[tc]
+
+        ref = CIMInstanceName(cn, keybindings=keys)
+
+        try:
+            inst = CIM_CimtestClass(options.ip, ref)
+
+        except CIMError, (err_no, err_desc):
+            exp_rc    = expr_values['rc']
+            exp_desc  = expr_values['desc']
+
+            if err_no == exp_rc and err_desc.find(exp_desc) >= 0:
+                logger.info("Got expected exception: %s %s", exp_desc, exp_rc)
+                status = PASS
+            else:
+                logger.error("Unexpected errno %s, desc %s", err_no, err_desc)
+                logger.error("Expected %s %s", exp_desc, exp_rc)
+
+        if status != PASS:
+            logger.error("------ FAILED: %s ------", tc)
+            break
 
     cxml.undefine(options.ip)
     return status
