@@ -25,18 +25,7 @@
 # This tc is used to verify if appropriate exceptions are
 # returned by Xen_RegisteredProfile on giving invalid inputs.
 #
-# 1) Test by passing Invalid InstanceID Key Value
-# Input:
-# ------
-# wbemcli gi http://localhost:5988/root/interop:\
-# Xen_RegisteredProfile.InstanceID="Wrong" -nl
-#
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND
-# error desc  : "Profile instance not found"
-#
-# 2) Test by giving Invalid InstanceID Key Name
+# 1) Test by giving Invalid InstanceID Key Name
 # Input:
 # ------
 # wbemcli gi http://localhost:5988/root/interop:\
@@ -46,26 +35,18 @@
 # -------
 # error code  : CIM_ERR_FAILED
 # error desc  : "No InstanceID specified"
-#                                                   -Date 25.02.2008
 
 import sys
-import pywbem
-from VirtLib import utils
-from XenKvmLib import assoc
-from XenKvmLib.common_util import try_getinstance
+from pywbem import CIM_ERR_NOT_FOUND, CIMError
+from pywbem.cim_obj import CIMInstanceName
 from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.Globals import logger
 from CimTest import Globals
 from XenKvmLib.const import do_main
+from XenKvmLib.classes import get_typed_class
+from XenKvmLib.enumclass import GetInstance, CIM_CimtestClass
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
-
-expr_values = {
-                "invalid_instid_keyvalue" :  { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                               'desc' : "No such instance" },
-                "invalid_instid_keyname" :  {  'rc'   : pywbem.CIM_ERR_FAILED, \
-                                               'desc' : "No InstanceID specified" } \
-              }
-
 
 @do_main(sup_types)
 def main():
@@ -73,32 +54,35 @@ def main():
 
     prev_namespace = Globals.CIM_NS
     Globals.CIM_NS = 'root/interop'
-    classname = 'Xen_RegisteredProfile'
-    status = PASS
 
-    conn = assoc.myWBEMConnection('http://%s' % options.ip, ( \
-                                Globals.CIM_USER, Globals.CIM_PASS), Globals.CIM_NS)
+    cn = get_typed_class(options.virt, 'RegisteredProfile')
 
-    inst_id = ["CIM:DSP1042-SystemVirtualization-1.0.0", "CIM:DSP1057-VirtualSystem-1.0.0a"]
+    expr_values = {
+                   'rc'   : CIM_ERR_NOT_FOUND,
+                   'desc' : "No such instance"
+                  }
 
-    # 1) Test by passing Invalid InstanceID Key Value
-    field = 'INVALID_Instid_KeyValue'
-    keys = { 'InstanceID' : field }
-    ret_value = try_getinstance(conn, classname, keys, field_name=field, \
-                                 expr_values=expr_values['invalid_instid_keyvalue'], bug_no="")
-    if ret_value != PASS:
-        Globals.logger.error("------ FAILED: Invalid InstanceID Key Value.------")
-        status = ret_value
+    keys = { 'InstanceID' : 'INVALID_Instid_KeyValue' }
 
-    # 2) Test by giving Invalid InstanceID Key Name
-    for i in range(len(inst_id)):
-        field = 'INVALID_Instid_KeyName'
-        keys = { field : inst_id[i] }
-        ret_value = try_getinstance(conn, classname, keys, field_name=field, \
-                                 expr_values=expr_values['invalid_instid_keyname'], bug_no="")
-        if ret_value != PASS:
-            Globals.logger.error("------ FAILED: Invalid InstanceID Key Name.------")
-            status = ret_value
+    ref = CIMInstanceName(cn, keybindings=keys)
+
+    status = FAIL
+    try:
+        inst = CIM_CimtestClass(options.ip, ref)
+
+    except CIMError, (err_no, err_desc):
+        exp_rc    = expr_values['rc']
+        exp_desc  = expr_values['desc']
+
+    if err_no == exp_rc and err_desc.find(exp_desc) >= 0:
+        logger.info("Got expected exception: %s %s", exp_desc, exp_rc)
+        status = PASS
+    else:
+        logger.error("Unexpected errno %s, desc %s", err_no, err_desc)
+        logger.error("Expected %s %s", exp_desc, exp_rc)
+
+    if status != PASS:
+        logger.error("------ FAILED: %s %s ------", cn, tc)
 
     Globals.CIM_NS = prev_namespace
     return status
