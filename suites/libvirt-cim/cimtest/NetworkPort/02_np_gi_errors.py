@@ -23,223 +23,57 @@
 # returned by Xen_NetworkPort on giving invalid inputs.
 #
 #
-#                                                        Date : 18-02-2008
+# Input:
+# ------
+#  DeviceID
+#  SystemCreationClassName
+#  SystemName
+#  CreationClassName
+#
+# Format:
+# ------
+# wbemcli gi 'http://localhost:5988/root/virt:KVM_NetworkPort.DeviceID="wrong",
+# SystemCreationClassName="KVM_ComputerSystem", SystemName="guest",
+# CreationClassName="KVM_NetworkPort"'
+#
+# Output:
+# -------
+# error code  : CIM_ERR_NOT_FOUND
+# error desc  : "No such instance (DeviceID)" (this varies by key)
+#
 
 import sys
-import pywbem
-from VirtLib import utils
-from XenKvmLib import assoc
-from XenKvmLib.common_util import try_getinstance
+from pywbem import CIM_ERR_NOT_FOUND, CIMError
+from pywbem.cim_obj import CIMInstanceName
+from CimTest.ReturnCodes import PASS, FAIL, SKIP
+from CimTest.Globals import logger
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.vxml import XenXML, KVMXML, LXCXML, get_class
-from CimTest.ReturnCodes import PASS, SKIP
-from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
+from XenKvmLib.vxml import get_class
 from XenKvmLib.const import do_main
+from XenKvmLib.enumclass import GetInstance, CIM_CimtestClass, EnumInstances
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
+def get_net_inst(virt, ip, cn, guest_name):
+    try:
+        enum_list = EnumInstances(ip, cn)
 
-expr_values = {
-                "invalid_sysname" : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                      'desc' : 'No such instance'}, \
-                "invalid_sccname" : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                      'desc' : 'No such instance'}, \
-                "invalid_devid"   : { 'rc'   : pywbem.CIM_ERR_FAILED, \
-                                      'desc' : 'No DeviceID specified'}, \
-                "invalid_ccname"  : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                                      'desc' : 'No such instance'}
-              }
+        if enum_list < 1:
+            logger.error("No %s instances returned", cn)
+            return None, FAIL
 
-def err_invalid_ccname_keyname():
-# Input:
-# ------
-# wbemcli gi '<scheme>://[user:pwd@]<host>:<port>/<namespace:Xen_NetworkPort.
-# DeviceID="<deviceid>",
-# SystemCreationClassName="Xen_ComputerSystem",
-# SystemName="<sys name>"'
-#
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No such instance (CreationClassName)"
-#
-    keys = {
-             'DeviceID'                : devid, \
-             'SystemCreationClassName' : sccname, \
-             'SystemName'              : guestname
-           }
-    return try_getinstance(conn, classname, keys, 
-                           field_name='INVALID_CCName_KeyName', \
-                           expr_values=expr_values['invalid_ccname'], bug_no="")
+        for inst in enum_list:
+            if inst.SystemName == guest_name:
+                return inst, PASS
 
+    except Exception, details:
+        logger.error(details)
 
-def err_invalid_ccname_keyvalue():
-# Input:
-# ------
-# wbemcli gi '<scheme>://[user:pwd@]<host>:<port>/<namespace:Xen_NetworkPort.
-# CreationClassName="",
-# DeviceID="<deviceid>",
-# SystemCreationClassName="Xen_ComputerSystem",
-# SystemName="<sys name>"'
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No such instance (CreationClassName)"
-#
-    keys = {
-             'CreationClassName'       : '', \
-             'DeviceID'                : devid, \
-             'SystemCreationClassName' : sccname, \
-             'SystemName'              : guestname
-           }
-    return try_getinstance(conn, classname, keys, 
-                           field_name='INVALID_CCName_KeyValue', \
-                           expr_values=expr_values['invalid_ccname'], bug_no="")
-
-def err_invalid_devid_keyname():
-# Input:
-# ------
-# wbemcli gi '<scheme>://[user:pwd@]<host>:<port>/<namespace:Xen_NetworkPort.
-# CreationClassName="Xen_NetworkPort",
-# SystemCreationClassName="Xen_ComputerSystem",
-# SystemName="<sys name>"'
-#
-# Output:
-# -------
-# error code  : CIM_ERR_FAILED
-# error desc  : "No DeviceID specified"
-#
-    keys = {
-             'CreationClassName'       : classname, \
-             'SystemCreationClassName' : sccname, \
-             'SystemName'              : guestname
-           }
-    return try_getinstance(conn, classname, keys, 
-                           field_name='INVALID_DevID_KeyName', \
-                           expr_values=expr_values['invalid_devid'], bug_no="")
-
-
-def err_invalid_devid_keyvalue():
-# Input:
-# ------
-# wbemcli gi '<scheme>://[user:pwd@]<host>:<port>/<namespace:Xen_NetworkPort.
-# CreationClassName="Xen_NetworkPort",
-# DeviceID="",
-# SystemCreationClassName="Xen_ComputerSystem",
-# SystemName="<sys name>"'
-#
-# Output:
-# -------
-# error code  : CIM_ERR_FAILED
-# error desc  : "No DeviceID specified"
-#
-    keys = {
-             'CreationClassName'       : classname, \
-             'DeviceID'                : '', \
-             'SystemCreationClassName' : sccname, \
-             'SystemName'              : guestname
-           }
-    return try_getinstance(conn, classname, keys, 
-                           field_name='INVALID_DevID_KeyValue', \
-                           expr_values=expr_values['invalid_devid'], bug_no="")
-
-
-def err_invalid_sccname_keyname():
-# Input:
-# ------
-# wbemcli gi '<scheme>://[user:pwd@]<host>:<port>/<namespace:Xen_NetworkPort.
-# CreationClassName="Xen_NetworkPort",
-# DeviceID="<deviceid>",
-# SystemName="<sys name>"'
-#
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No such instance (SystemCreationClassName)"
-#
-    keys = {
-             'CreationClassName'       : classname, \
-             'DeviceID'                : devid, \
-             'SystemName'              : guestname
-           }
-    return try_getinstance(conn, classname, keys, 
-                          field_name='INVALID_Sys_CCName_KeyName', \
-                          expr_values=expr_values['invalid_sccname'], bug_no="")
-
-def err_invalid_sccname_keyvalue():
-# Input:
-# ------
-# wbemcli gi '<scheme>://[user:pwd@]<host>:<port>/<namespace:Xen_NetworkPort.
-# CreationClassName="Xen_NetworkPort",
-# DeviceID="<deviceid>",
-# SystemCreationClassName="",
-# SystemName="<sys name>"'
-#
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No such instance (SystemCreationClassName)"
-#
-    keys = {
-             'CreationClassName'       : classname, \
-             'DeviceID'                : devid, \
-             'SystemCreationClassName' : '', \
-             'SystemName'              : guestname
-           }
-    return try_getinstance(conn, classname, keys, 
-                          field_name='INVALID_Sys_CCName_KeyValue', \
-                          expr_values=expr_values['invalid_sccname'], bug_no="")
-
-def err_invalid_sysname_keyname():
-# Input:
-# ------
-# wbemcli gi '<scheme>://[user:pwd@]<host>:<port>/<namespace:Xen_NetworkPort.
-# CreationClassName="Xen_NetworkPort",
-# DeviceID="<deviceid>",
-# SystemCreationClassName="Xen_ComputerSystem"'
-#
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No such instance (SystemName)"
-#
-    keys = {
-             'CreationClassName'       : classname, \
-             'DeviceID'                : devid, \
-             'SystemCreationClassName' : sccname, \
-           }
-    return try_getinstance(conn, classname, keys, 
-                          field_name='INVALID_SysName_KeyName', \
-                          expr_values=expr_values['invalid_sysname'], bug_no="")
-
-def err_invalid_sysname_keyvalue():
-# Input:
-# ------
-# wbemcli gi '<scheme>://[user:pwd@]<host>:<port>/<namespace:Xen_NetworkPort.
-# CreationClassName="Xen_NetworkPort",
-# DeviceID="<deviceid>",
-# SystemCreationClassName="Xen_ComputerSystem",
-# SystemName=""'
-#
-# Output:
-# -------
-# error code  : CIM_ERR_NOT_FOUND
-# error desc  : "No such instance (SystemName)"
-#
-    keys = {
-             'CreationClassName'       : classname, \
-             'DeviceID'                : devid, \
-             'SystemCreationClassName' : sccname, \
-             'SystemName'              : ''
-           }
-    return try_getinstance(conn, classname, keys, 
-                          field_name='INVALID_SysName_KeyValue', \
-                          expr_values=expr_values['invalid_sysname'], bug_no="")
+    return None, FAIL
 
 @do_main(sup_types)
 def main():
     options = main.options
-    status = PASS
 
     test_dom = "nettest_domain"
     test_mac = "00:11:22:33:44:55"
@@ -248,59 +82,58 @@ def main():
     ret = vsxml.cim_define(options.ip)
     if ret != 1:
         logger.error("Define domain failed!")
-        return SKIP
-    
-    global conn
-    global classname
-    global guestname
-    global sccname
-    global devid
-    
-    conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, CIM_PASS), CIM_NS)    
-    classname = get_typed_class(options.virt, 'NetworkPort')
-    guestname = test_dom
-    sccname = get_typed_class(options.virt, 'ComputerSystem')
-    devid = "%s/%s" % (test_dom, test_mac)
+        return FAIL 
 
-    ret_value = err_invalid_ccname_keyname()
-    if ret_value != PASS:
-        logger.error("------ FAILED: Invalid CCName Key Name.------")
-        status = ret_value
+    expr_values = {
+                   'rc'   : CIM_ERR_NOT_FOUND,
+                   'desc' : 'No such instance'
+                  }
 
-    ret_value = err_invalid_ccname_keyvalue()
-    if ret_value != PASS:
-        logger.error("------ FAILED: Invalid CCName Key Value.------")
-        status = ret_value
+    cn = get_typed_class(options.virt, 'NetworkPort')
 
-    ret_value = err_invalid_devid_keyname()
-    if ret_value != PASS:
-        logger.error("------ FAILED: Invalid DeviceID Key Name.------")
-        status = ret_value
+    net, status = get_net_inst(options.virt, options.ip, cn, test_dom)
+    if status != PASS:
+        vsxml.undefine(options.ip)
+        return status
 
-    ret_value = err_invalid_devid_keyvalue()
-    if ret_value != PASS:
-        logger.error("------ FAILED: Invalid DeviceID Key Value.------")
-        status = ret_value
+    key_vals = { 'SystemName'              : net.SystemName,
+                 'CreationClassName'       : net.CreationClassName,
+                 'SystemCreationClassName' : net.SystemCreationClassName,
+                 'DeviceID'                : net.DeviceID
+               }
 
-    ret_value = err_invalid_sccname_keyname()
-    if ret_value != PASS:
-        logger.error("---FAILED: Invalid System CreationClassName Key Name.---")
-        status = ret_value
+    tc_scen = {
+                'invalid_sysval'   : 'SystemName',
+                'invalid_ccname'   : 'CreationClassName',
+                'invalid_sccname'  : 'SystemCreationClassName',
+                'invalid_devid'    : 'DeviceID',
+              }
 
-    ret_value = err_invalid_sccname_keyvalue()
-    if ret_value != PASS:
-        logger.error("--FAILED: Invalid System CreationClassName Key Value.--")
-        status = ret_value
+    for tc, field in tc_scen.iteritems():
+        status = FAIL
 
-    ret_value = err_invalid_sysname_keyname()
-    if ret_value != PASS:
-        logger.error("------ FAILED: Invalid SystemName Key Name.------")
-        status = ret_value
+        keys = key_vals.copy()
+        keys[field] = tc 
 
-    ret_value = err_invalid_sysname_keyvalue()
-    if ret_value != PASS:
-        logger.error("------ FAILED: Invalid SystemName Key Value.------")
-        status = ret_value
+        ref = CIMInstanceName(cn, keybindings=keys)
+
+        try:
+            inst = CIM_CimtestClass(options.ip, ref)
+
+        except CIMError, (err_no, err_desc):
+            exp_rc    = expr_values['rc']
+            exp_desc  = expr_values['desc']
+
+            if err_no == exp_rc and err_desc.find(exp_desc) >= 0:
+                logger.info("Got expected exception: %s %s", exp_desc, exp_rc)
+                status = PASS
+            else:
+                logger.error("Unexpected errno %s, desc %s", err_no, err_desc)
+                logger.error("Expected %s %s", exp_desc, exp_rc)
+
+        if status != PASS:
+            logger.error("------ FAILED: %s ------", tc)
+            break
 
     vsxml.undefine(options.ip)
     return status
