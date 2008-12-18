@@ -23,7 +23,7 @@
 # Test Case Info:
 # --------------
 # This tc is used to verify if appropriate exceptions are 
-# returned by Xen_AllocationCapabilities on giving invalid inputs.
+# returned by AllocationCapabilities on giving invalid inputs.
 #
 # 1) Test by passing Invalid InstanceID Key Value
 # Input:
@@ -36,38 +36,45 @@
 # error code  : CIM_ERR_NOT_FOUND 
 # error desc  : "Instance not found"
 #
-# 2) Test by giving invalid Invalid InstanceID Key Name
-# Input:
-# ------
-# wbemcli gi http://localhost:5988/root/virt:\
-# Xen_AllocationCapabilities.Wrong="ProcessorPool/0" -nl
-#
-# Output:
-# -------
-# error code  : CIM_ERR_FAILED 
-# error desc  : "No InstanceID specified"
-#                                                   -Date 21.02.2008
 
 import sys
-import os
-import pywbem
-from distutils.file_util import move_file
-from XenKvmLib import assoc
-from VirtLib import utils
-from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
+from pywbem import CIM_ERR_NOT_FOUND, CIMError
+from pywbem.cim_obj import CIMInstanceName
+from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, SKIP, FAIL
-from XenKvmLib.common_util import try_getinstance
-from XenKvmLib.xm_virt_util import net_list
-from XenKvmLib.test_xml import netxml
-from XenKvmLib.test_doms import create_vnet
-from XenKvmLib.const import do_main, platform_sup, default_pool_name
+from XenKvmLib.const import do_main
 from XenKvmLib.classes import get_typed_class
-
-diskid = "%s/%s" % ("DiskPool", default_pool_name)
-memid = "%s/%s" % ("MemoryPool", 0)
-procid = "%s/%s" % ("ProcessorPool", 0)
+from XenKvmLib.enumclass import GetInstance, CIM_CimtestClass, EnumInstances
+from XenKvmLib.common_util import parse_instance_id
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
+
+def enum_ac(virt, ip, cn):
+    ac_ids = [] 
+
+    try:
+        enum_list = EnumInstances(ip, cn)
+
+        if enum_list < 1:
+            logger.error("No %s instances returned", cn)
+            return ac_ids, FAIL
+
+        for ac in enum_list:
+            pool, id, status = parse_instance_id(ac.InstanceID)
+            if status != PASS:
+                logger.error("Unable to parse InstanceID: %s" % ac.InstanceID)
+                return ac_ids, FAIL
+
+            ac_ids.append("%s/invalid_id" % pool)
+
+        ac_ids.append("invalid_id")
+
+    except Exception, details:
+        logger.error(details)
+        return ac_ids, FAIL
+
+    return ac_ids, PASS
+
 @do_main(sup_types)     
 def main():
 
@@ -75,51 +82,41 @@ def main():
     server = options.ip
     virt = options.virt
 
-    #Verify the virtual Network on the machine
-    vir_network = net_list(server)
-    if len(vir_network) > 0:
-        test_network = vir_network[0]
-    else:
-        bridgename   = 'testbridge'
-        test_network = 'default-net'
-        net_xml, bridge = netxml(server, bridgename, test_network)
-        ret = create_vnet(server, net_xml)
-        if not ret:
-            logger.error("Failed to create the Virtual Network '%s'",
-                         test_network)
-            return SKIP
+    cn = get_typed_class(virt, "AllocationCapabilities") 
 
-    net_instid = 'NetworkPool/%s' %test_network
-    instid_list = ['ProcessorPool/0', 'MemoryPool/0',
-                   'DiskPool/foo', net_instid]
-    conn = assoc.myWBEMConnection('http://%s' % options.ip,
-                                  (CIM_USER, CIM_PASS), CIM_NS)
-    classname =  get_typed_class(options.virt, "AllocationCapabilities") 
+    ac_id_list, status = enum_ac(virt, server, cn)
+    if status != PASS:
+        logger.error("Unable to enumerate %s instances", cn)
+        return FAIL
 
+    expr_values = {
+                    'rc'   : CIM_ERR_NOT_FOUND,
+                    'desc' : "Instance not found"
+                  }
 
-    field = 'INVALID_Instid_KeyValue'
-    keys = { 'InstanceID' : field }
-    exp = {
-            "invalid_keyname" : { 'rc' : pywbem.CIM_ERR_FAILED,
-                                  'desc' : 'No InstanceID specified' },
-            "invalid_keyvalue" : { 'rc' : pywbem.CIM_ERR_NOT_FOUND,
-                                   'desc' : 'Instance not found' }}
+    for id in ac_id_list:
+        status = FAIL
+        keys = { 'InstanceID' : id }
 
-    ret_value = try_getinstance(conn, classname, keys, field_name=field,
-                                expr_values=exp['invalid_keyvalue'], bug_no="")
-    if ret_value != PASS:
-        logger.error("------ FAILED: Invalid InstanceID Key Value.------")
-        return ret_value 
+        ref = CIMInstanceName(cn, keybindings=keys)
 
-    field = 'INVALID_Instid_KeyName'
-    status = FAIL
-    for i in range(len(instid_list)):
-        keys = { field : instid_list[i] }
-        status = try_getinstance(conn, classname, keys, field_name=field,
-                                    expr_values=exp['invalid_keyname'],
-                                    bug_no="")
+        try:
+            inst = CIM_CimtestClass(options.ip, ref)
+
+        except CIMError, (err_no, err_desc):
+            exp_rc    = expr_values['rc']
+            exp_desc  = expr_values['desc']
+
+            if err_no == exp_rc and err_desc.find(exp_desc) >= 0:
+                logger.info("Got expected exception: %s %s", exp_desc, exp_rc)
+                status = PASS
+            else:
+                logger.error("Unexpected errno %s, desc %s", err_no, err_desc)
+                logger.error("Expected %s %s", exp_desc, exp_rc)
+                status = FAIL
+
         if status != PASS:
-            logger.error("------ FAILED: Invalid InstanceID Key Name.------")
+            logger.error("------ FAILED: Invalid InstanceID %s ------", id)
             break
 
     return status
