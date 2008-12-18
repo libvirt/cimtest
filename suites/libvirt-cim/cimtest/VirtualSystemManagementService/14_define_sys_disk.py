@@ -25,12 +25,14 @@ import os
 from VirtLib.utils import run_remote
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import FAIL, PASS
-from XenKvmLib.const import do_main, _image_dir
 from XenKvmLib.common_util import create_using_definesystem
 from XenKvmLib.test_doms import destroy_and_undefine_domain
 from XenKvmLib.classes import get_typed_class, inst_to_mof
 from XenKvmLib.rasd import get_default_rasds
 from XenKvmLib.vsms import get_vssd_mof
+from XenKvmLib.const import get_provider_version
+from XenKvmLib.const import do_main, _image_dir, f9_changeset, \
+                            KVM_default_disk_dev
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 test_dom = 'rstest_disk_domain'
@@ -60,6 +62,9 @@ def get_vssd_rasd(ip, virt, addr, disk_type):
             if disk_type != "" and rasd['Caption'] != disk_type:
                 continue
             rasd['Address'] = addr
+            curr_cim_rev, changeset = get_provider_version(virt, ip)
+            if changeset == f9_changeset and virt == 'KVM':
+                    rasd['VirtualDevice'] = KVM_default_disk_dev
         rasd_list.append(inst_to_mof(rasd))
 
     params = { 'vssd' : vssd,

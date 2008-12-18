@@ -29,6 +29,9 @@ from XenKvmLib.classes import get_typed_class
 
 platform_sup = ["Xen", "KVM", "XenFV"]
 
+#RPM changeset values
+f9_changeset="1fcf330fadf8+"
+
 VIRSH_ERROR_DEFINE = "Failed to define a domain with the name %s from virsh"
 
 #CIM values for VS State transitions
