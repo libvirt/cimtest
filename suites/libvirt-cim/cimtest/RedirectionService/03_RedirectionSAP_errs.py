@@ -88,7 +88,7 @@ def main():
         "invalid_sccname"  : {'rc'   : pywbem.CIM_ERR_NOT_FOUND,
                      'desc' : "No such instance (SystemCreationClassName)" },
         "invalid_nameport" : {'rc'   : pywbem.CIM_ERR_FAILED,
-                     'desc' : " Unable to determine console port for guest" },
+                     'desc' : "Unable to determine console port for guest" },
         "invalid_sysval"   : {'rc'   : pywbem.CIM_ERR_NOT_FOUND,
                      'desc' : "No such instance" }
     }
