@@ -49,7 +49,7 @@ from XenKvmLib.common_util import get_cs_instance, create_using_definesystem, \
                                   call_request_state_change, \
                                   poll_for_state_change
 
-sup_types = ['Xen', 'XenFV', 'KVM']
+sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
 ACTIVE_STATE = 2
 RESET_STATE  = 11

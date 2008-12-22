@@ -49,7 +49,7 @@ from XenKvmLib.common_util import create_using_definesystem, \
                                   call_request_state_change, \
                                   poll_for_state_change
 
-sup_types = ['Xen', 'XenFV', 'KVM']
+sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
 bug_libvirt     = "00005"
 ACTIVE_STATE = 2

@@ -43,14 +43,14 @@ import pywbem
 from VirtLib import utils
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
-from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 from XenKvmLib.test_doms import destroy_and_undefine_domain
 from XenKvmLib.common_util import create_using_definesystem, \
                                   call_request_state_change, \
                                   try_request_state_change, \
                                   poll_for_state_change
 
-sup_types = ['Xen', 'XenFV', 'KVM']
+sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
 ACTIVE_STATE = 2
 SUSPND_STATE = 9
@@ -59,6 +59,8 @@ default_dom = 'cs_test_domain'
 TIME        = "00000000000000.000000:000"
 err_no = pywbem.CIM_ERR_FAILED
 err_desc = "Domain not running"
+
+bug_libvirt = "00011"
 
 @do_main(sup_types)
 def main():
@@ -103,6 +105,8 @@ def main():
 
     if status != PASS:
         destroy_and_undefine_domain(default_dom, server, virt)
+        if virt == 'LXC':
+            return XFAIL_RC(bug_libvirt)
         return status
 
     # try to suspend already suspended VS

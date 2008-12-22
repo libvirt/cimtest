@@ -48,14 +48,15 @@ from CimTest.Globals import logger
 from XenKvmLib.const import do_main
 from XenKvmLib.common_util import call_request_state_change, \
 poll_for_state_change
-from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 test_dom = "DomST1"
 mem = 128 # MB
 START_STATE = 2 
 FINAL_STATE = 9
 TIME = "00000000000000.000000:000"
+bug_libvirt = "00011"
 
 @do_main(sup_types)
 def main():
@@ -94,6 +95,8 @@ def main():
         logger.error("Unable to suspend dom '%s' using RequestedStateChange()", 
                       test_dom)
         cxml.destroy(server)
+        if virt == 'LXC':
+            return XFAIL_RC(bug_libvirt)
         return status
 
     #Polling for the value of EnabledState to be set to 9.
