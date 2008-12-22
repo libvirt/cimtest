@@ -239,20 +239,6 @@ def try_assoc(conn, classname, assoc_classname, keys, field_name, \
                   " '%s' passed.", assoc_classname, field_name)
     return XFAIL_RC(bug_no)
 
-def try_getinstance(conn, classname, keys, field_name, expr_values, bug_no):
-    inst = None
-    try:
-        instanceref = CIMInstanceName(classname, keybindings=keys)
-        logger.info ("Instanceref is '%s'", instanceref)
-        inst = conn.GetInstance(instanceref)
-    except pywbem.CIMError, (err_no, err_desc):
-        exp_rc    = expr_values['rc']
-        exp_desc  = expr_values['desc']
-        return verify_err_desc(exp_rc, exp_desc, err_no, err_desc)
-    logger.error("'%s' GetInstance failed to generate an exception and" 
-                 " '%s' passed.", classname, field_name)
-    return XFAIL_RC(bug_no)
-
 def profile_init_list():
     sys_prof_info = {
                        "InstanceID"              : "CIM:DSP1042-SystemVirtualization-1.0.0", 
