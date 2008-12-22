@@ -32,18 +32,35 @@
 ################################################################################
 
 import sys
-import pywbem
-from XenKvmLib import assoc
-from XenKvmLib.common_util import try_getinstance
+from pywbem import CIM_ERR_NOT_FOUND, CIMError, CIM_ERR_FAILED
+from pywbem.cim_obj import CIMInstanceName
+from CimTest.ReturnCodes import PASS, FAIL, SKIP
+from CimTest.Globals import logger
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib import vxml
-from CimTest.ReturnCodes import PASS, FAIL, SKIP
-from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from XenKvmLib.const import do_main, get_provider_version
+from XenKvmLib.enumclass import EnumInstances, CIM_CimtestClass
 
 test_dom = "demo"
 test_vcpus = 1
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
+
+def get_sap_inst(virt, ip, cn, guest_name):
+    try:
+        enum_list = EnumInstances(ip, cn)
+
+        if enum_list < 1:
+            logger.error("No %s instances returned", cn)
+            return None, FAIL
+
+        for item in enum_list:
+            if item.SystemName == guest_name:
+                return item, PASS
+
+    except Exception, details:
+        logger.error(details)
+
+    return None, FAIL
 
 @do_main(sup_types)
 def main():
@@ -59,8 +76,6 @@ def main():
                    "hence skipping the test ....")
         return SKIP
 
-    name = "%s:%s" % ("1", "1")
-
     # Getting the VS list and deleting the test_dom if it already exists.
     cxml = vxml.get_class(options.virt)(test_dom, vcpus=test_vcpus)
     ret = cxml.cim_define(options.ip)
@@ -69,27 +84,28 @@ def main():
         logger.error("ERROR: VS '%s' is not defined", test_dom)
         return status
 
-    conn = assoc.myWBEMConnection( 'http://%s' % options.ip, 
-                                    (CIM_USER, CIM_PASS), CIM_NS)
-
     classname = get_typed_class(options.virt, 'KVMRedirectionSAP')
+
+    sap, status = get_sap_inst(options.virt, options.ip, classname, test_dom)
+    if status != PASS:
+        cxml.undefine(options.ip)
+        return status
     
     key_vals = { 
-                'SystemName': test_dom,
-                'CreationClassName': classname,
-                'SystemCreationClassName': get_typed_class(options.virt, 
-                                                        'ComputerSystem'),
-                'Name': name
+                'SystemName'             : sap.SystemName,
+                'CreationClassName'      : sap.CreationClassName,
+                'SystemCreationClassName': sap.SystemCreationClassName, 
+                'Name'                   : sap.Name 
     }
 
     expr_values = {
-        "invalid_ccname"   : {'rc'   : pywbem.CIM_ERR_NOT_FOUND,
+        "invalid_ccname"   : {'rc'   : CIM_ERR_NOT_FOUND,
                      'desc' : "No such instance (CreationClassName)" },
-        "invalid_sccname"  : {'rc'   : pywbem.CIM_ERR_NOT_FOUND,
+        "invalid_sccname"  : {'rc'   : CIM_ERR_NOT_FOUND,
                      'desc' : "No such instance (SystemCreationClassName)" },
-        "invalid_nameport" : {'rc'   : pywbem.CIM_ERR_FAILED,
+        "invalid_nameport" : {'rc'   : CIM_ERR_FAILED,
                      'desc' : "Unable to determine console port for guest" },
-        "invalid_sysval"   : {'rc'   : pywbem.CIM_ERR_NOT_FOUND,
+        "invalid_sysval"   : {'rc'   : CIM_ERR_NOT_FOUND,
                      'desc' : "No such instance" }
     }
 
@@ -101,15 +117,30 @@ def main():
     } 
 
     # Looping by passing invalid key values 
-    for field, test_val in tc_scen.items():
+    for test_val, field in tc_scen.items():
         newkey_vals = key_vals.copy()
-        newkey_vals[test_val] = field
-        status = try_getinstance(conn, classname, newkey_vals,
-                                    field_name=test_val, 
-                                    expr_values = expr_values[field], 
-                                    bug_no = "")
+        newkey_vals[field] = test_val 
+        exp_values = expr_values[test_val]
+
+        ref = CIMInstanceName(classname, keybindings=newkey_vals)
+
+        try:
+            inst = CIM_CimtestClass(options.ip, ref)
+
+        except CIMError, (err_no, err_desc):
+            exp_rc    = exp_values['rc']
+            exp_desc  = exp_values['desc']
+
+            if err_no == exp_rc and err_desc.find(exp_desc) >= 0:
+                logger.info("Got expected exception: %s %s", exp_desc, exp_rc)
+                status = PASS
+            else:
+                logger.error("Unexpected errno %s, desc %s", err_no, err_desc)
+                logger.error("Expected %s %s", exp_desc, exp_rc)
+
+
         if status != PASS:
-            logger.error(" -------------- FAILED %s ----------- : " % field)
+            logger.error(" -------------- FAILED %s ----------- : " % test_val)
             break
 
     cxml.cim_destroy(options.ip)
