@@ -44,13 +44,15 @@ from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS, \
 CIM_ERROR_GETINSTANCE
 from XenKvmLib.const import do_main
 from XenKvmLib.enumclass import CIM_Instance
-from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 TIME = "00000000000000.000000:000"
 test_dom = "hd_domain1"
 test_mac = "00:11:22:33:44:55"
+
+bug_libvirt = "00011"
 
 def create_list(instance):
     new_list = {
@@ -125,6 +127,10 @@ def main():
         logger.error("Failed to suspend the dom: %s" % test_dom)
         cxml.destroy(server)
         cxml.undefine(server)
+
+        if virt == 'LXC':
+            return XFAIL_RC(bug_libvirt)
+
         return FAIL 
 
     status, host_inst = get_host_info(server, virt)
