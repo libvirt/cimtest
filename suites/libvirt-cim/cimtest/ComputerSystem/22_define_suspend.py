@@ -29,67 +29,42 @@
 # Date: 14-12-2007
 
 import sys
-from VirtLib import utils
-from XenKvmLib import vxml
-from XenKvmLib.test_doms import destroy_and_undefine_domain
+from XenKvmLib.vxml import get_class 
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main 
 from CimTest.ReturnCodes import PASS, FAIL
-from XenKvmLib.common_util import create_using_definesystem, \
-                                  call_request_state_change, get_cs_instance
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 test_dom = "domgst"
-
-DEFINE_STATE = 3
-SUSPND_STATE = 9
-TIME        = "00000000000000.000000:000"
-
-def chk_state(domain_name, ip, en_state, virt):
-    rc, cs = get_cs_instance(domain_name, ip, virt)
-    if rc != 0:
-        return rc
-
-    if cs.EnabledState != en_state:
-        logger.error("EnabledState should be %d not %d",
-                     en_state, cs.EnabledState)
-        return FAIL
-
-    return PASS
 
 @do_main(sup_types)
 def main():
     options = main.options
 
+    cxml = get_class(options.virt)(test_dom)
+
+    status = FAIL
     try:
         # define the vs
-        status = create_using_definesystem(test_dom, options.ip,
-                                           virt=options.virt)
-        if status != PASS:
-            logger.error("Unable to define %s using DefineSystem()" % test_dom)
-            return status
+        ret = cxml.cim_define(options.ip)
+        if not ret:
+            raise Exception("Unable to define %s" % test_dom)
 
         # suspend the vs
-        status = call_request_state_change(test_dom, options.ip, SUSPND_STATE,
-                                           TIME, virt=options.virt)
+        status = cxml.cim_suspend(options.ip)
         if status != PASS:
             logger.info("Suspending defined %s failed, as expected" % test_dom)
             status = PASS
-
-            status = chk_state(test_dom, options.ip, DEFINE_STATE, options.virt)
-            if status != PASS:
-                logger.error("%s should have been in defined state" % test_dom)
-                status = FAIL 
-            
-        else :
-            logger.error("Suspending defined %s should have failed" % test_dom)
-            status = FAIL 
+        else:
+            raise Exception("Suspending defined %s should have failed" % \
+                            test_dom)
 
     except Exception, detail:
         logger.error("Error: %s" % detail)
         status = FAIL 
 
-    destroy_and_undefine_domain(test_dom, options.ip, options.virt)
+    cxml.undefine(options.ip)
+
     return status
 
 if __name__ == "__main__":
