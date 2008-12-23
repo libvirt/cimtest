@@ -35,32 +35,22 @@
 # ---------------------------------
 # Defined           |     3
 # Active            |     2
-# Suspended         |     9
+# Suspended         |     6
 # Rebooted          |    10
 #
 #                                                   Date: 06-03-2008
 
 import sys
-import pywbem
-from VirtLib import utils
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
-from XenKvmLib.test_doms import destroy_and_undefine_domain
-from XenKvmLib.common_util import create_using_definesystem, \
-                                  call_request_state_change, \
-                                  poll_for_state_change, \
-                                  try_request_state_change
+from XenKvmLib.vxml import get_class
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
-bug_libvirt     = "00005"
-ACTIVE_STATE = 2
-SUSPND_STATE = 9
-REBOOT_STATE = 10
+bug_libvirt     = "00012"
 
 default_dom = 'test_domain'
-TIME        = "00000000000000.000000:000"
 
 @do_main(sup_types)
 def main():
@@ -69,45 +59,41 @@ def main():
     server = options.ip
     virt   = options.virt
 
-    tc_scen = [('Start',   [ACTIVE_STATE, ACTIVE_STATE]), 
-               ('Suspend', [SUSPND_STATE, SUSPND_STATE]),
-               ('Reboot',  [SUSPND_STATE, REBOOT_STATE])] 
+    tc_scen = ['Start', 'Suspend', 'Reboot'] 
 
+    action_passed = PASS 
     try:
         # define the vs
-        status = create_using_definesystem(default_dom, server,
-                                           virt=virt)
-        if status != PASS:
-            logger.error("Unable to define domain '%s' using DefineSystem()", 
-                          default_dom)
-            return status
+        cxml = get_class(options.virt)(default_dom)
+        ret = cxml.cim_define(server)
+        if not ret:
+            raise Exception("Failed to define the guest: %s" % default_dom)
 
         # start, suspend and reboot
-        for action, state in tc_scen:
-            en_state = state[0]
-            rq_state = state[1]
-            status = call_request_state_change(default_dom, server,
-                                               rq_state, TIME,
-                                               virt=virt)
-            if status != PASS:
-                logger.error("Unable to '%s' dom '%s' using RequestedStateChange()", 
-                              action, default_dom)
-                status = XFAIL_RC(bug_libvirt)
-                break
+        for action in tc_scen:
+            if action == "Start":
+                status = cxml.cim_start(server)
+            elif action == "Suspend":
+                status = cxml.cim_suspend(server)
+            elif action == "Reboot":
+                status = cxml.cim_reboot(server)
+            else:
+                raise Exception("Unexpected state change: %s" % action)
 
-            status, dom_cs = poll_for_state_change(server, virt, default_dom, en_state,
-                                                   timeout=10)
-            if status != PASS or dom_cs.RequestedState != rq_state:
-                status = FAIL
-                logger.error("Attributes for dom '%s' is not set as expected.",
-                              default_dom)
-                break
+            if status != PASS:
+                action_passed = FAIL
+                raise Exception("Unable %s dom '%s'" % (action, default_dom))
 
     except Exception, detail:
         logger.error("Exception: %s", detail)
         status = FAIL
 
-    destroy_and_undefine_domain(default_dom, server, virt)
+    cxml.cim_destroy(server)
+    cxml.undefine(server)
+
+    if action_passed == FAIL:
+        return XFAIL_RC(bug_libvirt)
+
     return status
 
 if __name__ == "__main__":
