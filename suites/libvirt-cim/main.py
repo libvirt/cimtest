@@ -99,7 +99,18 @@ def pre_check(ip, virt):
     cmd = "virsh -c %s version" % virt2uri(virt)
     ret, out = utils.run_remote(ip, cmd)
     if ret != 0:
-        return "Encountered an error querying libvirt with: %s" % cmd
+        # The above version cmd does not work for F10.
+        # Hence, this is a workaround to verify if qemu and qemu-kvm 
+        # are installed in case the above version cmd fails.
+        cmd = "qemu -help"
+        ret, out = utils.run_remote(ip, cmd)
+        if ret != 0: 
+            return "Encountered an error querying for qemu" 
+
+        cmd = "qemu-kvm -help"
+        ret, out = utils.run_remote(ip, cmd)
+        if ret != 0: 
+            return "Encountered an error querying for qemu-kvm " 
 
     cmd = "ps -ef | grep -v grep | grep cimserver"
     rc, out = utils.run_remote(ip, cmd)
