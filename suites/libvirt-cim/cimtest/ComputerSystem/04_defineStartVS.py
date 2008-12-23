@@ -30,11 +30,8 @@
 #                                                             10-Oct-2007
 
 import sys
-from time import sleep
-from XenKvmLib import vxml
-from XenKvmLib import enumclass
-from CimTest import Globals, CimExt
-from XenKvmLib.classes import get_typed_class
+from XenKvmLib.vxml import get_class 
+from CimTest.Globals import logger 
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
@@ -45,53 +42,26 @@ test_dom = "domguest"
 def main():
     options = main.options
     status = FAIL
-    enabState = 0
 
-    cxml = vxml.get_class(options.virt)(test_dom)
-    cxml.cim_define(options.ip)
-    ret = cxml.start(options.ip)
-    
-    if not ret :
-        Globals.logger.error("Failed to Start the dom: %s", test_dom)
-        cxml.undefine(options.ip)
-        return status
-    
-    timeout = 10
+    cxml = get_class(options.virt)(test_dom)
     try:
-        # Need to poll for XenFV, since enabState is not getting set
-        # otherwise. 
-        for i in range(1, (timeout + 1)):
-            sleep(1)
-            cs_class = get_typed_class(options.virt, 'ComputerSystem')
-            keys = {
-                    'Name' : test_dom,
-                    'CreationClassName' : cs_class
-                   } 
-            cs = enumclass.GetInstance(options.ip, cs_class, keys)
-            if cs.Name != test_dom:
-                Globals.logger.error("VS %s is not defined" % test_dom)
-                break  
+        ret = cxml.cim_define(options.ip)
+        if not ret:
+            logger.error("Unable to define %s" % test_dom)
+            return FAIL
 
-            # Success: VS is in Enabled State after Define and Start 
-            enabState = cs.EnabledState
-            if enabState == 2:
-                status = PASS
-                break
-
+        status = cxml.cim_start(options.ip)
+        if status != PASS:
+            logger.error("Failed to Start the dom: %s" % test_dom)
+            logger.error("Property values not set properly for %s", test_dom) 
+    
     except Exception, detail:
-        Globals.logger.error(Globals.CIM_ERROR_GETINSTANCE, 
-                             get_typed_class(options.virt, 'ComputerSystem'))
-        Globals.logger.error("Exception: %s", detail)
-        cxml.destroy(options.ip)
-        cxml.undefine(options.ip)
-        return status 
-
-    if status != PASS :
-        Globals.logger.error("Error: property values are not set for VS %s", 
-                                                                   test_dom)
+        logger.error("Exception: %s", detail)
+        status = FAIL
 
     cxml.destroy(options.ip)
     cxml.undefine(options.ip)
+
     return status
 
 if __name__ == "__main__":
