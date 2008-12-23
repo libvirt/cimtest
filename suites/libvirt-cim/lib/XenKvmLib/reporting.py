@@ -94,7 +94,7 @@ def get_env_data(ip, virt):
     cimtest_ver = "Cimtest revision: %s\nCimtest changeset: %s\n" % \
                   (cimtest_revision, cimtest_changeset)
 
-    return env + lc_ver + cimtest_ver
+    return env + lc_ver + cimtest_ver, distro
 
 def parse_run_output(log_file):
     rvals = { 'PASS' : 0,
@@ -147,8 +147,10 @@ def gen_report(virt, ip, log_file):
 
     cimom, cimom_ver = get_cimom_ver(ip)
 
-    heading  = "%s on %s Test Run Summary for %s" % (virt, cimom, date)
-    sys_env = get_env_data(ip, virt)
+    sys_env, distro = get_env_data(ip, virt)
+
+    heading  = "Test Run Summary (%s): %s on %s with %s" % (date, virt, 
+                                                            distro, cimom)
 
     divider = "=================================================\n"
 
