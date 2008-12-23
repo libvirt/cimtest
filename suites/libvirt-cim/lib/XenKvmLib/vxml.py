@@ -578,48 +578,40 @@ class VirtCIM:
             logger.error("Exception: %s", detail)
             return FAIL 
 
-        status = self.poll_for_state_change(server, domain_name, cs_class, keys, 
+        status = self.poll_for_state_change(server, domain_name, cs_class, keys,
                                             req_state, poll_time)
         return status
 
-    def cim_start(self, server, virt, domain_name, 
-                  req_time=const.TIME, poll_time=30):
-        return self.cim_state_change(server, virt, domain_name, 
+    def cim_start(self, server, req_time=const.TIME, poll_time=30): 
+        return self.cim_state_change(server, self.virt, self.domain_name, 
                                      const.CIM_ENABLE, req_time, poll_time)
 
-    def cim_disable(self, server, virt, domain_name, 
-                    req_time=const.TIME, poll_time=30):
-        return self.cim_state_change(server, virt, domain_name, 
+    def cim_disable(self, server, req_time=const.TIME, poll_time=30): 
+        return self.cim_state_change(server, self.virt, self.domain_name, 
                                      const.CIM_DISABLE, req_time, poll_time)
 
-    def cim_shutdown(self, server, virt, domain_name, 
-                     req_time=const.TIME, poll_time=30):
-        return self.cim_state_change(server, virt, domain_name, 
+    def cim_shutdown(self, server, req_time=const.TIME, poll_time=30): 
+        return self.cim_state_change(server, self.virt, self.domain_name, 
                                      const.CIM_SHUTDOWN, req_time, poll_time)
 
-    def cim_no_state_change(self, server, virt, domain_name, 
-                            req_time=const.TIME, poll_time=30):
-        return self.cim_state_change(server, virt, domain_name, 
+    def cim_no_state_change(self, server, req_time=const.TIME, poll_time=30): 
+        return self.cim_state_change(server, self.virt, self.domain_name, 
                                      const.CIM_NOCHANGE, req_time, poll_time)
 
-    def cim_suspend(self, server, virt, domain_name, 
-                    req_time=const.TIME, poll_time=30):
-        return self.cim_state_change(server, virt, domain_name, 
+    def cim_suspend(self, server, req_time=const.TIME, poll_time=30): 
+        return self.cim_state_change(server, self.virt, self.domain_name, 
                                      const.CIM_SUSPEND, req_time, poll_time)
 
-    def cim_pause(self, server, virt, domain_name, 
-                    req_time=const.TIME, poll_time=30):
-        return self.cim_state_change(server, virt, domain_name,
+    def cim_pause(self, server, req_time=const.TIME, poll_time=30): 
+        return self.cim_state_change(server, self.virt, self.domain_name,
                                      const.CIM_PAUSE, req_time, poll_time)
         
-    def cim_reboot(self, server, virt, domain_name, 
-                   req_time=const.TIME, poll_time=30):
-        return self.cim_state_change(server, virt, domain_name, 
+    def cim_reboot(self, server, req_time=const.TIME, poll_time=30): 
+        return self.cim_state_change(server, self.virt, self.domain_name, 
                                      const.CIM_REBOOT, req_time, poll_time)
 
-    def cim_reset(self, server, virt, domain_name, 
-                  req_time=const.TIME, poll_time=30):
-        return self.cim_state_change(server, virt, domain_name, 
+    def cim_reset(self, server, req_time=const.TIME, poll_time=30): 
+        return self.cim_state_change(server, self.virt, self.domain_name, 
                                      const.CIM_RESET, req_time, poll_time)
 
 

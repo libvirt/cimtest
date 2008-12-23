@@ -87,7 +87,7 @@ def main():
 
     try:
         #Change the state of the  VS to Start
-        status = cxml.cim_start(options.ip, options.virt, test_dom)
+        status = cxml.cim_start(options.ip)
         if status != PASS:      
             logger.error("Unable start dom '%s' using "
                          "RequestedStateChange()", test_dom)

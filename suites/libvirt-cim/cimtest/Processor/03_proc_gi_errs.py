@@ -102,7 +102,7 @@ def main():
         logger.error("Failed to define the guest: %s", test_dom)
         return FAIL
 
-    status = vsxml.cim_start(options.ip, options.virt, test_dom)
+    status = vsxml.cim_start(options.ip)
     if status != PASS:
         logger.error("Failed to start the guest: %s", test_dom)
         vsxml.undefine(options.ip)

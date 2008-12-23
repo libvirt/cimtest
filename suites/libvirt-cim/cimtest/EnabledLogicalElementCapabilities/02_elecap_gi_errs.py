@@ -59,7 +59,7 @@ def main():
     if not ret:
         logger.error("Failed to Define the dom: %s", test_dom)
         return FAIL    
-    status = vsxml.cim_start(options.ip, options.virt, test_dom)
+    status = vsxml.cim_start(options.ip)
     if status != PASS:
         logger.error("Failed to Start the dom: %s", test_dom)
         vsxml.undefine(options.ip)

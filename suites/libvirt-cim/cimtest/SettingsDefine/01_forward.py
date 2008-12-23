@@ -57,7 +57,7 @@ def setup_env(server, virt):
         logger.error("Failed to Create the dom: %s", test_dom)
         return FAIL, cmxl 
 
-    status = cxml.cim_start(server, virt, test_dom)
+    status = cxml.cim_start(server)
     if status != PASS:
         logger.error("Unable start dom '%s'", test_dom)
         cxml.undefine(server)
