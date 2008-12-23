@@ -49,7 +49,7 @@ from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from CimTest.Globals import logger
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.vxml import get_class
-from XenKvmLib.const import do_main
+from XenKvmLib.const import do_main, LXC_netns_support
 from XenKvmLib.enumclass import GetInstance, CIM_CimtestClass, EnumInstances
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
@@ -77,7 +77,10 @@ def main():
 
     test_dom = "nettest_domain"
     test_mac = "00:11:22:33:44:55"
-   
+
+    if options.virt =='LXC' and LXC_netns_support is False:
+        return SKIP  
+
     vsxml = get_class(options.virt)(test_dom, mac=test_mac)
     ret = vsxml.cim_define(options.ip)
     if ret != 1:
