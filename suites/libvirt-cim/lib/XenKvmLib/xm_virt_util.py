@@ -231,7 +231,18 @@ def virsh_vcpuinfo(server, dom, virt="Xen"):
     return None
 
 def get_hv_ver(server, virt="Xen"):
-    cmd = "virsh -c %s version | grep ^Running | cut -d ' ' -f 3,4" %virt2uri(virt)
+    cmd = "virsh -c %s version"  %virt2uri(virt)
+    ret, out = utils.run_remote(server, cmd)
+    if ret == 0:
+        cmd = "virsh -c %s version | grep ^Running | cut -d ' ' -f 3,4" \
+               %virt2uri(virt)
+
+    # This is a workaround work for F10.
+    # The version option does not seem to work on F10.
+    if ret != 0 and virt == 'KVM':
+        cmd = "qemu-kvm --help | grep -i version | tr -s [:space:]  |" \
+              " cut -d ' ' -f 1,5"
+
     ret, out = utils.run_remote(server, cmd)
     if ret == 0:
         return out
