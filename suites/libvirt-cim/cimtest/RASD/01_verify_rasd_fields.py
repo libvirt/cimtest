@@ -47,18 +47,14 @@
 
 
 import sys
-from CimTest import Globals
 from XenKvmLib.const import do_main
-from XenKvmLib.test_doms import destroy_and_undefine_all
-from XenKvmLib import assoc
-from XenKvmLib import vxml 
+from XenKvmLib.assoc import compare_all_prop, Associators
+from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib import rasd 
-from CimTest.Globals import logger
+from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS
 from CimTest.ReturnCodes import PASS, FAIL
-from XenKvmLib import rasd
-from XenKvmLib.rasd import verify_procrasd_values, verify_netrasd_values, \
-verify_diskrasd_values, verify_memrasd_values, rasd_init_list
+from XenKvmLib.rasd import enum_rasds
+from XenKvmLib.common_util import parse_instance_id
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
@@ -67,74 +63,79 @@ test_vcpus  = 1
 test_mem    = 128
 test_mac    = "00:11:22:33:44:aa"
 
-def assoc_values(assoc_info, xml, disk, virt="Xen"):
-    status, rasd_values, in_list = rasd_init_list(xml, virt, disk, test_dom,
-                                                 test_mac, test_mem)
+def init_rasd_list(virt, ip):
+    rasd_insts = {}
+    rasds, status = enum_rasds(virt, ip)
+    if status != PASS:
+        logger.error("Enum RASDs failed")
+        return rasd_insts, status
+
+    for rasd_cn, rasd_list in rasds.iteritems():
+        for rasd in rasd_list:
+            guest, dev, status = parse_instance_id(rasd.InstanceID)
+            if status != PASS:
+                logger.error("Unable to parse InstanceID: %s" % rasd.InstanceID)
+                return rasd_insts, FAIL
+
+            if guest == test_dom:
+                rasd_insts[rasd.Classname] = rasd
+
+    return rasd_insts, PASS
+
+def verify_rasd(virt, ip, assoc_info):
+    rasds, status = init_rasd_list(virt, ip)
     if status != PASS:
         return status
-    
-    procrasd =  rasd_values['%s'  %in_list['proc']]
-    netrasd  =  rasd_values['%s'  %in_list['net']] 
-    diskrasd =  rasd_values['%s'  %in_list['disk']]
-    memrasd  =  rasd_values['%s'  %in_list['mem']]
 
-    if virt == 'LXC':
-        proc_status = 0
-        disk_status = 0
-    else:
-        proc_status = 1
-        disk_status = 1
+    if len(assoc_info) != len(rasds):
+        logger.error("%d assoc_info != %d RASD insts", 
+                      len(assoc_info), len(rasds))
+        return FAIL
 
-    net_status  = 0
-    mem_status  = 1
-    status = 0
-    try: 
-        for res in assoc_info: 
-            if res['InstanceID'] == procrasd['InstanceID']: 
-                proc_status = rasd.verify_procrasd_values(res, procrasd)
-            elif res['InstanceID'] == netrasd['InstanceID']:
-                net_status  = rasd.verify_netrasd_values(res, netrasd)
-            elif res['InstanceID'] == diskrasd['InstanceID']:
-                disk_status = rasd.verify_diskrasd_values(res, diskrasd)
-            elif res['InstanceID'] == memrasd['InstanceID']:
-                mem_status  = rasd.verify_memrasd_values(res, memrasd)
-            else:
-                status = 1
-        if status != 0 or proc_status != 0 or net_status != 0 or \
-           disk_status != 0 or mem_status != 0 :
-            logger.error("Mistmatching association values" )
-            status = 1 
-    except  Exception, detail :
-        logger.error("Exception in assoc_values function: %s" % detail)
-        status = 1
-    
-    return status
-   
+    for rasd in assoc_info:
+        guest, dev, status = parse_instance_id(rasd['InstanceID'])
+        if status != PASS:
+           logger.error("Unable to parse InstanceID: %s", rasd['InstanceID'])
+           return status
+
+        if guest != test_dom:
+           logger.error("VSSDC should not have returned info for dom %s",
+                         guest)
+           return FAIL
+       
+        logger.info("Verifying: %s", rasd.classname)
+        exp_rasd = rasds[rasd.classname]
+        status = compare_all_prop(rasd, exp_rasd)
+        if status != PASS: 
+            return status
+
+    return PASS
+
 @do_main(sup_types)
 def main():
     options = main.options
     virt = options.virt
-    status = PASS 
+    server = options.ip
+    status = FAIL 
 
-    destroy_and_undefine_all(options.ip)
-    if virt == 'Xen':
-        test_disk = 'xvda'
-    else:
-        test_disk = 'hda'
-
-    virt_xml = vxml.get_class(virt)
+    virt_xml = get_class(virt)
     if virt == 'LXC':
         cxml = virt_xml(test_dom)
     else:
         cxml = virt_xml(test_dom, mem=test_mem, vcpus = test_vcpus,
-                        mac = test_mac, disk = test_disk)
-    ret = cxml.create(options.ip)
+                        mac = test_mac)
+                        
+    ret = cxml.cim_define(server)
     if not ret:
-        logger.error('Unable to create domain %s' % test_dom)
+        logger.error('Unable to define the domain %s', test_dom)
         return FAIL 
-    if status == 1: 
-        destroy_and_undefine_all(options.ip)
-        return FAIL
+
+    status = cxml.cim_start(server)
+    if status != PASS:
+        logger.error('Unable to start the domain %s', test_dom)
+        cxml.undefine(server)
+        return FAIL 
+
     if virt == "XenFV":
         instIdval = "Xen:%s" % test_dom
     else:
@@ -143,21 +144,16 @@ def main():
     vssdc_cn = get_typed_class(virt, 'VirtualSystemSettingDataComponent')
     vssd_cn = get_typed_class(virt, 'VirtualSystemSettingData')
     try:
-        assoc_info = assoc.Associators(options.ip, vssdc_cn, vssd_cn, 
-                                       InstanceID = instIdval)
-        status = assoc_values(assoc_info, cxml, test_disk, virt)
+        assoc_info = Associators(server, vssdc_cn, vssd_cn, 
+                                 InstanceID = instIdval)
+        status = verify_rasd(virt, server, assoc_info)
     except  Exception, details:
-        logger.error(Globals.CIM_ERROR_ASSOCIATORS, 
-                     get_typed_class(virt, vssdc_cn))
+        logger.error(CIM_ERROR_ASSOCIATORS, vssdc_cn)
         logger.error("Exception : %s" % details)
         status = FAIL 
-    
-    try:
-        cxml.destroy(options.ip)
-        cxml.undefine(options.ip)
-    except Exception:
-        logger.error("Destroy or undefine domain failed")
-    return status
 
+    cxml.destroy(server)
+    cxml.undefine(server)
+    return status
 if __name__ == "__main__":
     sys.exit(main())
