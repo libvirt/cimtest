@@ -34,19 +34,14 @@
 #
 
 import sys
-import pywbem
-from VirtLib import utils
-from XenKvmLib.test_doms import destroy_and_undefine_domain 
-from XenKvmLib.common_util import *
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
+from XenKvmLib.vxml import get_class
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 default_dom = 'cs_test_domain'
-REQUESTED_STATE = 2
-TIME = "00000000000000.000000:000"
 
 @do_main(sup_types)
 def main():
@@ -56,34 +51,23 @@ def main():
     status = FAIL
 
     try:
-        rc = create_using_definesystem(default_dom, server, 
-                                       virt=virt)
-        if rc != 0:
-            status = FAIL
-            raise Exception("DefineSystem() failed to create domain: '%s'" % 
-                            default_dom)
+        cxml = get_class(virt)(default_dom)
+        ret = cxml.cim_define(server)
+        if not ret:
+            raise Exception("Failed to define the guest: %s" % default_dom)
 
-        rc = call_request_state_change(default_dom, server, 
-                                       REQUESTED_STATE, TIME, virt)
-        if rc != 0:
-            status = FAIL
-            raise Exception("RequestedStateChange() could not be used to start"
-                            " domain: '%s'" % default_dom)
-
-        status, dom_cs = poll_for_state_change(server, virt, default_dom, 
-                                               REQUESTED_STATE, timeout=10)
-
-        if status != PASS or dom_cs.RequestedState != REQUESTED_STATE:
-            status = FAIL
-            raise Exception("Attributes were not set as expected for "
-                            "domain: '%s'" % default_dom)
-        else:
-            status = PASS
+        status = cxml.cim_start(server)
+        if status != PASS:
+            action_failed = True
+            raise Exception("Unable start dom '%s'" % default_dom)
 
     except Exception, detail:
         logger.error("Exception: %s", detail)
+        status = FAIL
 
-    destroy_and_undefine_domain(default_dom, server, virt)
+    cxml.cim_destroy(server)
+    cxml.undefine(server)
+
     return status
 
 if __name__ == "__main__":
