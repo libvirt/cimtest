@@ -526,44 +526,39 @@ class VirtCIM:
             return False
         return ret[0] == 0
 
-    def poll_for_state_change(self, server, domain_name, cs_class, keys, 
-                              req_state, timeout):
-        dom_cs = None
+    def check_guest_state(self, server, en_state, req_state=None):
+        if req_state is None:
+            req_state = en_state
+
+        cs_class = get_typed_class(self.virt, 'ComputerSystem')
+        keys = { 'Name' : self.domain_name, 'CreationClassName' : cs_class }
+
         try:
+            cs = GetInstance(server, cs_class, keys)
+            if cs.Name != self.domain_name:
+                raise Exception("Wrong guest instance")
 
-            for i in range(1, (timeout + 1)):
-                dom_cs = GetInstance(server, cs_class, keys)
-                if dom_cs is None or dom_cs.Name != domain_name:
-                    continue
+            if cs.EnabledState != en_state:
+                raise Exception("EnabledState is %i, expected %i." % \
+                                (cs.EnabledState, en_state))
 
-                sleep(1)
-                if dom_cs.EnabledState == req_state:
-                    break
-        
+            if cs.RequestedState != req_state:
+                raise Exception("RequestedState is %i, expected %i." % \
+                                (cs.RequestedState, req_state))
+
         except Exception, detail:
-            logger.error("In fn poll_for_state_change()")
+            logger.error("Unable to check guest state")
             logger.error("Exception: %s" % detail)
-            return FAIL
-
-        if dom_cs is None or dom_cs.Name != domain_name:
-            logger.error("CS instance not returned for %s." % domain_name)
-            return FAIL
-
-        if dom_cs.EnabledState != req_state:
-            logger.error("EnabledState is %i instead of %i.", 
-                         dom_cs.EnabledState, req_state)
-            logger.error("Try to increase the timeout and run the test again")
             return FAIL
 
         return PASS
 
-    def cim_state_change(self, server, virt, domain_name,
-                         req_state, req_timeout, poll_time):
+    def cim_state_change(self, server, req_state, req_timeout, poll_time): 
         cs = None
-        cs_class = get_typed_class(virt, 'ComputerSystem')
-        keys = { 'Name' : domain_name, 'CreationClassName' : cs_class }
+        cs_class = get_typed_class(self.virt, 'ComputerSystem')
+        keys = { 'Name' : self.domain_name, 'CreationClassName' : cs_class }
         cs = GetInstance(server, cs_class, keys)
-        if cs is None or cs.Name != domain_name:
+        if cs is None or cs.Name != self.domain_name:
             return status
 
         try:
@@ -578,41 +573,44 @@ class VirtCIM:
             logger.error("Exception: %s", detail)
             return FAIL 
 
-        status = self.poll_for_state_change(server, domain_name, cs_class, keys,
-                                            req_state, poll_time)
+        for i in range(1, (poll_time + 1)):
+            status = self.check_guest_state(server, req_state)
+            if status == PASS:
+                break
+
         return status
 
     def cim_start(self, server, req_time=const.TIME, poll_time=30): 
-        return self.cim_state_change(server, self.virt, self.domain_name, 
-                                     const.CIM_ENABLE, req_time, poll_time)
+        return self.cim_state_change(server, const.CIM_ENABLE, 
+                                     req_time, poll_time)
 
     def cim_disable(self, server, req_time=const.TIME, poll_time=30): 
-        return self.cim_state_change(server, self.virt, self.domain_name, 
-                                     const.CIM_DISABLE, req_time, poll_time)
+        return self.cim_state_change(server, const.CIM_DISABLE, 
+                                     req_time, poll_time)
 
     def cim_shutdown(self, server, req_time=const.TIME, poll_time=30): 
-        return self.cim_state_change(server, self.virt, self.domain_name, 
-                                     const.CIM_SHUTDOWN, req_time, poll_time)
+        return self.cim_state_change(server, const.CIM_SHUTDOWN, 
+                                     req_time, poll_time)
 
     def cim_no_state_change(self, server, req_time=const.TIME, poll_time=30): 
-        return self.cim_state_change(server, self.virt, self.domain_name, 
-                                     const.CIM_NOCHANGE, req_time, poll_time)
+        return self.cim_state_change(server, const.CIM_NOCHANGE, 
+                                     req_time, poll_time) 
 
     def cim_suspend(self, server, req_time=const.TIME, poll_time=30): 
-        return self.cim_state_change(server, self.virt, self.domain_name, 
-                                     const.CIM_SUSPEND, req_time, poll_time)
+        return self.cim_state_change(server, const.CIM_SUSPEND, 
+                                     req_time, poll_time) 
 
     def cim_pause(self, server, req_time=const.TIME, poll_time=30): 
-        return self.cim_state_change(server, self.virt, self.domain_name,
-                                     const.CIM_PAUSE, req_time, poll_time)
+        return self.cim_state_change(server, const.CIM_PAUSE, 
+                                     req_time, poll_time)
         
     def cim_reboot(self, server, req_time=const.TIME, poll_time=30): 
-        return self.cim_state_change(server, self.virt, self.domain_name, 
-                                     const.CIM_REBOOT, req_time, poll_time)
+        return self.cim_state_change(server, const.CIM_REBOOT, 
+                                     req_time, poll_time) 
 
     def cim_reset(self, server, req_time=const.TIME, poll_time=30): 
-        return self.cim_state_change(server, self.virt, self.domain_name, 
-                                     const.CIM_RESET, req_time, poll_time)
+        return self.cim_state_change(server, const.CIM_RESET, 
+                                     req_time, poll_time)
 
 
 class XenXML(VirtXML, VirtCIM):
