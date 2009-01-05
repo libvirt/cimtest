@@ -24,36 +24,20 @@
 # --------------
 # This test case is used to verify the Virtual System State Transition
 # The test is considered to be successful if the request for the invalid
-# state change from defined to suspend fails
-#
-# List of Valid state values (Refer to VSP spec doc Table 2 for more)
-# ---------------------------------
-# State             |   Values
-# ---------------------------------
-# Defined           |     3
-# Suspend           |     9
+# state change from defined to paused fails
 #
 # Date: 05-03-2008
 #
 
 import sys
-import pywbem
-from VirtLib import utils
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
-from XenKvmLib.test_doms import destroy_and_undefine_domain
-from XenKvmLib.common_util import try_request_state_change, \
-                                  create_using_definesystem
+from XenKvmLib.vxml import get_class
 
 sup_types = ['Xen', 'XenFV', 'LXC', 'KVM']
 
-SUSPEND_STATE = 9 
 default_dom   = 'test_domain'
-TIME          = "00000000000000.000000:000"
-exp_rc        = pywbem.CIM_ERR_FAILED
-exp_desc      = 'Domain not running'
-
 
 @do_main(sup_types)
 def main():
@@ -64,25 +48,27 @@ def main():
 
     try:
         # define the vs
-        status = create_using_definesystem(default_dom, server, virt=virt)
+        cxml = get_class(options.virt)(default_dom)
+        ret = cxml.cim_define(server)
+        if not ret:
+            raise Exception("Failed to define the guest: %s" % default_dom)
+
+        status = cxml.cim_pause(server)
         if status != PASS:
-            logger.error("Unable to define domain '%s' using DefineSystem()", 
-                          default_dom)
-            return status
+            raise Exception("Unable pause dom '%s'" % default_dom)
 
     except Exception, details:
         logger.error("Exception: %s", details)
-        destroy_and_undefine_domain(default_dom, server, virt)
-        return FAIL
+        status = FAIL
 
-    status = try_request_state_change(default_dom, server,
-                                      SUSPEND_STATE, TIME, exp_rc, 
-                                      exp_desc, virt)
+    if status != FAIL:
+        logger.error("Expected Defined -> Paused state transition to fail")
+        status = FAIL
+    else:
+        status = PASS 
 
-    if status != PASS:
-        logger.error("Expected Defined -> Suspended state transition to fail")
+    cxml.undefine(server)
 
-    destroy_and_undefine_domain(default_dom, server, virt)
     return status 
 
 if __name__ == "__main__":
