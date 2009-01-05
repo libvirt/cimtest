@@ -610,7 +610,7 @@ class VirtCIM:
 
     def cim_reset(self, server, req_time=const.TIME, poll_time=30): 
         return self.cim_state_change(server, const.CIM_RESET, 
-                                     req_time, poll_time)
+                                     req_time, poll_time, const.CIM_ENABLE)
 
 
 class XenXML(VirtXML, VirtCIM):
