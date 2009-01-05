@@ -32,11 +32,7 @@
 #
 
 import sys
-import pywbem
-from XenKvmLib.classes import get_typed_class
-from XenKvmLib.vxml import XenXML, KVMXML, get_class
-from XenKvmLib.test_doms import undefine_test_domain 
-from XenKvmLib.common_util import create_using_definesystem 
+from XenKvmLib.vxml import get_class
 from XenKvmLib.devices import get_dom_proc_insts
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
@@ -55,7 +51,7 @@ def check_processors(procs):
 
     for proc in procs:
         if proc['SystemName'] != default_dom: 
-            logger.error("Inst returned is for guesst %s, expected guest %s.", 
+            logger.error("Inst returned is for guest %s, expected guest %s.", 
                          procs['SystemName'], default_dom)
             return FAIL
 
@@ -71,33 +67,29 @@ def check_processors(procs):
 @do_main(sup_types)
 def main():
     options = main.options
-    status = PASS
-
-    undefine_test_domain(default_dom, options.ip)
+    status = FAIL 
 
     try:
-        rc = create_using_definesystem(default_dom, options.ip, params=None,
-                                       ref_config=' ', exp_err=None, 
-                                       virt=options.virt)
-        if rc != 0:
-            raise Exception("Unable create domain %s using DefineSystem()" \
-                            % default_dom)
+        cxml = get_class(options.virt)(default_dom)
+        ret = cxml.cim_define(options.ip)
+        if not ret:
+            raise Exception("Failed to define the guest: %s" % default_dom)
 
         proc_list = get_dom_proc_insts(options.virt, options.ip, default_dom)
         if len(proc_list) == 0:
-            raise Exception("Failied to retrieve vcpu instances for %s" \
+            raise Exception("Failed to retrieve vcpu instances for %s" \
                             % default_dom)
 
-        rc = check_processors(proc_list)
-        if rc != 0:
+        status = check_processors(proc_list)
+        if status != PASS:
             raise Exception("Processor instances for %s are not as expected." \
                             % default_dom)
-
+   
     except Exception, detail:
         logger.error("Exception: %s" % detail)
         status = FAIL
 
-    undefine_test_domain(default_dom, options.ip)
+    cxml.undefine(options.ip)
 
     return status
 
