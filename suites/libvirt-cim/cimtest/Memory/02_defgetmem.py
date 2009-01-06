@@ -29,64 +29,57 @@
 #  4. Verify the DeviceId and domName with the instance info. 
 
 import sys
-from XenKvmLib.test_doms import undefine_test_domain 
-from XenKvmLib.common_util import create_using_definesystem 
+from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.devices import get_dom_mem_inst
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
+from XenKvmLib.vxml import get_class
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 default_dom = "domu"
 
 def check_mem(memInst):
-    status = 0
     for mem in memInst:
         if mem['SystemName'] != default_dom: 
-            logger.error("Inst returned is for guesst %s, expected guest %s.", 
+            logger.error("Inst returned is for guest %s, expected guest %s.", 
                          mem['SystemName'], default_dom)
-            return 1
+            return FAIL
 
         devid = "%s/%s" % (default_dom, "mem" )
        
         if mem['DeviceID'] != devid: 
             logger.error("DeviceID %s does not match expected %s.", 
                          mem['DeviceID'], devid)
-            status = 1
-        else:
-            logger.info("Memory : Verified domain %s having DeviceID %s" % \
-                        (default_dom, devid))
+            return FAIL
 
-    return status
+    logger.info("Verified domain %s having DeviceID %s", default_dom, devid) 
+
+    return PASS 
 
 @do_main(sup_types)
 def main():
     options = main.options
-    status = 0
+    status = FAIL
 
-    undefine_test_domain(default_dom, options.ip)
-
-
+    cxml = get_class(options.virt)(default_dom)
     try:
-        rc = create_using_definesystem(default_dom, options.ip, params=None,
-                                       ref_config='', exp_err=None, 
-                                       virt=options.virt)
-        if rc != 0:
-            raise Exception("Unable to create domain %s using DefineSys()"  % default_dom)
+        ret = cxml.cim_define(options.ip)
+        if not ret:
+            raise Exception("Failed to define the guest: %s" % default_dom)
 
         memInst = get_dom_mem_inst(options.virt, options.ip, default_dom)
-
         if len(memInst) == 0:
-            raise Exception("Failied to retrieve mem instances for %s" % default_dom)
+            raise Exception("Failed to get mem instances for %s" % default_dom)
 
-        rc = check_mem(memInst)
-        if rc != 0:
-            raise Exception("Memory instance for %s is not as expected." % default_dom)
+        status = check_mem(memInst)
+        if status != PASS:
+            raise Exception("Memory inst for %s not as expected." % default_dom)
 
     except Exception, detail:
         logger.error("Exception: %s" % detail)
-        status = 1
+        status =  FAIL
 
-    undefine_test_domain(default_dom, options.ip)
+    cxml.undefine(options.ip)
 
     return status
 
