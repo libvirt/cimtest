@@ -535,7 +535,7 @@ class VirtCIM:
 
         try:
             cs = GetInstance(server, cs_class, keys)
-            if cs.Name != self.domain_name:
+            if cs is None or cs.Name != self.domain_name:
                 raise Exception("Wrong guest instance")
 
             if cs.EnabledState != en_state:
@@ -553,7 +553,11 @@ class VirtCIM:
 
         return PASS
 
-    def cim_state_change(self, server, req_state, req_timeout, poll_time): 
+    def cim_state_change(self, server, req_state, req_timeout, poll_time, 
+                         en_state=None): 
+        if en_state is None:
+            en_state = req_state
+
         cs = None
         cs_class = get_typed_class(self.virt, 'ComputerSystem')
         keys = { 'Name' : self.domain_name, 'CreationClassName' : cs_class }
@@ -562,7 +566,7 @@ class VirtCIM:
             return status
 
         try:
-            req_state_change   = pywbem.cim_types.Uint16(req_state)
+            req_state_change = pywbem.cim_types.Uint16(req_state)
             time_period = pywbem.cim_types.CIMDateTime(req_timeout)
             cs.RequestStateChange(RequestedState=req_state_change,
                                   TimeoutPeriod=time_period)
@@ -574,7 +578,7 @@ class VirtCIM:
             return FAIL 
 
         for i in range(1, (poll_time + 1)):
-            status = self.check_guest_state(server, req_state)
+            status = self.check_guest_state(server, en_state, req_state)
             if status == PASS:
                 break
 
@@ -606,7 +610,7 @@ class VirtCIM:
         
     def cim_reboot(self, server, req_time=const.TIME, poll_time=30): 
         return self.cim_state_change(server, const.CIM_REBOOT, 
-                                     req_time, poll_time) 
+                                     req_time, poll_time, const.CIM_ENABLE) 
 
     def cim_reset(self, server, req_time=const.TIME, poll_time=30): 
         return self.cim_state_change(server, const.CIM_RESET, 
