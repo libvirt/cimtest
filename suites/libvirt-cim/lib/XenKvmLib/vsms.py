@@ -126,8 +126,10 @@ def get_vssd_mof(virt, dom_name, bldr=None):
 
 # classes to define RASD parameters
 class CIM_DiskResourceAllocationSettingData(CIMClassMOF):
-    def __init__(self, dev, source, name):
+    def __init__(self, dev, source, name, emu_type=None):
         self.ResourceType = RASD_TYPE_DISK
+        if emu_type != None:
+            self.EmulatedType = emu_type
         if dev != None:
             self.VirtualDevice = dev
             self.InstanceID = '%s/%s' % (name, dev)
@@ -239,6 +241,7 @@ def default_vssd_rasd_str(dom_name='test_domain',
                           proc_vcpu=1,
                           mem_mb=512,
                           malloc_units="MegaBytes",
+                          emu_type=None,
                           virt='Xen'):
     vssd = get_vssd_mof(virt, dom_name)
 
@@ -252,7 +255,7 @@ def default_vssd_rasd_str(dom_name='test_domain',
     elif virt == 'LXC':
         disk_dev = const.LXC_default_mp
         disk_source = const.LXC_default_source
-    d = class_dasd(disk_dev, disk_source, dom_name)
+    d = class_dasd(disk_dev, disk_source, dom_name, emu_type)
     
     class_masd = get_masd_class(virt)
     m = class_masd(

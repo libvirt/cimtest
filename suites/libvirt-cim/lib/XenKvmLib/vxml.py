@@ -466,11 +466,13 @@ class VirtXML(Virsh, XMLClass):
 
 class VirtCIM:
     def __init__(self, virt, dom_name, disk_dev, disk_source,
-                 net_type, net_name, net_mac, vcpus, mem, mem_allocunits):
+                 net_type, net_name, net_mac, vcpus, mem,
+                 mem_allocunits, emu_type):
         self.virt = virt
         self.domain_name = dom_name
         self.vssd = vsms.get_vssd_mof(virt, dom_name)
-        self.dasd = vsms.get_dasd_class(virt)(disk_dev, disk_source, dom_name)
+        self.dasd = vsms.get_dasd_class(virt)(disk_dev, disk_source, 
+                                              dom_name, emu_type)
         self.nasd = vsms.get_nasd_class(virt)(type=net_type, 
                                               mac=net_mac,
                                               name=dom_name,
@@ -689,13 +691,15 @@ class KVMXML(VirtXML, VirtCIM):
                        disk_file_path=const.KVM_disk_path,
                        disk=const.KVM_default_disk_dev, 
                        ntype=const.default_net_type,
-                       net_name=const.default_network_name):
+                       net_name=const.default_network_name,
+                       emu_type=None):
         if not os.path.exists(disk_file_path):
             logger.error('Error: Disk image does not exist')
             sys.exit(1)
         VirtXML.__init__(self, 'kvm', test_dom, set_uuid(), mem, vcpus)
         VirtCIM.__init__(self, 'KVM', test_dom, disk, disk_file_path,
-                         ntype, net_name, mac, vcpus, mem, mem_allocunits)
+                         ntype, net_name, mac, vcpus, mem, 
+                         mem_allocunits, emu_type)
         self._os()
         self._devices(const.KVM_default_emulator, ntype,
                       disk_file_path, disk, mac, net_name)
