@@ -29,11 +29,9 @@ from CimTest.ReturnCodes import FAIL, PASS
 from XenKvmLib.const import do_main
 from CimTest.Globals import logger
 from VirtLib import utils
-from XenKvmLib.test_doms import undefine_test_domain
-from XenKvmLib.common_util import create_using_definesystem
-from XenKvmLib import vsms
 from XenKvmLib import enumclass
 from XenKvmLib.classes import get_typed_class
+from XenKvmLib.vxml import get_class 
 
 def make_image(ip, size):
     s, fn = utils.run_remote(ip, "mktemp")
@@ -54,52 +52,22 @@ def kill_image(ip, name):
 
 def check_rasd_size(rasd, size):
     if rasd["AllocationUnits"] != "Bytes":
-        logger.error("AllocationUnits != Bytes?")
+        logger.error("Got %s units, exp Bytes", rasd["AllocationUnits"])
         return FAIL
 
     try:
         cim_size = int(rasd["VirtualQuantity"])
-    except Exception, e:
-        logger.error("Failed to get DiskRASD size: %s" % e)
+    except Exception, details:
+        logger.error("Failed to get DiskRASD size: %s" % details)
         return FAIL
 
     if cim_size != size:
-        logger.error("CIM reports %i bytes, but should be %i bytes" % (cim_size,
-                                                                       size))
+        logger.error("CIM reports %i bytes, but should be %i bytes", cim_size,
+                     size)
         return FAIL
-    else:
-        logger.info("Verified %i bytes" % cim_size)
-        return PASS
 
-def test_rasd(options, temp, test_size):
-    vssd = vsms.get_vssd_mof(options.virt, default_dom)
-
-    drasd_class = vsms.get_dasd_class(options.virt)
-    drasd = drasd_class("hda", temp, default_dom)
-
-    mrasd_class = vsms.get_masd_class(options.virt)
-    mrasd = mrasd_class(name=default_dom, megabytes=32)
-
-    params = {
-        "vssd" : vssd,
-        "rasd" : [drasd.mof(), mrasd.mof()]
-        }
-
-    create_using_definesystem(default_dom,
-                              options.ip,
-                              params=params,
-                              virt=options.virt)
-
-    cn = get_typed_class(options.virt, 'DiskResourceAllocationSettingData') 
-    rasds = enumclass.EnumInstances(options.ip, cn, ret_cim_inst=True)
-
-    status = FAIL
-    for rasd in rasds:
-        if rasd["Address"] == temp:
-            status = check_rasd_size(rasd, test_size)
-            break
-
-    return status
+    logger.info("Verified %i bytes" % cim_size)
+    return PASS
 
 @do_main(sup_types)
 def main():
@@ -113,14 +81,30 @@ def main():
         return FAIL
 
     logger.info("Created temp disk %s of size %i bytes" % (temp, test_size))
+   
+    virtxml = get_class(options.virt)
+    cxml = virtxml(default_dom, mem=32, disk_file_path=temp, disk="hda")
 
     try:
-        status = test_rasd(options, temp, test_size)
-    except Exception, e:
-        logger.error("Failed to test RASD: %s" % e)
+        ret = cxml.cim_define(options.ip)
+        if not ret:
+            raise Exception("Failed to define the dom: %s" % default_dom)
 
-    undefine_test_domain(default_dom, options.ip, options.virt)
+        cn = get_typed_class(options.virt, 'DiskResourceAllocationSettingData') 
+        rasds = enumclass.EnumInstances(options.ip, cn, ret_cim_inst=True)
+
+        status = FAIL
+        for rasd in rasds:
+            if rasd["Address"] == temp:
+                status = check_rasd_size(rasd, test_size)
+                break
+
+    except Exception, details:
+        logger.error("Failed to test RASD: %s" % details)
+        status = FAIL
+
     kill_image(options.ip, temp)
+    cxml.undefine(options.ip)
 
     return status
 
