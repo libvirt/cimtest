@@ -23,12 +23,10 @@
 #
 
 import sys
-import pywbem
-from VirtLib import utils
-from XenKvmLib.test_doms import undefine_test_domain
-from XenKvmLib.common_util import create_using_definesystem
 from XenKvmLib.const import do_main
 from CimTest.Globals import logger
+from CimTest.ReturnCodes import PASS, FAIL
+from XenKvmLib.vxml import get_class
 
 SUPPORTED_TYPES = ['Xen', 'KVM', 'XenFV', 'LXC']
 default_dom = 'test_domain'
@@ -37,10 +35,19 @@ default_dom = 'test_domain'
 def main():
     options = main.options
 
-    status = create_using_definesystem(default_dom, options.ip, 
-                                       virt=options.virt)
-    undefine_test_domain(default_dom, options.ip, 
-                         virt=options.virt)
+    cxml = get_class(options.virt)(default_dom)
+
+    ret = cxml.cim_define(options.ip)
+    if not ret:
+        logger.error("Unable to define %s" % default_dom)
+        return FAIL
+
+    status = cxml.cim_start(options.ip)
+    if status != PASS:
+        logger.error("Failed to start the defined domain: %s" % default_dom) 
+
+    cxml.cim_destroy(options.ip)
+    cxml.undefine(options.ip)
 
     return status
 
