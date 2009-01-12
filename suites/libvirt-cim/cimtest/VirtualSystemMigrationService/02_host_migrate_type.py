@@ -47,7 +47,6 @@ def define_guest_get_ref(ip, guest_name, virt):
         cxml.cim_define(ip)
     except Exception:
         logger.error("Error define domain %s" % guest_name)
-        cxml.undefine(ip)
         return FAIL, None
 
     classname = 'Xen_ComputerSystem'
@@ -138,51 +137,56 @@ def main():
     ref_list = []
     cs_ref = None
 
-    status, ref_list = setup_env(options.ip, mlist, local_migrate, virt)
-    if status != PASS or len(ref_list) < 1:
-        return FAIL
 
-    cs_ref = ref_list[0]
+    try:
+        status, ref_list = setup_env(options.ip, mlist, local_migrate, virt)
+        if status != PASS or len(ref_list) < 1:
+            return FAIL
 
-    for type, item in mlist.iteritems():
-        guest_name = cs_ref['Name']
+        cs_ref = ref_list[0]
+        for type, item in mlist.iteritems():
+            guest_name = cs_ref['Name']
 
-        status, cxml = start_guest(options.ip, guest_name, type, virt)
-        if status != PASS:
-            break
+            status, cxml = start_guest(options.ip, guest_name, type, virt)
+            if status != PASS:
+                break
 
-        status = check_possible_host_migration(service, cs_ref, target_ip) 
-        if status != PASS:
-            break
+            status = check_possible_host_migration(service, cs_ref, target_ip) 
+            if status != PASS:
+                break
 
-        logger.info("Migrating guest with the following options:")
-        logger.info("%s" % item)
-        status, ret = migrate_guest_to_host(service, cs_ref, target_ip, item)
-        if status == FAIL:
-            logger.error("MigrateVirtualSystemToHost: unexpected list length %s"
-                         % len(ret))
+            logger.info("Migrating guest with the following options:")
+            logger.info("%s" % item)
+            status, ret = migrate_guest_to_host(service, cs_ref, target_ip, item)
+            if status == FAIL:
+                logger.error("MigrateVirtualSystemToHost: unexpected list length %s"
+                             % len(ret))
+                cxml.destroy(options.ip)
+                cxml.undefine(options.ip)
+                return status 
+            elif len(ret) == 2:
+                id = ret[1]['Job'].keybindings['InstanceID']
+
+            status =  check_migration_job(options.ip, id, target_ip, 
+                                          guest_name, local_migrate, virt)
+            if status != PASS:
+                break
+
+            #Get new ref
+            if local_migrate == 1:
+                cxml.destroy(options.ip)
+                cxml.undefine(options.ip)
+                ref_list.remove(cs_ref)
+                if len(ref_list) > 0:
+                    cs_ref = ref_list[0]
+
+        if local_migrate == 0 and cxml is not None:
             cxml.destroy(options.ip)
             cxml.undefine(options.ip)
-            return status 
-        elif len(ret) == 2:
-            id = ret[1]['Job'].keybindings['InstanceID']
 
-        status =  check_migration_job(options.ip, id, target_ip, 
-                                      guest_name, local_migrate, virt)
-        if status != PASS:
-            break
-
-        #Get new ref
-        if local_migrate == 1:
-            cxml.destroy(options.ip)
-            cxml.undefine(options.ip)
-            ref_list.remove(cs_ref)
-            if len(ref_list) > 0:
-                cs_ref = ref_list[0]
-
-    if local_migrate == 0:
-        cxml.destroy(options.ip)
-        cxml.undefine(options.ip)
+    except Exception, details:
+        logger.error("Exception details: %s", details)
+        status = FAIL
 
     return status
 
