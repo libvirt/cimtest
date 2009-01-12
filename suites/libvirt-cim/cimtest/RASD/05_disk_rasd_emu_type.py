@@ -26,7 +26,7 @@ from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import parse_instance_id
 from XenKvmLib.const import do_main
 from XenKvmLib.vxml import get_class
-from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from CimTest.Globals import logger
 from XenKvmLib.const import get_provider_version
 
@@ -45,7 +45,8 @@ def main():
     emu_types = [0, 1]
     try:
         for exp_emu_type in emu_types:
-            cxml = get_class(options.virt)(default_dom, emu_type=exp_emu_type)
+            virt_xml = get_class(options.virt)
+            cxml = virt_xml(default_dom, emu_type=exp_emu_type)
             ret = cxml.cim_define(options.ip)
             if not ret:
                 logger.error("Failed to call DefineSystem()")
