@@ -249,13 +249,15 @@ def default_vssd_rasd_str(dom_name='test_domain',
     if virt == 'KVM':
         disk_dev = 'hda'
         disk_source = const.KVM_disk_path
+        d = class_dasd(disk_dev, disk_source, dom_name, emu_type)
     elif virt == 'XenFV':
         disk_dev = 'hda'
         disk_source = const.XenFV_disk_path
+        d = class_dasd(disk_dev, disk_source, dom_name, emu_type)
     elif virt == 'LXC':
         disk_dev = const.LXC_default_mp
         disk_source = const.LXC_default_source
-    d = class_dasd(disk_dev, disk_source, dom_name, emu_type)
+        d = class_dasd(disk_dev, disk_source, dom_name)
     
     class_masd = get_masd_class(virt)
     m = class_masd(

@@ -471,16 +471,18 @@ class VirtCIM:
         self.virt = virt
         self.domain_name = dom_name
         self.vssd = vsms.get_vssd_mof(virt, dom_name)
-        self.dasd = vsms.get_dasd_class(virt)(disk_dev, disk_source, 
-                                              dom_name, emu_type)
         self.nasd = vsms.get_nasd_class(virt)(type=net_type, 
                                               mac=net_mac,
                                               name=dom_name,
                                               virt_net=net_name)
         if virt == 'LXC':
             self.pasd = vsms.get_pasd_class(virt)(name=dom_name)
+            self.dasd = vsms.get_dasd_class(virt)(disk_dev, disk_source,
+                                                  dom_name)
         else:
             self.pasd = vsms.get_pasd_class(virt)(vcpu=vcpus, name=dom_name)
+            self.dasd = vsms.get_dasd_class(virt)(disk_dev, disk_source,
+                                                  dom_name, emu_type)
         self.masd = vsms.get_masd_class(virt)(megabytes=mem, 
                                               mallocunits=mem_allocunits,
                                               name=dom_name)
@@ -631,7 +633,8 @@ class XenXML(VirtXML, VirtCIM):
                        disk_file_path=const.Xen_disk_path,
                        disk=const.Xen_default_disk_dev, 
                        ntype=const.default_net_type,
-                       net_name=const.default_network_name): 
+                       net_name=const.default_network_name,
+                       emu_type=None): 
         if not (os.path.exists(const.Xen_kernel_path) \
                 and os.path.exists(const.Xen_init_path)):
             logger.error('ERROR: Either the kernel image '
@@ -642,7 +645,8 @@ class XenXML(VirtXML, VirtCIM):
         self._devices(disk_file_path, disk, ntype, mac, net_name)
 
         VirtCIM.__init__(self, 'Xen', test_dom, disk, disk_file_path, 
-                         ntype, net_name, mac, vcpus, mem, mem_allocunits)
+                         ntype, net_name, mac, vcpus, mem, mem_allocunits, 
+                         emu_type)
 
     def _os(self, os_kernel, os_initrd):
         os = self.get_node('/domain/os')
@@ -743,13 +747,15 @@ class XenFVXML(VirtXML, VirtCIM):
                        disk_file_path=const.XenFV_disk_path,
                        disk=const.XenFV_default_disk_dev, 
                        ntype=const.default_net_type,
-                       net_name=const.default_network_name):
+                       net_name=const.default_network_name,
+                       emu_type=None):
         if not os.path.exists(disk_file_path):
             logger.error('Error: Disk image does not exist')
             sys.exit(1)
         VirtXML.__init__(self, 'xenfv', test_dom, set_uuid(), mem, vcpus)
         VirtCIM.__init__(self, 'XenFV', test_dom, disk, disk_file_path,
-                         ntype, net_name, mac, vcpus, mem, mem_allocunits)
+                         ntype, net_name, mac, vcpus, mem, mem_allocunits, 
+                         emu_type)
         self._features()
         self._os(const.XenFV_default_loader)
         self._devices(const.XenFV_default_emulator,
@@ -800,7 +806,7 @@ class LXCXML(VirtXML, VirtCIM):
         VirtXML.__init__(self, 'lxc', test_dom, set_uuid(), mem, vcpus)
         VirtCIM.__init__(self, 'LXC', test_dom, const.LXC_default_mp,
                          const.LXC_default_source, ntype, net_name, mac, vcpus,
-                         mem, const.default_mallocunits)
+                         mem, const.default_mallocunits, None)
         self._os(const.LXC_init_path)
         self._devices(mac, ntype, net_name, const.LXC_default_tty)
         self.create_lxc_file(CIM_IP, const.LXC_init_path)
