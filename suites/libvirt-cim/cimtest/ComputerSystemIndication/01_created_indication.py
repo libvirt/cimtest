@@ -21,26 +21,20 @@
 # 
 
 import sys
-import os
-import signal
-import time
-from pywbem.cim_obj import CIMInstanceName
+from os import waitpid, kill, fork, _exit, WNOHANG
+from signal import SIGKILL
+from time import sleep
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
-from XenKvmLib.common_util import create_using_definesystem, \
-                                  call_request_state_change
-from XenKvmLib.test_doms import destroy_and_undefine_domain 
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.indication_tester import CIMIndicationSubscription
 from XenKvmLib.vxml import set_default
-from XenKvmLib.vsms import get_vsms_class
+from XenKvmLib.vxml import get_class
 
 SUPPORTED_TYPES = ['Xen', 'XenFV', 'KVM']
 
 test_dom = "domU"
-REQ_STATE = 2
-TIME = "00000000000000.000000:000"
 
 def sub_ind(ip, virt):
     dict = set_default(ip)
@@ -70,28 +64,22 @@ def sub_ind(ip, virt):
 
     return sub_list, ind_names, dict
 
-def gen_ind(test_dom, ip, vtype, ind):
+def gen_ind(test_dom, ip, vtype, ind, cxml):
     if ind == "define":
-        return create_using_definesystem(test_dom, ip, virt=vtype)
-
+        ret = cxml.cim_define(ip)
+        if not ret:
+            return FAIL 
+        return PASS
     elif ind == "start":
-        rc = call_request_state_change(test_dom, ip, REQ_STATE, TIME, vtype)
-        if rc != 0:
-            logger.error("Failed to start domain: %s" % test_dom)
+        status = cxml.cim_start(ip)
+        if status != PASS:
+            logger.error("Failed to start domain: %s", test_dom)
             return FAIL
         return PASS
-
     elif ind == "destroy":
-        service = get_vsms_class(vtype)(ip)
-        try:
-            classname = get_typed_class(vtype, 'ComputerSystem')
-            cs_ref = CIMInstanceName(classname, keybindings = {
-                                     'Name':test_dom,
-                                     'CreationClassName':classname})
-            service.DestroySystem(AffectedSystem=cs_ref)
-        except Exception, details:
-            logger.error('Unknow exception happened')
-            logger.error(details)
+        ret = cxml.cim_destroy(ip)
+        if not ret:
+            logger.error("Unable to destroy %s", test_dom)
             return FAIL
         return PASS
         
@@ -121,7 +109,7 @@ def handle_request(sub, ind_name, dict, exp_ind_ct):
 def poll_for_ind(pid, ind_name):
     status = FAIL
     for i in range(0, 20):
-        pw = os.waitpid(pid, os.WNOHANG)
+        pw = waitpid(pid, WNOHANG)
 
         # If pid exits, waitpid returns [pid, return_code] 
         # If pid is still running, waitpid returns [0, 0]
@@ -134,12 +122,12 @@ def poll_for_ind(pid, ind_name):
         elif pw[1] == 0 and i < 19:
             if i % 10 == 0:
                 logger.info("In child, waiting for %s indication", ind_name)
-            time.sleep(1)
+            sleep(1)
         else:
             # Time is up and waitpid never returned the expected pid
             if pw[0] != pid:
                 logger.error("Waited too long for %s indication", ind_name)
-                os.kill(pid, signal.SIGKILL)
+                kill(pid, SIGKILL)
             else:
                 logger.error("Received indication error: %d" % pw[1])
 
@@ -151,34 +139,38 @@ def poll_for_ind(pid, ind_name):
 @do_main(SUPPORTED_TYPES)
 def main():
     options = main.options
+    ip = options.ip
+    virt = options.virt
     status = FAIL
 
-    sub_list, ind_names, dict = sub_ind(options.ip, options.virt)
+    sub_list, ind_names, dict = sub_ind(ip, virt)
 
     ind_list = ["define", "start", "destroy"]
+
+    cxml = get_class(virt)(test_dom)
 
     for ind in ind_list:
         sub = sub_list[ind]
         ind_name = ind_names[ind]
 
         try:
-            pid = os.fork()
+            pid = fork()
             if pid == 0:
                 status = handle_request(sub, ind_name, dict, len(ind_list))
                 if status != PASS:
-                    os._exit(1)
+                    _exit(1)
 
-                os._exit(0)
+                _exit(0)
             else:
                 try:
-                    status = gen_ind(test_dom, options.ip, options.virt, ind)
+                    status = gen_ind(test_dom, ip, virt, ind, cxml)
                     if status != PASS:
-                        os.kill(pid, signal.SIGKILL)
+                        kill(pid, SIGKILL)
                         raise Exception("Unable to generate indication") 
 
                     status = poll_for_ind(pid, ind)
                 except Exception, details:
-                    os.kill(pid, signal.SIGKILL)
+                    kill(pid, SIGKILL)
                     raise Exception(details)
 
         except Exception, details:
@@ -190,7 +182,7 @@ def main():
         sub.unsubscribe(dict['default_auth'])
         logger.info("Cancelling subscription for %s" % ind_names[ind])
        
-    destroy_and_undefine_domain(test_dom, options.ip, options.virt)
+    cxml.undefine(ip)
 
     return status
 
