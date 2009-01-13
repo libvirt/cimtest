@@ -55,12 +55,13 @@ def main():
                 logger.error("Failed to call DefineSystem()")
                 return FAIL
     
-            drasd= get_typed_class(options.virt,'DiskResourceAllocationSettingData')
+            drasd= get_typed_class(options.virt,
+                                   'DiskResourceAllocationSettingData')
         
             drasd_list = EnumInstances(options.ip, drasd, ret_cim_inst=True)
             if len(drasd_list) < 1:
-                raise Exception("%s returned %i instances, expected at least 1" \
-                                 %(drasd, len(drasd_list)))
+                raise Exception("%s returned %i instances, expected at least 1"\
+                                %(drasd, len(drasd_list)))
 
             found_rasd = None
             for rasd in drasd_list:
