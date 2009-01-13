@@ -30,7 +30,7 @@ from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from CimTest.Globals import logger
 from XenKvmLib.const import get_provider_version
 
-SUPPORTED_TYPES = ['KVM']
+SUPPORTED_TYPES = ['KVM', 'Xen']
 default_dom = 'test_domain'
 libvirt_em_type_changeset = 737
 
@@ -42,7 +42,10 @@ def main():
     if curr_cim_rev < libvirt_em_type_changeset:
         return SKIP
 
-    emu_types = [0, 1]
+    if options.virt == 'Xen':
+        emu_types = [0]
+    else:
+        emu_types = [0, 1]
     try:
         for exp_emu_type in emu_types:
             virt_xml = get_class(options.virt)
