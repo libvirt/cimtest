@@ -249,21 +249,28 @@ def default_vssd_rasd_str(dom_name='test_domain',
     if virt == 'KVM':
         disk_dev = 'hda'
         disk_source = const.KVM_disk_path
-        d = class_dasd(disk_dev, disk_source, dom_name, emu_type)
     elif virt == 'XenFV':
         disk_dev = 'hda'
         disk_source = const.XenFV_disk_path
-        d = class_dasd(disk_dev, disk_source, dom_name, emu_type)
     elif virt == 'LXC':
         disk_dev = const.LXC_default_mp
         disk_source = const.LXC_default_source
-        d = class_dasd(disk_dev, disk_source, dom_name)
-    
+
+    #LXC guests do not need to set the EmulationType
+    if virt == 'LXC':
+        d = class_dasd(disk_dev, 
+                       disk_source, 
+                       dom_name)
+    else:
+        d = class_dasd(disk_dev, 
+                       disk_source, 
+                       dom_name, 
+                       emu_type)
+ 
     class_masd = get_masd_class(virt)
-    m = class_masd(
-                megabytes=mem_mb,
-                mallocunits=malloc_units,
-                name=dom_name)
+    m = class_masd(megabytes=mem_mb,
+                   mallocunits=malloc_units,
+                   name=dom_name)
 
     # LXC only takes disk and memory device for now.
     if virt == 'LXC':
@@ -278,15 +285,13 @@ def default_vssd_rasd_str(dom_name='test_domain',
         net_mac = const.XenFV_default_mac
     elif virt == 'LXC':
         net_mac = const.LXC_default_mac
-    n = class_nasd(
-                type=net_type, 
-                mac=net_mac,
-                name=dom_name, 
-                virt_net=net_name)
+    n = class_nasd(type=net_type, 
+                   mac=net_mac,
+                   name=dom_name, 
+                   virt_net=net_name)
     class_pasd = get_pasd_class(virt)
-    p = class_pasd(
-                vcpu=proc_vcpu,
-                name=dom_name)
+    p = class_pasd(vcpu=proc_vcpu,
+                   name=dom_name)
 
     return vssd, [d.mof(), n.mof(), p.mof(), m.mof()]
 
