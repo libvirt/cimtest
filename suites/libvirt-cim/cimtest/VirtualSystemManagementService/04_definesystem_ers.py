@@ -23,17 +23,14 @@
 #
 
 import sys
-import pywbem
-from VirtLib import utils
-from XenKvmLib import vsms
-from XenKvmLib.test_doms import undefine_test_domain
-from XenKvmLib.common_util import create_using_definesystem
+from pywbem import CIM_ERR_FAILED
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
+from XenKvmLib.vxml import get_class
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
-exp_rc = 1 #CMPI_RC_ERR_FAILED
+exp_rc = CIM_ERR_FAILED 
 exp_desc = 'Unable to parse embedded object'
 
 @do_main(sup_types)
@@ -41,26 +38,28 @@ def main():
     options = main.options
 
     dname = 'test_domain'
-    vssd, rasd = vsms.default_vssd_rasd_str(dom_name=dname, virt=options.virt)
 
-    params = {'vssd' : vssd,
-              'rasd' : ['wrong'] 
-             }
+    cxml = get_class(options.virt)(dname)
 
-    exp_err = {'exp_rc' : exp_rc,
-               'exp_desc' : exp_desc
-              }
+    rasd_list = { "MemResourceAllocationSettingData" : "wrong" }
+    cxml.set_res_settings(rasd_list)
 
+    try:
+        ret = cxml.cim_define(options.ip)
+        if ret:
+            raise Exception('DefineSystem returned OK with invalid params')
 
-    rc = create_using_definesystem(dname, options.ip, params, ref_config=' ',
-                                   exp_err=exp_err, virt=options.virt)
+        status = cxml.verify_error_msg(exp_rc, exp_desc)
+        if status != PASS:
+            raise Exception('DefineSystem failed for an unexpected reason')
 
-    if rc != PASS:
-        logger.error('DefineSystem should NOT return OK with a wrong ss input')
+    except Exception, details:
+        logger.error(details)
+        status = FAIL
 
-    undefine_test_domain(dname, options.ip, virt=options.virt)
+    cxml.undefine(options.ip)
 
-    return rc 
+    return status
 
 if __name__ == "__main__":
     sys.exit(main())

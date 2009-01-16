@@ -470,6 +470,8 @@ class VirtCIM:
                  mem_allocunits, emu_type):
         self.virt = virt
         self.domain_name = dom_name
+        self.err_rc = None
+        self.err_desc = None
         self.vssd = vsms.get_vssd_mof(virt, dom_name)
         self.nasd = vsms.get_nasd_class(virt)(type=net_type, 
                                               mac=net_mac,
@@ -491,11 +493,17 @@ class VirtCIM:
     def cim_define(self, ip, ref_conf=None):
         service = vsms.get_vsms_class(self.virt)(ip)
         sys_settings = str(self.vssd)
-        if self.virt == 'LXC' and const.LXC_netns_support is False:
-            res_settings = [str(self.dasd), str(self.pasd), str(self.masd)]
-        else:
-            res_settings = [str(self.dasd), str(self.nasd),
-                            str(self.pasd), str(self.masd)]
+
+        res_settings = []
+        if self.dasd is not None:
+            res_settings.append(str(self.dasd))
+        if self.pasd is not None:
+            res_settings.append(str(self.pasd))
+        if self.masd is not None:
+            res_settings.append(str(self.masd))
+        if self.nasd is not None or \
+           (self.virt == 'LXC' and const.LXC_netns_support is False):
+            res_settings.append(str(self.nasd))
 
         if ref_conf is None:
              ref_conf = ' '
@@ -506,6 +514,8 @@ class VirtCIM:
                                  ReferenceConfiguration=ref_conf)
         except pywbem.CIMError, (rc, desc):
             logger.error('Got CIM error %s with return code %s' % (desc, rc))
+            self.err_rc = rc 
+            self.err_desc = desc 
             return False
 
         except Exception, details:
@@ -523,6 +533,12 @@ class VirtCIM:
         target = pywbem.cim_obj.CIMInstanceName(cs_cn, keybindings = keys)
         try:
             ret = service.DestroySystem(AffectedSystem=target)
+        except pywbem.CIMError, (rc, desc):
+            logger.error('Got CIM error %s with return code %s' % (desc, rc))
+            self.err_rc = rc 
+            self.err_desc = desc 
+            return False
+
         except Exception, details:
             logger.error('Error invoking DestroySystem')
             logger.error('Got error %s with exception %s' \
@@ -575,6 +591,12 @@ class VirtCIM:
             cs.RequestStateChange(RequestedState=req_state_change,
                                   TimeoutPeriod=time_period)
 
+        except pywbem.CIMError, (rc, desc):
+            logger.error('Got CIM error %s with return code %s' % (desc, rc))
+            self.err_rc = rc 
+            self.err_desc = desc 
+            return FAIL 
+
         except Exception, detail:
             logger.error("In fn cim_state_change()")
             logger.error("Failed to change state of the domain '%s'", cs.Name)
@@ -620,6 +642,36 @@ class VirtCIM:
         return self.cim_state_change(server, const.CIM_RESET, 
                                      req_time, poll_time, const.CIM_ENABLE)
 
+    def set_sys_settings(self, vssd):
+        self.vssd = vssd 
+
+    def set_res_settings(self, rasd_list):
+        for cn, rasd in rasd_list.iteritems():
+            if cn.find("MemResourceAllocationSettingData") >= 0:
+                self.masd = rasd
+            elif cn.find("ProcResourceAllocationSettingData") >= 0:
+                self.pasd = rasd
+            elif cn.find("DiskResourceAllocationSettingData") >= 0:
+                self.dasd = rasd
+            elif cn.find("NetResourceAllocationSettingData") >= 0:
+                self.nasd = rasd
+
+    def verify_error_msg(self, exp_rc, exp_desc):
+        try:
+            rc = int(self.err_rc)
+
+            if rc != exp_rc:
+                raise Exception("Got rc: %d, exp %d." % (rc, exp_rc))
+
+            if self.err_desc.find(exp_desc) < 0:
+                raise Exception("Got desc: '%s', exp '%s'" % (self.err_desc,
+                                exp_desc))
+
+        except Exception, details:
+            logger.error(details)
+            return FAIL
+
+        return PASS 
 
 class XenXML(VirtXML, VirtCIM):
 
