@@ -1,0 +1,47 @@
+
+The CodingStyle for cimtest (and libcmpiutil) mostly mirrors that of 
+libvirt-cim but with the following "clarifications":
+
+- Each new file needs to have be appropriate license header (see existing test 
+  cases)
+
+- Test cases should also include a short desciption that describes the purpose
+   of the test.
+
+- Four-space indents
+
+- 80-char width limit.  Break long function calls by:
+    a) putting *every* parameter of the call on its own line
+        -or-
+    b) putting as many params in a line as will fit in the 80-char limit; 
+       overflow params are placed on the subsequent line
+
+- Split lines should aligned like the following:
+
+        VirtCIM.__init__(self, 'Xen', test_dom, disk, disk_file_path,
+                         ntype, net_name, mac, vcpus, mem, mem_allocunits,
+                         emu_type)
+
+- Identifiers should be named with underbars_and_lowercase.
+
+- When passing parameters to logger.error() and logger.info(), use
+  commas:
+
+       logger.error("%s is not a valid network type", net_type)
+
+  Not percent signs:
+
+       logger.error('Got CIM error %s with return code %s' % (desc, rc))
+
+- When passing parameters to Exception(), use percents:
+
+       raise Exception("Unable to define %s" % test_dom)
+  
+  Not commas:
+
+       raise Exception("Unable to define %s", test_dom)
+
+- Except for special cases, import the needed functions from a module.  Do not
+  import the entire module:
+
+       from XenKvmLib.classes import virt_types 
