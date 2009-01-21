@@ -501,9 +501,11 @@ class VirtCIM:
             res_settings.append(str(self.pasd))
         if self.masd is not None:
             res_settings.append(str(self.masd))
-        if self.nasd is not None or \
-           (self.virt == 'LXC' and const.LXC_netns_support is False):
-            res_settings.append(str(self.nasd))
+        if self.nasd is not None:
+            if self.virt == 'LXC' and const.LXC_netns_support is False:
+                pass
+            else:
+                res_settings.append(str(self.nasd))
 
         if ref_conf is None:
              ref_conf = ' '

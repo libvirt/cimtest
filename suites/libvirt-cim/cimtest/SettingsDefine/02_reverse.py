@@ -55,7 +55,7 @@ import sys
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.const import do_main
-from XenKvmLib.assoc import AssociatorNames
+from XenKvmLib.assoc import AssociatorNames, compare_all_prop
 from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.rasd import enum_rasds
@@ -80,7 +80,7 @@ def setup_env(server, virt):
     ret = cxml.cim_define(server)
     if not ret:
         logger.error("Failed to Create the dom: %s", test_dom)
-        return FAIL, cmxl
+        return FAIL, cxml
 
     status = cxml.cim_start(server)
     if status != PASS:
@@ -101,9 +101,6 @@ def init_rasd_list(virt, ip, guest_name):
         return rasd_insts, status
 
     for rasd_cn, rasd_list in rasds.iteritems():
-        if virt == "LXC" and rasd_cn == proc_rasd_cn:
-            continue
-
         for rasd in rasd_list:
             guest, dev, status = parse_instance_id(rasd.InstanceID)
             if status != PASS:
@@ -135,56 +132,44 @@ def init_device_list(virt, ip, guest_name):
 
     return dev_insts, PASS
 
-def verify_rasd(virt, enum_list, rasds, guest_name):
-    proc_rasd_cn = get_typed_class(virt, "ProcResourceAllocationSettingData")
+def verify_rasd(virt, enum_list, rasds):
+    if len(enum_list) != len(rasds):
+        logger.error("Got %d RASDs, expected %d", len(enum_list), len(rasds))
+        return FAIL
+
+    status = FAIL
 
     for rasd in enum_list:
-        if virt == "LXC" and rasd.classname == proc_rasd_cn:
-            enum_list.remove(rasd) 
-            continue
-
-        guest, dev, status = parse_instance_id(rasd['InstanceID'])
-        if status != PASS:
-            logger.error("Unable to parse InstanceID: %s", rasd['InstanceID'])
-            return status
-
-        if guest != guest_name:
-            continue
-
         exp_rasd = rasds[rasd.classname]
 
-        if rasd['InstanceID'] == exp_rasd.InstanceID:
-            status = PASS
-        else:
-            logger.info("Got %s instead of %s" % (rasd['InstanceID'],
-                        exp_rasd.InstanceID))
-            status = FAIL
+        if rasd['InstanceID'] != exp_rasd.InstanceID:
+            logger.error("Got %s instead of %s", rasd['InstanceID'],
+                         exp_rasd.InstanceID)
+            return FAIL
 
-    if status != PASS:
-        logger.error("RASD with id %s not returned", exp_rasd.InstanceID)
-        return FAIL
+        status = compare_all_prop(rasd, exp_rasd)
+        if status != PASS:
+            logger.error("Verifying instance properties failed.")
 
-    return PASS
+    return status 
 
 def verify_devices(enum_list, devs):
-    for dev in enum_list:
-        guest, dev_id, status = parse_instance_id(dev['DeviceID'])
-        if status != PASS:
-            logger.error("Unable to parse InstanceID: %s", dev['DeviceID'])
-            return status
+    dev = enum_list[0]
+    dev_cn = dev.classname
 
-        exp_dev = devs[dev.classname]
-
-        if dev['DeviceID'] == exp_dev.DeviceID:
-            status = PASS
-        else:
-            logger.info("Got %s instead of %s" % (dev['DeviceID'],
-                        exp_dev.DeviceID))
-            status = FAIL
-
-    if status != PASS:
-        logger.error("Device with id %s not returned", exp_dev.DeviceID)
+    if len(enum_list) != 1:
+        logger.error("Got %d %s devices, expected 1", len(enum_list), dev_cn)
         return FAIL
+
+    exp_dev = devs[dev_cn]
+
+    if dev['DeviceID'] != exp_dev.DeviceID:
+        logger.error("Got %s instead of %s", dev['DeviceID'], exp_dev.DeviceID)
+        return FAIL
+
+    status = compare_all_prop(dev, exp_dev)
+    if status != PASS:
+        return status
 
     return PASS
 
@@ -196,7 +181,6 @@ def main():
 
     status, cxml = setup_env(options.ip, virt)
     if status != PASS:
-        cxml.undefine(options.ip)
         return status
 
     if virt == 'XenFV':
@@ -217,12 +201,9 @@ def main():
         assoc = AssociatorNames(options.ip, vssdc_cn, vssd_cn,
                                 InstanceID = instIdval)
 
-        status = verify_rasd(virt, assoc, rasds, test_dom)
+        status = verify_rasd(virt, assoc, rasds)
         if status != PASS:
             raise Exception("Failed to verify RASDs")
-
-        if len(assoc) != len(rasds):
-            raise Exception("Got %d RASDs, exp %d" % (len(assoc), len(rasds)))
 
         sds_cn = get_typed_class(virt, 'SettingsDefineState')
 
@@ -230,8 +211,14 @@ def main():
         if status != PASS:
             raise Exception("Unable to build device instance list")
 
+        proc_cn = get_typed_class(virt, 'ProcResourceAllocationSettingData')
         for rasd in assoc:
             rasd_cn = rasd.classname
+            
+            # LXC guests don't have proc devices
+            if virt == "LXC" and rasd_cn == proc_cn:
+                continue
+
             sdc_assoc = AssociatorNames(options.ip, sds_cn, rasd_cn,
                                         InstanceID = rasd['InstanceID'])
             
