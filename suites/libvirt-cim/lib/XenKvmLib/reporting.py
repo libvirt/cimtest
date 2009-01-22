@@ -45,13 +45,24 @@ def get_libvirt_ver(ip):
     cmd = "virsh version"
     virsh_ver = get_cmd_val(cmd, ip)
     if virsh_ver != "Unknown":
-        if len(virsh_ver.splitlines()) == 4:
-            if virsh_ver.splitlines()[0].find("libvir"):
-                libvirt_ver = virsh_ver.splitlines()[0].split()[4]
+        libvirt, tok1, tok2, hypervisor = virsh_ver.splitlines()
+        if libvirt.find("libvir"):
+            libvirt_ver = libvirt.split()[4]
 
-            if virsh_ver.splitlines()[3].find("hypervisor"):
-                hyp_ver = virsh_ver.splitlines()[3].split("hypervisor")[1]
-                hyp_ver = hyp_ver.split(": ")[1]
+        if hypervisor.find("hypervisor"):
+            tok = hypervisor.split("hypervisor")
+            #We need these checks here, because sometimes hypervisor is found,
+            #but the rest of the version info isn't available
+            if len(tok) > 1:
+                tok = tok[1].split(": ")
+                if len(tok) > 1:
+                    hyp_ver = tok[1]
+
+    if libvirt_ver == "Unknown":
+        print "\nUnable to determine libvirt version\n"
+
+    if hyp_ver == "Unknown":
+        print "\nUnable to determine hypervisior version\n"
 
     return libvirt_ver, hyp_ver
 
