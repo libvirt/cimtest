@@ -139,7 +139,6 @@ def main():
         # Once complete Graphics support for LXC is in, we need to verify the
         # KVMRedirectionSAP for a running guest.
         if virt == 'LXC':
-            logger.error("DEBUG")
             vsxml.undefine(server)
             return status
 
