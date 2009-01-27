@@ -47,6 +47,15 @@ CIM_RESET       = 11
 # Default TimeoutPeriod param for CS.RequestedStateChange()
 TIME           = "00000000000000.000000:000"
 
+#KVMRedirectionSAP protocol values
+KVMRedSAP_proto =  { 'raw' : 2, 'rdp' : 3, 'vnc' : 4 }
+
+# CIM values for KVMRedirectionSAP.EnabledState 
+CIM_SAP_ACTIVE_STATE  =  2
+CIM_SAP_INACTIVE_STATE = 3
+CIM_SAP_AVAILABLE_STATE = 6
+
+
 # vxml.NetXML
 default_bridge_name = 'testbridge'
 default_network_name = 'cimtest-networkpool'

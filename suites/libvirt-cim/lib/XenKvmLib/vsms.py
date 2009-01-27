@@ -33,6 +33,7 @@ RASD_TYPE_MEM = 4
 RASD_TYPE_NET_ETHER = 10
 RASD_TYPE_NET_OTHER = 11
 RASD_TYPE_DISK = 17
+RASD_TYPE_GRAPHICS = 24
 
 VSSD_RECOVERY_NONE     = 2
 VSSD_RECOVERY_RESTART  = 3
@@ -232,6 +233,36 @@ class LXC_MemResourceAllocationSettingData(CIM_MemResourceAllocationSettingData)
 def get_masd_class(virt):
     pass
 
+
+class CIM_GraphicsResourceAllocationSettingData(CIMClassMOF):
+    def __init__(self, name, res_sub_type="vnc", ip="127.0.0.1", 
+                 lport='-1', keymap="en-us"):
+        self.InstanceID = '%s/graphics' %name
+        self.ResourceType = RASD_TYPE_GRAPHICS
+
+        if res_sub_type != None: 
+            self.ResourceSubType = res_sub_type
+
+        if ip != None and lport != None:
+           self.Address = '%s:%s' % (ip, lport)
+
+        if keymap != None:
+           self.KeyMap = keymap
+  
+
+class Xen_GraphicsResourceAllocationSettingData(CIM_GraphicsResourceAllocationSettingData):
+    pass
+
+class KVM_GraphicsResourceAllocationSettingData(CIM_GraphicsResourceAllocationSettingData):
+    pass
+
+class LXC_GraphicsResourceAllocationSettingData(CIM_GraphicsResourceAllocationSettingData):
+    pass
+
+@eval_cls('GraphicsResourceAllocationSettingData')
+def get_gasd_class(virt):
+    pass
+
 def default_vssd_rasd_str(dom_name='test_domain', 
                           disk_dev='xvda',
                           disk_source=const.Xen_disk_path,
@@ -272,9 +303,12 @@ def default_vssd_rasd_str(dom_name='test_domain',
                    mallocunits=malloc_units,
                    name=dom_name)
 
+    class_gasd = get_gasd_class(virt)
+    g = class_gasd(name=dom_name)
+
     # LXC only takes disk and memory device for now.
     if virt == 'LXC':
-        return vssd, [d.mof(), m.mof()]
+        return vssd, [d.mof(), m.mof(), g.mof()]
     
     class_nasd = get_nasd_class(virt)
     if net_mac != const.Xen_default_mac:
@@ -293,5 +327,5 @@ def default_vssd_rasd_str(dom_name='test_domain',
     p = class_pasd(vcpu=proc_vcpu,
                    name=dom_name)
 
-    return vssd, [d.mof(), n.mof(), p.mof(), m.mof()]
+    return vssd, [d.mof(), n.mof(), p.mof(), m.mof(), g.mof()]
 
