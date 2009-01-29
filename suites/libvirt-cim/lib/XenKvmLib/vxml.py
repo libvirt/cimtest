@@ -47,6 +47,9 @@ from CimTest.Globals import logger, CIM_IP, CIM_PORT, CIM_NS, CIM_USER, CIM_PASS
 from CimTest.ReturnCodes import SKIP, PASS, FAIL
 from XenKvmLib.classes import virt_types, get_typed_class
 from XenKvmLib.enumclass  import GetInstance
+from XenKvmLib.const import get_provider_version
+
+vsms_graphics_sup = 763
 
 class XMLClass:
     xml_string = ""
@@ -508,8 +511,11 @@ class VirtCIM:
                 pass
             else:
                 res_settings.append(str(self.nasd))
-        if self.gasd is not None:
-            res_settings.append(str(self.gasd))
+
+        curr_cim_rev, changeset = get_provider_version(self.virt, ip)
+        if curr_cim_rev >= vsms_graphics_sup:
+            if self.gasd is not None:
+                res_settings.append(str(self.gasd))
 
         if ref_conf is None:
              ref_conf = ' '
