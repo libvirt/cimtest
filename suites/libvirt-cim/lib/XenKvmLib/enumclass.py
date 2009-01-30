@@ -34,12 +34,47 @@ class CIM_Instance:
     def __init__(self, inst):
         self.inst = inst
 
+    def __eq__(self, other):
+        if self is other:
+            return True
+        else:
+            return False
+
+    def __ne__(self, other):
+        if self is other:
+            return False
+        else:
+            return True
+
+    def __coerce__(self, other):
+        logger.error("__coerce__ function not implemented")
+        return NotImplemented
+
+    def __cmp__(self, other):
+        logger.error("__cmp__ function not implemented")
+        return NotImplemented
+
+    def __gt__(self, other):
+        logger.error("__gt__ function not implemented")
+        return NotImplemented
+
+    def __lt__(self, other):
+        logger.error("__gt__ function not implemented")
+        return NotImplemented
+
+    def __ge__(self, other):
+        logger.error("__gt__ function not implemented")
+        return NotImplemented
+
+    def __le__(self, other):
+        logger.error("__gt__ function not implemented")
+        return NotImplemented
 
     def __getattr__(self, attr):
         return self.inst[attr]
 
     def __str__(self):
-        print self.inst.items()
+        return self.inst.tomof()
 
 class CIM_CimtestClass(CIM_Instance):
     def __init__(self, host, ref):
