@@ -21,17 +21,14 @@
 #
 
 import sys
-import pywbem
-from VirtLib import live
-from XenKvmLib import vsms
-from XenKvmLib.test_doms import undefine_test_domain
-from XenKvmLib.common_util import create_using_definesystem
-from XenKvmLib import rasd
-from XenKvmLib.classes import get_typed_class
+from pywbem.cim_types import Uint64
+from XenKvmLib.classes import get_typed_class, inst_to_mof
 from XenKvmLib import enumclass
 from XenKvmLib.const import do_main
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import FAIL, PASS
+from XenKvmLib.vxml import get_class
+from XenKvmLib.rasd import get_default_rasds
 
 sup_types = ['Xen', 'XenFV', 'KVM']
 default_dom = "memrasd_test"
@@ -45,30 +42,38 @@ values = [
     ("GigaBytes", 30),
     ]
 
-def try_define(options, vssd, units, value):
-    mrasd_class = vsms.get_masd_class(options.virt)
-    mrasd = mrasd_class(megabytes=value, mallocunits=units, 
-                        name=default_dom)
+def try_define(options, units, value, cxml):
+    mrasd_cn = get_typed_class(options.virt, "MemResourceAllocationSettingData")
 
-    params = { 
-        "vssd" : vssd,
-        "rasd" : [mrasd.mof()],
-        }
+    rasds = get_default_rasds(options.ip, options.virt)
 
-    logger.info("Defining with %s = %i" % (units, value))
-    rc = create_using_definesystem(default_dom,
-                                   options.ip,
-                                   params=params,
-                                   virt=options.virt)
-                                   
-    if rc != PASS:
-        logger.error("DefineSystem (%s) failed" % units)
-        return False
+    rasd_list = {} 
 
-    return True
+    for rasd in rasds:
+        if rasd.classname == mrasd_cn:
+            rasd['VirtualQuantity'] = Uint64(value)
+            rasd['AllocationUnits'] = units 
+            rasd_list[mrasd_cn] = inst_to_mof(rasd)
+        else:
+            rasd_list[rasd.classname] = None 
+
+    if rasd_list[mrasd_cn] is None:
+        logger.error("Unable to get template MemRASD")
+        return FAIL 
+
+    cxml.set_res_settings(rasd_list)
+
+    logger.info("Defining with %s = %i", units, value)
+
+    ret = cxml.cim_define(options.ip)
+    if not ret:
+        logger.error("DefineSystem with (%s) units failed" % units)
+        return FAIL 
+
+    return PASS 
 
 def check_value(options):
-    mrasd_cn = get_typed_class(options.virt, rasd.masd_cn)
+    mrasd_cn = get_typed_class(options.virt, "MemResourceAllocationSettingData")
     rasds = enumclass.EnumInstances(options.ip, mrasd_cn, ret_cim_inst=True)
 
     the_rasd = None
@@ -80,46 +85,50 @@ def check_value(options):
     
     if not the_rasd:
         logger.error("Did not find test RASD on server")
-        return False
+        return FAIL 
 
     if the_rasd["AllocationUnits"] != "KiloBytes":
         logger.error("MRASD units are not kilobytes?")
-        return False
+        return FAIL 
 
     cim_kb = int(the_rasd["VirtualQuantity"])
 
     if cim_kb != mem_kb:
         logger.error("CIM reports %i KB instead of %i KB" % (cim_kb, mem_kb))
-        return False
+        return FAIL 
 
     logger.info("Verified %i KB" % mem_kb)
 
-    return True
+    return PASS 
 
 
 @do_main(sup_types)
 def main():
     options = main.options
 
-    vssd = vsms.get_vssd_mof(options.virt, default_dom)
+    cxml = get_class(options.virt)(default_dom)
 
-    status = PASS
+    status = FAIL 
+    guest_is_undefined = None 
 
     for units, shift in values:
+        guest_is_undefined = False
+
         value = mem_bytes >> shift
 
-        if not try_define(options, vssd, units, value):
-            status = FAIL
+        status = try_define(options, units, value, cxml)
+        if status != PASS:
             break
 
-        if not check_value(options):
-            status = FAIL
+        status = check_value(options)
+        if status != PASS:
             break
 
-        undefine_test_domain(default_dom, options.ip, virt=options.virt)
+        cxml.undefine(options.ip)
+        guest_is_undefined = True
 
-    undefine_test_domain(default_dom, options.ip, virt=options.virt)
-
+    if guest_is_undefined != True:
+        cxml.undefine(options.ip)
 
     return status
 
