@@ -23,17 +23,14 @@
 #
 
 import sys
-import pywbem
-from VirtLib import utils
-from XenKvmLib import vsms
-from XenKvmLib.test_doms import undefine_test_domain
-from XenKvmLib.common_util import create_using_definesystem
+from pywbem import CIM_ERR_FAILED
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
+from XenKvmLib.vxml import get_class
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
-exp_rc = 1 #CMPI_RC_ERR_FAILED
+exp_rc = CIM_ERR_FAILED
 exp_desc = 'Unable to parse embedded object'
 
 @do_main(sup_types)
@@ -42,25 +39,31 @@ def main():
 
     dname = 'test_domain'
 
-    vssd, rasd = vsms.default_vssd_rasd_str(dom_name=dname, virt=options.virt)
+    cxml = get_class(options.virt)(dname)
+    cxml.set_sys_settings("wrong")
 
-    params = {'vssd' : 'wrong',
-              'rasd' : rasd
-             }
-
-    exp_err = {'exp_rc' : exp_rc,
-               'exp_desc' : exp_desc
-              }
-
-    rc = create_using_definesystem(dname, options.ip, params, ref_config=' ',
-                                   exp_err=exp_err, virt=options.virt)
-
-    if rc != PASS:
+    ret = cxml.cim_define(options.ip)
+    if ret:
         logger.error('DefineSystem should NOT return OK with a wrong ss input')
+        status = FAIL
 
-    undefine_test_domain(dname, options.ip, virt=options.virt)
+    try:
+        if int(cxml.err_rc) != exp_rc:
+            raise Exception("Got rc: %d, exp %d." % (int(cxml.err_rc), exp_rc))
 
-    return rc 
+        if cxml.err_desc.find(exp_desc) < 0:
+            raise Exception("Got desc: '%s', exp '%s'" % (cxml.err_desc,
+                            exp_desc))
+
+        status = PASS
+
+    except Exception, details:
+        logger.error(details)
+        status = FAIL
+
+    cxml.undefine(options.ip)
+
+    return status 
 
 if __name__ == "__main__":
     sys.exit(main())
