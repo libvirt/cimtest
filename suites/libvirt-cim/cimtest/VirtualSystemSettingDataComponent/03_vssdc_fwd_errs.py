@@ -71,10 +71,11 @@ test_mac     = "00:11:22:33:44:aa"
 test_vcpus   = 1
 
 expr_values = {
-    "INVALID_InstID_Keyname"   : { 'rc'   : pywbem.CIM_ERR_FAILED, \
-                     'desc' : 'Missing InstanceID' }, \
-    "INVALID_InstID_Keyval"    : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                     'desc' : 'No such instance (INVALID_InstID_Keyval)'}
+    "INVALID_InstID_Keyname"   : { 'rc'   : pywbem.CIM_ERR_FAILED, 
+                                   'desc' : 'Missing InstanceID' }, 
+    "INVALID_InstID_Keyval"    : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
+                                   'desc' : 'No such instance '\
+                                            '(INVALID_InstID_Keyval)'}
 }
 
 def try_invalid_assoc(classname, name_val, i, field, virt="Xen"):
@@ -96,41 +97,46 @@ def try_invalid_assoc(classname, name_val, i, field, virt="Xen"):
 @do_main(sup_types)
 def main():
     options = main.options
-    if not options.ip:
-        parser.print_help()
-        return FAIL
-
+    virt = options.virt
     status = PASS
 
     destroy_and_undefine_all(options.ip)
 
-    if options.virt == "Xen":
+    if virt == "Xen":
         test_disk = "xvda"
     else: 
         test_disk = "hda"
 
-    virt_xml = vxml.get_class(options.virt)
-    if options.virt == 'LXC':
+    virt_xml = vxml.get_class(virt)
+    if virt == 'LXC':
         cxml = virt_xml(test_dom)
     else:
-        cxml = virt_xml(test_dom, vcpus = test_vcpus, mac = test_mac, disk = test_disk)
-    ret = cxml.create(options.ip)
+        cxml = virt_xml(test_dom, vcpus = test_vcpus, 
+                        mac = test_mac, disk = test_disk)
+
+    ret = cxml.cim_define(options.ip)
     if not ret:
-        logger.error('Unable to create domain %s' % test_dom)
+        logger.error('Unable to define domain %s' % test_dom)
+        return FAIL
+
+    status = cxml.cim_start(options.ip)
+    if status != PASS:
+        cxml.undefine(options.ip)
+        logger.error('Unable to start domain %s' % test_dom)
         return FAIL
 
     global conn
-    conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, \
-                                                        CIM_PASS), CIM_NS)
-    disk_rasd = get_typed_class(options.virt, 'DiskResourceAllocationSettingData')
-    mem_rasd = get_typed_class(options.virt, 'MemResourceAllocationSettingData')
-    net_rasd = get_typed_class(options.virt, 'NetResourceAllocationSettingData')
-    proc_rasd = get_typed_class(options.virt, 'ProcResourceAllocationSettingData')
+    conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, 
+                                  CIM_PASS), CIM_NS)
+    disk_rasd = get_typed_class(virt, 'DiskResourceAllocationSettingData')
+    mem_rasd = get_typed_class(virt, 'MemResourceAllocationSettingData')
+    net_rasd = get_typed_class(virt, 'NetResourceAllocationSettingData')
+    proc_rasd = get_typed_class(virt, 'ProcResourceAllocationSettingData')
 
     class_id = {
-                disk_rasd : test_disk, \
-                mem_rasd  : 'mem', \
-                net_rasd  : test_mac, \
+                disk_rasd : test_disk, 
+                mem_rasd  : 'mem', 
+                net_rasd  : test_mac, 
                 proc_rasd : '0'
                }
 
@@ -140,7 +146,7 @@ def main():
         devid = "%s/%s" % (test_dom, devid)
         name_val = ['InstanceID', devid]
         for i in range(len(tc_scen)):
-            retval = try_invalid_assoc(classname, name_val, i, tc_scen[i], options.virt)
+            retval = try_invalid_assoc(classname, name_val, i, tc_scen[i], virt)
             if retval != PASS:
                 status = retval
 
