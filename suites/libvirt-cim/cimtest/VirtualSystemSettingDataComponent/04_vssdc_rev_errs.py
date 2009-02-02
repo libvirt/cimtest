@@ -69,13 +69,13 @@ from CimTest.Globals import CIM_USER, CIM_PASS, CIM_NS
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
-test_dom     = "domu1"
+test_dom = "domu1"
 
 expr_values = {
-    "INVALID_InstID_Keyname"   : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                     'desc' : 'No such instance (InstanceID)' }, \
-    "INVALID_InstID_Keyval"    : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, \
-                     'desc' : 'No such instance (InstanceID)'}
+    "INVALID_InstID_Keyname"  : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
+                                  'desc' : 'No such instance (InstanceID)' },
+    "INVALID_InstID_Keyval"   : { 'rc'   : pywbem.CIM_ERR_NOT_FOUND, 
+                                  'desc' : 'No such instance (InstanceID)'}
 }
 
 def try_invalid_assoc(name_val, i, field, virt="Xen"):
@@ -87,8 +87,8 @@ def try_invalid_assoc(name_val, i, field, virt="Xen"):
     for j in range(len(name_val)/2):
         k = j * 2
         keys[name_val[k]] = name_val[k+1]
-    ret_val = try_assoc(conn, classname, ac_classname, keys, field_name=field, \
-                              expr_values=expr_values[field], bug_no='')
+    ret_val = try_assoc(conn, classname, ac_classname, keys, field_name=field, 
+                        expr_values=expr_values[field], bug_no='')
     if ret_val != PASS:
         logger.error("------ FAILED: %s %s------", classname, field)
     name_val[i] = temp
@@ -98,36 +98,41 @@ def try_invalid_assoc(name_val, i, field, virt="Xen"):
 @do_main(sup_types)
 def main():
     options = main.options
-    if not options.ip:
-        parser.print_help()
-        return FAIL
+    virt = options.virt
 
     status = PASS
 
     destroy_and_undefine_all(options.ip)
 
-    virt_xml = vxml.get_class(options.virt)
+    virt_xml = vxml.get_class(virt)
     cxml = virt_xml(test_dom)
-    ret = cxml.create(options.ip)
+
+    ret = cxml.cim_define(options.ip)
     if not ret:
-        logger.error('Unable to create domain %s' % test_dom)
+        logger.error('Unable to define domain %s' % test_dom)
+        return FAIL
+
+    status = cxml.cim_start(options.ip)
+    if status != PASS:
+        cxml.undefine(options.ip)
+        logger.error('Unable to start domain %s' % test_dom)
         return FAIL
 
     global conn
-    conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, \
-                                                        CIM_PASS), CIM_NS)
+    conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, 
+                                   CIM_PASS), CIM_NS)
 
     tc_scen = ['INVALID_InstID_Keyname', 'INVALID_InstID_Keyval']
   
-    if options.virt == "Xen" or options.virt == "XenFV":
+    if virt == "Xen" or virt == "XenFV":
         inst_id = "Xen:%s" % test_dom
     else:
-        inst_id = "%s:%s" % (options.virt, test_dom)
+        inst_id = "%s:%s" % (virt, test_dom)
   
     name_val = ['InstanceID', inst_id]
 
     for i in range(len(tc_scen)):
-        retval = try_invalid_assoc(name_val, i, tc_scen[i], options.virt)
+        retval = try_invalid_assoc(name_val, i, tc_scen[i], virt)
         if retval != PASS:
             status = retval
 
