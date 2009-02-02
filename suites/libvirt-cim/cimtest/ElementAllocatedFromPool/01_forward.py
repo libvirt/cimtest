@@ -96,7 +96,6 @@ def get_pool_details(server, virt, vsxml, diskid):
         key_list = {"InstanceID" : k}
         inst = get_inst(server, virt, cn, key_list)
         if inst is None:
-            vsxml.destroy(server)
             return FAIL, gi_inst_list 
         cn = get_typed_class(virt, cn)
         gi_inst_list[cn] = { 'InstanceID' : inst.InstanceID, 
@@ -127,9 +126,11 @@ def verify_eafp_values(server, virt, in_pllist, gi_inst_list):
             if assoc_eafp_info['InstanceID'] != gi_inst['InstanceID']:
                 field_err(assoc_eafp_info, gi_inst, 'InstanceID')
                 return FAIL
+
             if assoc_eafp_info['PoolID'] != gi_inst['PoolID']:
                 field_err(assoc_eafp_info, gi_inst, 'PoolID')
                 return FAIL
+
         except Exception, detail:
             logger.error(CIM_ERROR_ASSOCIATORS, an)
             logger.error("Exception: %s", detail)
@@ -156,31 +157,40 @@ def main():
         vsxml = virt_type(test_dom, vcpus = test_vcpus, mac = test_mac,
                        disk = test_disk)
 
-    ret = vsxml.create(server)
+    ret = vsxml.cim_define(server)
     if not ret:
-        logger.error("Failed to Create the dom: '%s'", test_dom)
+        logger.error("Failed to define the dom: '%s'", test_dom)
         return FAIL
-    
-    mem_cn  = get_typed_class(virt, "Memory")
-    ldlist = {
-                 mem_cn      : "%s/%s" % (test_dom, "mem"),
-             }
 
-    if virt != 'LXC':
-        disk_cn = get_typed_class(virt, "LogicalDisk") 
-        net_cn  = get_typed_class(virt, "NetworkPort")
-        proc_cn =  get_typed_class(virt, "Processor")
-        ldlist[disk_cn] = "%s/%s" % (test_dom, test_disk)
-        ldlist[net_cn]  = "%s/%s" % (test_dom, test_mac)
-        ldlist[proc_cn] = "%s/%s" % (test_dom, "0")
-
-    status, gi_inst_list = get_pool_details(server, virt, vsxml, 
-                                            default_pool_name)
+    status = vsxml.cim_start(server)
     if status != PASS:
-        return status
-     
-    status = verify_eafp_values(server, virt, ldlist, gi_inst_list)
+        logger.error("Failed to start the dom: '%s'", test_dom)
+        vsxml.undefine(server)
+        return FAIL
+    try: 
+        mem_cn  = get_typed_class(virt, "Memory")
+        ldlist = { mem_cn      : "%s/%s" % (test_dom, "mem") }
+
+        if virt != 'LXC':
+            disk_cn = get_typed_class(virt, "LogicalDisk") 
+            net_cn  = get_typed_class(virt, "NetworkPort")
+            proc_cn =  get_typed_class(virt, "Processor")
+            ldlist[disk_cn] = "%s/%s" % (test_dom, test_disk)
+            ldlist[net_cn]  = "%s/%s" % (test_dom, test_mac)
+            ldlist[proc_cn] = "%s/%s" % (test_dom, "0")
+
+        status, gi_inst_list = get_pool_details(server, virt, vsxml, 
+                                                default_pool_name)
+        if status != PASS:
+            raise Exception("Failed to get pool details")
+ 
+        status = verify_eafp_values(server, virt, ldlist, gi_inst_list)
+    except Exception, details:
+        logger.error("Exception details : %s", details) 
+
     vsxml.destroy(server)
+    vsxml.undefine(server)
+
     return status
     
 if __name__ == "__main__":

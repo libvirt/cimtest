@@ -47,13 +47,12 @@
 import sys
 from XenKvmLib import enumclass
 from VirtLib import utils
-from CimTest import Globals 
 from XenKvmLib import assoc
 from XenKvmLib.test_doms import destroy_and_undefine_all 
 from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.rasd import InstId_err
-from CimTest.Globals import logger
+from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 
@@ -157,16 +156,24 @@ def main():
         test_disk = "xvdb"
     else:
         test_disk = "hdb"
+
     virt_xml = vxml.get_class(options.virt)
     if options.virt == 'LXC':
         cxml = virt_xml(test_dom)
     else:
-        cxml = virt_xml(test_dom, vcpus = test_vcpus, mac = test_mac, disk = test_disk)
-    ret = cxml.create(options.ip)
+        cxml = virt_xml(test_dom, vcpus = test_vcpus, 
+                        mac = test_mac, disk = test_disk)
+
+    ret = cxml.cim_define(options.ip)
     if not ret:
-        logger.error("Failed to create the dom: %s", test_dom)
-        status = FAIL
-        return status
+        logger.error("Failed to define the dom: %s", test_dom)
+        return FAIL
+
+    ret = cxml.cim_start(options.ip)
+    if ret != PASS:
+        cxml.undefine(options.ip)
+        logger.error("Failed to start the dom: %s", test_dom)
+        return ret
 
     if options.virt == "XenFV":
         instIdval = "Xen:%s" % test_dom
@@ -179,10 +186,10 @@ def main():
         assoc_info = assoc.AssociatorNames(options.ip, an, cn,
                                            InstanceID = instIdval)
         status = assoc_values(options.ip, assoc_info, options.virt)
+
     except  Exception, detail :
-        logger.error(Globals.CIM_ERROR_ASSOCIATORS, 
-                     'VirtualSystemSettingDataComponent')
-        logger.error("Exception : %s" % detail)
+        logger.error(CIM_ERROR_ASSOCIATORS, an)
+        logger.error("Exception : %s", detail)
         status = FAIL
 
     cxml.destroy(options.ip)
