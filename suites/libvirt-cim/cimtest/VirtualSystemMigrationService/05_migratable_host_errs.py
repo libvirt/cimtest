@@ -21,14 +21,12 @@
 #
 
 import sys
-import pywbem
 from pywbem.cim_obj import CIMInstanceName
-from VirtLib import utils
 from XenKvmLib import vxml
 from XenKvmLib import vsmigrations
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
-from CimTest.ReturnCodes import PASS, FAIL, XFAIL
+from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'XenFV']
 
@@ -39,49 +37,57 @@ exp_desc = 'Missing key (Name) in ComputerSystem'
 @do_main(sup_types)
 def main():
     options = main.options
+    server = options.ip
 
     virt_xml = vxml.get_class(options.virt)
     cxml = virt_xml(test_dom)
-    ret = cxml.create(options.ip)
+    ret = cxml.cim_define(server)
     if not ret:
-        logger.error("Error create domain %s" % test_dom )
+        logger.error("Error define domain %s" % test_dom )
         return FAIL
 
+    status = cxml.cim_start(server)
+    if status != PASS:
+        cxml.undefine(server)
+        logger.error("Error start domain %s" % test_dom )
+        return status 
+
     status = FAIL 
-    rc = -1
+    mig_successful = False
     
     try:
-        service = vsmigrations.Xen_VirtualSystemMigrationService(options.ip)
+        service = vsmigrations.Xen_VirtualSystemMigrationService(server)
     except Exception:
-        logger.error("Error when go to the class of Xen_VirtualSystemMigrationService")
+        logger.error("Error using Xen_VirtualSystemMigrationService")
+        cxml.destroy(server)
+        cxml.undefine(server)
         return FAIL
         
     classname = 'Xen_ComputerSystem'
-    cs_ref = CIMInstanceName(classname, keybindings = {
-                                        'Wrong':test_dom,
-                                        'CreationClassName':classname})
+    cs_ref = CIMInstanceName(classname, 
+                             keybindings = { 'Wrong':test_dom,
+                                            'CreationClassName':classname})
    
     try:
         service.CheckVirtualSystemIsMigratableToHost(ComputerSystem=cs_ref,
-                                                     DestinationHost=options.ip)
+                                                     DestinationHost=server)
         service.MigrateVirtualSystemToHost(ComputerSystem=cs_ref,
-                                           DestinationHost=options.ip)
-        rc = 0
-    except pywbem.CIMError, (rc, desc):
+                                           DestinationHost=server)
+        mig_successful = True
+    except Exception, (rc, desc):
         if rc == exp_rc and desc.find(exp_desc) >= 0:
-            logger.info('Got expected rc code and error string.')
+            logger.info('Got expected rc code :%s', rc)
+            logger.info('Got expected error string:%s', desc)
             status = PASS
         else:
-            logger.error('Unexpected rc code %s and description:\n %s' % (rc, desc))
-    except Exception, details:
-        logger.error('Unknown exception happened')
-        logger.error(details)
+            logger.error('Unexpected rc code %s and description: %s', rc, desc)
 
-    if rc == 0:
-        logger.error('Migrate to host method should NOT return OK with a wrong key input')
+    if mig_successful == True:
+        logger.error('Migrate to host method should NOT return OK '
+                      'since wrong key was supplied')
 
-    cxml.destroy(options.ip)
-    cxml.undefine(options.ip)
+    cxml.destroy(server)
+    cxml.undefine(server)
 
     return status
 
