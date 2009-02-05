@@ -92,10 +92,15 @@ def init_list(virt, pool):
         Creating the lists that will be used for comparisons.
     """
     
+    memrasd = get_typed_class(virt, "MemResourceAllocationSettingData")
+    diskrasd = get_typed_class(virt, "DiskResourceAllocationSettingData")
+    netrasd = get_typed_class(virt, "NetResourceAllocationSettingData")
+    procrasd = get_typed_class(virt, "ProcResourceAllocationSettingData")
+ 
     if virt == 'LXC':
         instlist = [ pool[1].InstanceID ]
-        cllist = [ get_typed_class(virt, "MemResourceAllocationSettingData") ]
-        rtype = { get_typed_class(virt, "MemResourceAllocationSettingData")  :  4 }
+        cllist = [ memrasd ]
+        rtype = { memrasd  :  4 }
     else:    
         instlist = [ 
                     pool[0].InstanceID,
@@ -103,17 +108,12 @@ def init_list(virt, pool):
                     pool[2].InstanceID, 
                     pool[3].InstanceID
                    ]
-        cllist = [ 
-                  get_typed_class(virt, "DiskResourceAllocationSettingData"),
-                  get_typed_class(virt, "MemResourceAllocationSettingData"), 
-                  get_typed_class(virt, "NetResourceAllocationSettingData"), 
-                  get_typed_class(virt, "ProcResourceAllocationSettingData")
-                 ]
+        cllist = [ diskrasd, memrasd, netrasd, procrasd ] 
         rtype = { 
-                  get_typed_class(virt, "DiskResourceAllocationSettingData") : 17, 
-                  get_typed_class(virt, "MemResourceAllocationSettingData")  :  4, 
-                  get_typed_class(virt, "NetResourceAllocationSettingData")  : 10, 
-                  get_typed_class(virt, "ProcResourceAllocationSettingData") :  3
+                  diskrasd : 17, 
+                  memrasd  :  4, 
+                  netrasd  : 10, 
+                  procrasd :  3
                 }
     rangelist = {
                   "Default"   : 0, 
