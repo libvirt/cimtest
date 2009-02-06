@@ -77,7 +77,7 @@ def main():
             raise Exception("%s not in expected state" % test_dom)
 
     except Exception, detail:
-        logger.error("Exception variable: %s" % detail)
+        logger.error("Exception variable: %s", detail)
         status = FAIL
 
     cxml.destroy(server)

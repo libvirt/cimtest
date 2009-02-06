@@ -76,7 +76,7 @@ def main():
     list_after = domain_list(options.ip, options.virt)
 
     if default_dom in list_after:
-        logger.error("Domain %s not destroyed: provider didn't return error" % \
+        logger.error("Domain %s not destroyed: provider didn't return error",
                      default_dom)
         cleanup_env(options.ip, cxml)
         status = FAIL

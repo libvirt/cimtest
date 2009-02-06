@@ -53,14 +53,14 @@ def main():
         # suspend the vs
         status = cxml.cim_suspend(options.ip)
         if status != PASS:
-            logger.info("Suspending defined %s failed, as expected" % test_dom)
+            logger.info("Suspending defined %s failed, as expected", test_dom)
             status = PASS
         else:
             raise Exception("Suspending defined %s should have failed" % \
                             test_dom)
 
     except Exception, detail:
-        logger.error("Error: %s" % detail)
+        logger.error("Error: %s", detail)
         status = FAIL 
 
     cxml.undefine(options.ip)

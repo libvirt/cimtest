@@ -151,13 +151,13 @@ def main():
     cxml = virt_xml(test_dom)
     ret = cxml.cim_define(server)
     if not ret:
-        logger.error('Unable to define domain %s' % test_dom)
+        logger.error('Unable to define domain %s', test_dom)
         return FAIL
 
     ret = cxml.start(server)
     if not ret:
         cxml.undefine(server)
-        logger.error('Unable to start domain %s' % test_dom)
+        logger.error('Unable to start domain %s', test_dom)
         return FAIL
 
     prev_namespace = Globals.CIM_NS
@@ -201,7 +201,7 @@ def main():
                 raise Exception("%s items weren't returned: %s" % (key, list))
 
     except Exception, detail:
-        logger.error("Exception: %s" % detail)
+        logger.error("Exception: %s", detail)
         status = FAIL
 
     Globals.CIM_NS = prev_namespace

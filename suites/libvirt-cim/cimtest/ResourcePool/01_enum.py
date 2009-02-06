@@ -79,8 +79,8 @@ def print_error(fieldname="", ret_value="", exp_value=""):
 def verify_fields(pool_list, poolname, cn):
     status = PASS
     if len(poolname) < 1:
-        logger.error("%s return %i instances, expected atleast 1 instance" \
-                     % (cn, len(poolname)))
+        logger.error("%s return %i instances, expected atleast 1 instance",
+                     cn, len(poolname))
         return FAIL
     exp_value = pool_list[cn][0]
     for i in range(0, len(poolname)):
@@ -119,14 +119,14 @@ def main():
     try:
         mempool = EnumInstances(ip, mp)
     except Exception:
-        logger.error(Globals.CIM_ERROR_ENUMERATE % mp)
+        logger.error(Globals.CIM_ERROR_ENUMERATE, mp)
         return FAIL
     status = verify_fields(pool_list, mempool, mp)
     
     try:
         propool = EnumInstances(ip, pp)
     except Exception:
-        logger.error(Globals.CIM_ERROR_ENUMERATE % pp)
+        logger.error(Globals.CIM_ERROR_ENUMERATE, pp)
         return FAIL
     status = verify_fields(pool_list, propool, pp)
    
@@ -134,14 +134,14 @@ def main():
         try:
             diskpool = EnumInstances(ip, dp)
         except Exception:
-            logger.error(Globals.CIM_ERROR_ENUMERATE % dp)
+            logger.error(Globals.CIM_ERROR_ENUMERATE, dp)
             return FAIL
         status = verify_fields(pool_list, diskpool, dp)
     
     try:
         netpool = EnumInstances(ip, np)
     except Exception:
-        logger.error(Globals.CIM_ERROR_ENUMERATE % np)
+        logger.error(Globals.CIM_ERROR_ENUMERATE, np)
         return FAIL
     status = verify_fields(pool_list, netpool, np)
     

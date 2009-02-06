@@ -62,7 +62,7 @@ def enum_ac(virt, ip, cn):
         for ac in enum_list:
             pool, id, status = parse_instance_id(ac.InstanceID)
             if status != PASS:
-                logger.error("Unable to parse InstanceID: %s" % ac.InstanceID)
+                logger.error("Unable to parse InstanceID: %s", ac.InstanceID)
                 return ac_ids, FAIL
 
             ac_ids.append("%s/invalid_id" % pool)

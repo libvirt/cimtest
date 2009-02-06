@@ -47,12 +47,12 @@ def main():
     try:
         ret = cxml.cim_define(options.ip)
         if not ret:
-            logger.error("Unable to define %s" % test_dom)
+            logger.error("Unable to define %s", test_dom)
             return FAIL
 
         status = cxml.cim_start(options.ip)
         if status != PASS:
-            logger.error("Failed to Start the dom: %s" % test_dom)
+            logger.error("Failed to Start the dom: %s", test_dom)
             logger.error("Property values not set properly for %s", test_dom) 
     
     except Exception, detail:

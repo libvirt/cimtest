@@ -60,33 +60,33 @@ def get_vssd_ref(ip, virt):
 def verify_no_dups(ip, virt, cxml, dom):
        
         if cxml.xml_get_disk_source() != cxml.dasd.Address:
-            logger.error("%s: Exp disk source %s" % (dom, cxml.dasd.Address))
+            logger.error("%s: Exp disk source %s", dom, cxml.dasd.Address)
             return FAIL
 
         if cxml.xml_get_disk_dev() != cxml.dasd.VirtualDevice:
-            logger.error("%s: Exp disk dev %s" % (dom, cxml.dasd.VirtualDevice))
+            logger.error("%s: Exp disk dev %s", dom, cxml.dasd.VirtualDevice)
             return FAIL
 
         if cxml.xml_get_net_type() != cxml.nasd.NetworkType:
-            logger.error("%s: Exp net type %d" % (dom, cxml.nasd.NetworkType))
+            logger.error("%s: Exp net type %d", dom, cxml.nasd.NetworkType)
             return FAIL
 
         if cxml.xml_get_net_mac() != cxml.nasd.Address:
-            logger.error("%s: Exp net mac %s" % (dom, cxml.nasd.Address))
+            logger.error("%s: Exp net mac %s", dom, cxml.nasd.Address)
             return FAIL
 
         vcpus = cxml.xml_get_vcpu()
         if not vcpus.isdigit(): 
-            logger.error("Unable to get vcpus value for %s" % dom)
+            logger.error("Unable to get vcpus value for %s", dom)
             return FAIL
 
         if int(vcpus) != cxml.pasd.VirtualQuantity:
-            logger.error("%s: Exp vcpus %s" % (dom, cxml.pasd.VirtualQuantity))
+            logger.error("%s: Exp vcpus %s", dom, cxml.pasd.VirtualQuantity)
             return FAIL
 
         mem = cxml.xml_get_mem()
         if not mem.isdigit(): 
-            logger.error("Unable to get mem value for %s" % dom)
+            logger.error("Unable to get mem value for %s", dom)
             return FAIL
 
         if cxml.masd.AllocationUnits == "Bytes":
@@ -107,7 +107,7 @@ def verify_no_dups(ip, virt, cxml, dom):
             exp_mem <<= shift
 
         if int(mem) != exp_mem:
-            logger.error("%s: Exp mem %s" % (dom, exp_mem))
+            logger.error("%s: Exp mem %s", dom, exp_mem)
             return FAIL
 
         return PASS
@@ -123,7 +123,7 @@ def main():
     try:
         rc = cxml.cim_define(options.ip)
         if not rc: 
-            logger.error("Unable define domain %s"  % test_dom)
+            logger.error("Unable define domain %s", test_dom)
             raise Exception("Unable to define domain %s" % test_dom)
 
         ref = get_vssd_ref(options.ip, options.virt)
@@ -132,7 +132,7 @@ def main():
 
         rc = cxml2.cim_define(options.ip, ref_conf=ref)
         if not rc: 
-            logger.error("Unable define domain %s"  % test_dom2)
+            logger.error("Unable define domain %s", test_dom2)
             raise Exception("Unable to define %s" % test_dom2)
 
         rc = call_request_state_change(test_dom2, options.ip,

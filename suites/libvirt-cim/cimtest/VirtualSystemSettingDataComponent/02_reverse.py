@@ -70,7 +70,7 @@ def check_rasd_values(id, exp_id):
             return FAIL
  
     except Exception, detail :
-        logger.error("Exception evaluating InstanceID: %s" % detail)
+        logger.error("Exception evaluating InstanceID: %s", detail)
         return FAIL
 
     return PASS
@@ -139,7 +139,7 @@ def assoc_values(ip, assoc_info, virt="Xen"):
                 break  
 
     except  Exception, detail :
-        logger.error("Exception in assoc_values function: %s" % detail)
+        logger.error("Exception in assoc_values function: %s", detail)
         status = FAIL
 
     return status

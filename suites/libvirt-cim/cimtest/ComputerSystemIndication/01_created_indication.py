@@ -58,7 +58,7 @@ def sub_ind(ip, virt):
                                         dict['default_sysname'],
                                         port)
         sub.subscribe(dict['default_url'], dict['default_auth'])
-        logger.info("Watching for %s" % iname)
+        logger.info("Watching for %s", iname)
         ind_names[ind] = ind_name
         sub_list[ind] = sub
 
@@ -98,12 +98,12 @@ def handle_request(sub, ind_name, dict, exp_ind_ct):
 
         if str(sub.server.indications[0]) == ind_name:
                 sub.unsubscribe(dict['default_auth'])
-                logger.info("Cancelling subscription for %s" % ind_name)
+                logger.info("Cancelling subscription for %s", ind_name)
                 return PASS
         else:
                 sub.server.indications.remove(sub.server.indications[0])
 
-    logger.error("Did not recieve indication %s" % ind_name)
+    logger.error("Did not recieve indication %s", ind_name)
     return FAIL
 
 def poll_for_ind(pid, ind_name):
@@ -129,7 +129,7 @@ def poll_for_ind(pid, ind_name):
                 logger.error("Waited too long for %s indication", ind_name)
                 kill(pid, SIGKILL)
             else:
-                logger.error("Received indication error: %d" % pw[1])
+                logger.error("Received indication error: %d", pw[1])
 
             status = FAIL
             break
@@ -174,13 +174,13 @@ def main():
                     raise Exception(details)
 
         except Exception, details:
-            logger.error("Exception: %s" % details)
+            logger.error("Exception: %s", details)
             status = FAIL
 
     #Make sure all subscriptions are really unsubscribed
     for ind, sub in sub_list.iteritems():
         sub.unsubscribe(dict['default_auth'])
-        logger.info("Cancelling subscription for %s" % ind_names[ind])
+        logger.info("Cancelling subscription for %s", ind_names[ind])
        
     cxml.undefine(ip)
 

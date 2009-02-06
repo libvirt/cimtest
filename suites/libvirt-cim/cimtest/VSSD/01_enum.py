@@ -67,28 +67,28 @@ def main():
                 break
         if found == 1:
             if vssd.ElementName != test_dom:
-                logger.error("Invalid ElementName- expecting %s, go %s" % 
+                logger.error("Invalid ElementName- expecting %s, go %s", 
                              test_dom, vssd.ElementName)
                 vsxml.undefine(options.ip)
                 return FAIL
 
-            logger.info("Examining VSSD class for the Guest %s" % test_dom)
+            logger.info("Examining VSSD class for the Guest %s", test_dom)
             try:
                 name = vssd.ElementName
                 idx = live_cs.index(name)
                 del live_cs[idx]
             except BaseException, details:
-                logger.error("Exception %s" % details)
-                logger.error("Provider reports VSSD `%s', but xm does not" %
+                logger.error("Exception %s", details)
+                logger.error("Provider reports VSSD `%s', but xm does not",
                              vssd.ElementName)
                 status = FAIL
 
         else:
-            logger.error("Missing VSSD instance for the system %s " % test_dom)
+            logger.error("Missing VSSD instance for the system %s ", test_dom)
             status = FAIL
 
     except BaseException, details:
-        logger.error("Exception %s" % details)
+        logger.error("Exception %s", details)
         status = FAIL
 
     vsxml.undefine(options.ip)

@@ -43,7 +43,7 @@ def main():
      
     if len(rpcc) != 1:
         Globals.logger.error("%s_ResourcePoolConfigurationCapabilities return %i instances, \
-                             excepted only 1 instance" % (options.virt, len(rpcc)))
+                             excepted only 1 instance", options.virt, len(rpcc))
         return FAIL
     if rpcc[0].InstanceID != "RPCC":
         Globals.logger.error("error result of enum ResourcePoolConfigurationCapabilities")

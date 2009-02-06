@@ -43,13 +43,13 @@ def main():
     cxml = virt_xml(test_dom)
     ret = cxml.cim_define(server)
     if not ret:
-        logger.error("Error define domain %s" % test_dom )
+        logger.error("Error define domain %s", test_dom )
         return FAIL
 
     status = cxml.cim_start(server)
     if status != PASS:
         cxml.undefine(server)
-        logger.error("Error start domain %s" % test_dom )
+        logger.error("Error start domain %s", test_dom )
         return status 
 
     status = FAIL 

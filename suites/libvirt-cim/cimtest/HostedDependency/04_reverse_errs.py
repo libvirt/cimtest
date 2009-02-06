@@ -91,7 +91,7 @@ def main():
 
     ret = cxml.create(server)
     if not ret:
-        logger.error("Failed to Create the dom: %s" % test_dom)
+        logger.error("Failed to Create the dom: %s", test_dom)
         return FAIL
 
     conn = assoc.myWBEMConnection('http://%s' % server,

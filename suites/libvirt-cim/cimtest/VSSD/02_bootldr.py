@@ -66,14 +66,14 @@ def main():
         name = system.ElementName
         if name == test_dom :
             if system.Bootloader == bootldr :
-                logger.info("BootLoader for domain %s is %s" % (name, bootldr ))
+                logger.info("BootLoader for domain %s is %s", name, bootldr)
                 status = 0
             else:
-                logger.error("Bootloader is not set for VS %s" % test_dom)
+                logger.error("Bootloader is not set for VS %s", test_dom)
                 status = 1
 
     except Exception, detail :
-        logger.error("Exception : %s" % detail)
+        logger.error("Exception : %s", detail)
         status = 1
     
     xmlfile.undefine(options.ip)

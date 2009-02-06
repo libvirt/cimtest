@@ -63,11 +63,11 @@ def main():
     capacity = dev.ConsumableBlocks * dev.BlockSize / 1024 
 
     if capacity != alloc_mem:
-        logger.error("Capacity should be %i MB instead of %i MB" % (alloc_mem, capacity))
+        logger.error("Capacity should be %i MB instead of %i MB", alloc_mem, capacity)
         status = 1
 
     if status == 0:
-        logger.info("Checked memory capacity: %s MB" % capacity)
+        logger.info("Checked memory capacity: %s MB", capacity)
 
     vsxml.undefine(options.ip)
     return status

@@ -88,7 +88,7 @@ def main():
         cxml = virtxml(test_dom, mac = test_mac)
     ret = cxml.create(options.ip)
     if not ret:
-        logger.error("Failed to Create the dom: %s" % test_dom)
+        logger.error("Failed to Create the dom: %s", test_dom)
         status = FAIL
         return status
     if options.virt == "XenFV":

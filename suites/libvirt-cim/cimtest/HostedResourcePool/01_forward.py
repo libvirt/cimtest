@@ -58,7 +58,7 @@ def main():
                                      Name = host_sys,
                                      CreationClassName = host_cn)
     except Exception, details:
-        logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % assoc_cn)
+        logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES, assoc_cn)
         logger.error("Exception:",  details)
         return FAIL
    

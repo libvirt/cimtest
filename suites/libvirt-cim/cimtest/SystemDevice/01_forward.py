@@ -63,7 +63,7 @@ def main():
 
     ret = cxml.create(server)
     if not ret:
-        logger.error('Unable to create domain %s' % test_dom)
+        logger.error('Unable to create domain %s', test_dom)
         return FAIL
 
     sd_classname = get_typed_class(virt, 'SystemDevice')

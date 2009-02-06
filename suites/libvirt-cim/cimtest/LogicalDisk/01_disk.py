@@ -58,11 +58,11 @@ def main():
     status = 0
     
     if dev.Name != test_dev:
-        logger.error("Name should be `%s' instead of `%s'" % (test_dev, dev.Name))
+        logger.error("Name should be `%s' instead of `%s'", test_dev, dev.Name)
         status = 1
 
     if status == 0:
-        logger.info("Checked device %s" % dev.Name)
+        logger.info("Checked device %s", dev.Name)
 
     vsxml.undefine(options.ip)
     

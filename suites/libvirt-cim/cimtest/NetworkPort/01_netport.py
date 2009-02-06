@@ -80,12 +80,12 @@ def main():
         dev = GetInstance(options.ip, net_class, key_list)
 
     except Exception, detail:
-        logger.error("Exception: %s" % detail)
+        logger.error("Exception: %s", detail)
         vsxml.undefine(options.ip)
         return FAIL
 
     if dev.DeviceID == None:
-        logger.error("Error retrieving instance for devid %s" % devid)
+        logger.error("Error retrieving instance for devid %s", devid)
         vsxml.undefine(options.ip)
         return FAIL
 
@@ -94,23 +94,23 @@ def main():
     link_tech = get_linktech(options.ip, options.virt)
     
     if dev.LinkTechnology != link_tech:
-        logger.error("LinkTechnology should be set to `%i' instead of `%s'" % \
-              (link_tech, dev.LinkTechnology))
+        logger.error("LinkTechnology should be set to `%i' instead of `%s'",
+                     link_tech, dev.LinkTechnology)
         status = FAIL
 
     addrs = dev.NetworkAddresses
     if len(addrs) != 1:
-        logger.error("Too many NetworkAddress entries (%i instead of %i)" % \
-              (len(addrs), 1))
+        logger.error("Too many NetworkAddress entries (%i instead of %i)",
+                     len(addrs), 1)
         status = FAIL
         
     if addrs[0] != test_mac:
-        logger.error("MAC address reported incorrectly (%s instead of %s)" % \
-              (addrs[0], test_mac))
+        logger.error("MAC address reported incorrectly (%s instead of %s)",
+                     addrs[0], test_mac)
         status = FAIL
 
     if status == FAIL:
-        logger.error("Checked interface %s" % test_mac)
+        logger.error("Checked interface %s", test_mac)
 
     vsxml.undefine(options.ip)
     

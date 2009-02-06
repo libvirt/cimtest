@@ -130,7 +130,7 @@ def main():
 	    elec = assoc.AssociatorNames(server, an, ccn, Name = system, 
                                          CreationClassName = ccn)
   	except Exception:
-            logger.error(CIM_ERROR_ASSOCIATORNAMES % system)
+            logger.error(CIM_ERROR_ASSOCIATORNAMES, system)
             cxml.undefine(server)
             return FAIL     
 

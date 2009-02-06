@@ -46,7 +46,7 @@ def main():
     cxml = vxml.get_class(options.virt)(test_dom)
     rc = cxml.cim_define(options.ip)
     if not rc:
-        Globals.logger.error(VIRSH_ERROR_DEFINE % test_dom)
+        Globals.logger.error(VIRSH_ERROR_DEFINE, test_dom)
         return status
 
     cs_class = get_typed_class(options.virt, 'ComputerSystem')
@@ -74,7 +74,7 @@ def main():
         Globals.logger.error("Exception: %s", detail)
 
     if status != PASS :
-        Globals.logger.error("Error: property values are not set for VS %s" % test_dom)
+        Globals.logger.error("Error: property values are not set for VS %s", test_dom)
 
     cxml.undefine(options.ip)
     return status

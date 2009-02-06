@@ -82,7 +82,7 @@ def get_or_bail(virt, ip, id, pool_class):
     try:
         instance = enumclass.GetInstance(ip, pool_class, key_list)
     except Exception, detail:
-        logger.error(CIM_ERROR_GETINSTANCE, '%s' % pool_class)
+        logger.error(CIM_ERROR_GETINSTANCE, '%s', pool_class)
         logger.error("Exception: %s", detail)
         sys.exit(FAIL)
     return instance 

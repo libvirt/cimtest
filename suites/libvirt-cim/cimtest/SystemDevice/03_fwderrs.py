@@ -101,7 +101,7 @@ def main():
                 names[item] = ("DeviceID" , dev.DeviceID )
 
     except Exception, details:
-        logger.info("Exception %s for class %s" % (details , item))
+        logger.info("Exception %s for class %s", details , item)
         return FAIL 
 
     if len(name) <=0 or len(names) <= 0:
@@ -150,10 +150,10 @@ def main():
                         if ((rc != exp_rc1 and desc.find(exp_desc1) <= 0) and 
                            (rc != exp_rc2 and desc.find(exp_desc2) <= 0)):
                             status = FAIL 
-                            logger.info("Class = %s , key = %s , keyval = %s " \
-                                        % (item, i , keyval))
-                            logger.info("Unexpected rc %s and desc %s for %s"
-                                        % (rc, desc, item))
+                            logger.info("Class = %s , key = %s , keyval = %s ",
+                                        item, i, keyval)
+                            logger.info("Unexpected rc %s and desc %s for %s",
+                                        rc, desc, item)
 
                     except Exception, details:
                         logger.info("Unknown exception happened")
@@ -162,8 +162,8 @@ def main():
 
                     if rc == 0:
                         logger.info("Success returned for wrong key and ID")
-                        logger.info("Class = %s , key = %s , keyval = %s " %
-                                     (item, i , keyval))
+                        logger.info("Class = %s , key = %s , keyval = %s ",
+                                    item, i , keyval)
                         return XFAIL_RC(bug)
 
             except Exception, details:

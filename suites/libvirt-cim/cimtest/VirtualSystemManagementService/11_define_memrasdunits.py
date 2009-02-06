@@ -67,7 +67,7 @@ def try_define(options, units, value, cxml):
 
     ret = cxml.cim_define(options.ip)
     if not ret:
-        logger.error("DefineSystem with (%s) units failed" % units)
+        logger.error("DefineSystem with (%s) units failed", units)
         return FAIL 
 
     return PASS 
@@ -94,10 +94,10 @@ def check_value(options):
     cim_kb = int(the_rasd["VirtualQuantity"])
 
     if cim_kb != mem_kb:
-        logger.error("CIM reports %i KB instead of %i KB" % (cim_kb, mem_kb))
+        logger.error("CIM reports %i KB instead of %i KB", cim_kb, mem_kb)
         return FAIL 
 
-    logger.info("Verified %i KB" % mem_kb)
+    logger.info("Verified %i KB", mem_kb)
 
     return PASS 
 

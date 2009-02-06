@@ -63,18 +63,18 @@ def setup_env(server, virt):
         rc = csxml_info.cim_define(server)
 
         if not rc:
-            logger.error("Unable define domain %s using DefineSystem() "  % test_dom)
+            logger.error("Unable define domain %s using DefineSystem() ", test_dom)
             status = FAIL
 
     except Exception, detail:
-        logger.error("Exception defining domain %s" % test_dom)
+        logger.error("Exception defining domain %s", test_dom)
         logger.error("Exception: %s", detail)
         status = FAIL
 
     return status, csxml_info
 
 def print_err(err, detail, cn):
-    logger.error(err % cn)
+    logger.error(err, cn)
     logger.error("Exception: %s", detail)
 
 def get_expected_inst(cn, list, property, exp):
@@ -84,7 +84,7 @@ def get_expected_inst(cn, list, property, exp):
                 return PASS, x
     except Exception:
         pass
-    logger.error("%s with %s was not returned" % (cn, exp))
+    logger.error("%s with %s was not returned", cn, exp)
     return FAIL, None
 
 

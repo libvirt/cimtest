@@ -64,7 +64,7 @@ def main():
         try:
             assoc_host = AssociatorNames(options.ip, assoc_cn, k, InstanceID=v)
         except Exception:
-            logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % assoc_cn)
+            logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES, assoc_cn)
             return FAIL
         if len(assoc_host) == 1:
             if assoc_host[0].keybindings['Name'] != host_sys:

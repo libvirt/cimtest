@@ -57,7 +57,7 @@ def main():
         bad_inst = 'instance of what ever { dd = 3; //\ ]&'
         ret = service.AddResourceSettings(AffectedConfiguration=vssd_ref, 
                                     ResourceSettings=[bad_inst])
-        logger.info('ret[0] = %s' % ret[0])
+        logger.info('ret[0] = %s', ret[0])
         if ret[0] == None:
             logger.error('AddRS should NOT return OK with wrong RS input')
             rc = 0
@@ -66,8 +66,8 @@ def main():
             logger.info('Got expected rc code and error string.')
             status = PASS
         else:
-            logger.error('Unexpected rc code %s and description:\n %s' % 
-                         (rc, desc))
+            logger.error('Unexpected rc code %s and description:\n %s',
+                         rc, desc)
             status = FAIL
     except Exception, details:
         logger.error('Error invoking AddRS')

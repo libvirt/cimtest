@@ -109,13 +109,13 @@ def main():
 
     ret = cxml.cim_define(options.ip)
     if not ret:
-        logger.error('Unable to define domain %s' % test_dom)
+        logger.error('Unable to define domain %s', test_dom)
         return FAIL
 
     status = cxml.cim_start(options.ip)
     if status != PASS:
         cxml.undefine(options.ip)
-        logger.error('Unable to start domain %s' % test_dom)
+        logger.error('Unable to start domain %s', test_dom)
         return FAIL
 
     global conn

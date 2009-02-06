@@ -73,7 +73,7 @@ def destroysystem_fail(tc, options):
             logger.info('Got expected error desc: %s',err_desc)
             return PASS
 
-        logger.error('destroy_fail>> %s: Error executing DestroySystem' % tc)
+        logger.error('destroy_fail>> %s: Error executing DestroySystem', tc)
         logger.error(details)
         return FAIL
 

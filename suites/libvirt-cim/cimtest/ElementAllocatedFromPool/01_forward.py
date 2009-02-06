@@ -67,11 +67,11 @@ def get_inst(server, virt, cn, key_list):
         inst = GetInstance(server, cn_name, key_list)
 
     except Exception, details:
-        logger.error("Exception %s" % details)
+        logger.error("Exception %s", details)
         return None 
 
     if inst is None:
-        logger.error("Expected at least one %s instance" % cn_name)
+        logger.error("Expected at least one %s instance", cn_name)
         return None 
 
     return inst 

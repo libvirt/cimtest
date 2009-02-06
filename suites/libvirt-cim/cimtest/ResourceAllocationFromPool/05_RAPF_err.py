@@ -101,7 +101,7 @@ def get_inst_from_list(server, vsxml, classname, rasd_list, filter_name,
             ret = PASS
 
     if ret != PASS:
-        logger.error("%s with %s was not returned" % (classname, exp_val))
+        logger.error("%s with %s was not returned", classname, exp_val)
         vsxml.undefine(server)
         status = FAIL
 

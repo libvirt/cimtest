@@ -49,12 +49,12 @@ def main():
                 del live_cs[idx]
             except ValueError, detail:
                 Globals.logger.error("Provider reports system `%s', \
-but virsh does not" % name)
+but virsh does not", name)
                 status = FAIL
 
         for system in live_cs:
             Globals.logger.error("Provider does not report system `%s', \
-but virsh does" % system)
+but virsh does", system)
             status = FAIL
 
     except IndexError, detail:

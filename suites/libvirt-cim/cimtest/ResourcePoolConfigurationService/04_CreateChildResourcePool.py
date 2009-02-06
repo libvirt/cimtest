@@ -72,8 +72,8 @@ def main():
             logger.info("Error string is '%s'", desc)
             return PASS
         else:
-            logger.error("Unexpected rc code %s and description %s\n" \
-                                                       %(err_no, desc))
+            logger.error("Unexpected rc code %s and description %s\n",
+                         err_no, desc)
             return FAIL
      
     logger.error("The execution should not have reached here!!")

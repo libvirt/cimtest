@@ -104,7 +104,7 @@ def main():
 
         status = check_proc_sched(options.ip, options.virt)
         if status != PASS:
-            raise Exception("%s CPU scheduling not set properly", default_dom)
+            raise Exception("%s CPU scheduling not set properly" % default_dom)
 
         status = PASS
       

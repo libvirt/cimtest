@@ -140,7 +140,7 @@ def main():
 
 
         if status != PASS:
-            logger.error(" -------------- FAILED %s ----------- : " % test_val)
+            logger.error(" -------------- FAILED %s ----------- : ", test_val)
             break
 
     cxml.cim_destroy(options.ip)

@@ -39,12 +39,12 @@ def main():
 
     ret = cxml.cim_define(options.ip)
     if not ret:
-        logger.error("Unable to define %s" % default_dom)
+        logger.error("Unable to define %s", default_dom)
         return FAIL
 
     status = cxml.cim_start(options.ip)
     if status != PASS:
-        logger.error("Failed to start the defined domain: %s" % default_dom) 
+        logger.error("Failed to start the defined domain: %s", default_dom) 
 
     cxml.cim_destroy(options.ip)
     cxml.undefine(options.ip)

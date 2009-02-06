@@ -96,7 +96,7 @@ def setup_env(server, virt="Xen"):
     return status, vsxml_info
 
 def print_err(err, detail, cn):
-    logger.error(err % cn)
+    logger.error(err, cn)
     logger.error("Exception: %s", detail)
 
 def get_inst_from_list(server, cn, cs_list, filter_name, exp_val, vsxml):
@@ -109,7 +109,7 @@ def get_inst_from_list(server, cn, cs_list, filter_name, exp_val, vsxml):
             break
 
     if ret != PASS:
-        logger.error("%s with %s was not returned" % (cn, exp_val))
+        logger.error("%s with %s was not returned", cn, exp_val)
         vsxml.undefine(server)
         status = FAIL
 
@@ -165,7 +165,7 @@ def verify_RASD_values(server, sd_assoc_info, vsxml, virt="Xen"):
                                      SystemCreationClassName = sccn)
 
             if len(assoc_info) != 1:
-                logger.error("%s returned %i %s objects" % (an, len(assoc_info), cn))
+                logger.error("%s returned %i %s objects", an, len(assoc_info), cn)
                 status = FAIL
                 break
             index = (len(assoc_info) - 1)

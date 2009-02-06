@@ -51,7 +51,7 @@ def main():
     try:
         rpcservice = rpcs.enumerate(server, classname)
     except Exception:
-        logger.error(Globals.CIM_ERROR_ENUMERATE % classname)
+        logger.error(Globals.CIM_ERROR_ENUMERATE, classname)
         return FAIL
 
     valid_service = {"Name" : "RPCS",

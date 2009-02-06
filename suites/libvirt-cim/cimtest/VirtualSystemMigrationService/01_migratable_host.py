@@ -48,7 +48,7 @@ def start_guest_get_ref(ip, guest_name, virt):
     cxml = virt_xml(guest_name)
     ret = cxml.create(ip)
     if not ret:
-        logger.error("Error create domain %s" % guest_name)
+        logger.error("Error create domain %s", guest_name)
         return FAIL, None, cxml
 
     status, dom_cs = poll_for_state_change(ip, virt, guest_name,
@@ -104,8 +104,8 @@ def main():
 
     status, ret = migrate_guest_to_host(service, cs_ref, target_ip)
     if status == FAIL:
-        logger.error("MigrateVirtualSystemToHost: unexpected list length %s"
-                     % len(ret))
+        logger.error("MigrateVirtualSystemToHost: unexpected list length %s",
+                     len(ret))
         cxml.destroy(options.ip)
         cxml.undefine(options.ip)
         return status 

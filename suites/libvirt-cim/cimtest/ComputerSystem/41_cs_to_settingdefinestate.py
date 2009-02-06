@@ -121,7 +121,7 @@ def init_rasd_list(virt, ip):
         for rasd in rasd_list:
             guest, dev, status = parse_instance_id(rasd.InstanceID)
             if status != PASS:
-                logger.error("Unable to parse InstanceID: %s" % rasd.InstanceID)
+                logger.error("Unable to parse InstanceID: %s", rasd.InstanceID)
                 return rasd_insts, FAIL
 
             if guest == test_dom:
@@ -272,7 +272,7 @@ def verify_vssdc_assoc(server, virt, cs_class, vssd_assoc_info, dom_cs):
         status, cs_assoc_info = get_associators_info(server, cn, an, 
                                                      cs_class, instid)
         if status != PASS:
-            raise Exception("Failed to get assoc info for dom: %s", test_dom)
+            raise Exception("Failed to get assoc info for dom: %s" % test_dom)
 
         # verify the results of SettingsDefineState with the cs_values list 
         # that was built using the output of the GetInstance on ComputerSystem.

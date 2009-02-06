@@ -104,7 +104,7 @@ def init_rasd_list(virt, ip, guest_name):
         for rasd in rasd_list:
             guest, dev, status = parse_instance_id(rasd.InstanceID)
             if status != PASS:
-                logger.error("Unable to parse InstanceID: %s" % rasd.InstanceID)
+                logger.error("Unable to parse InstanceID: %s", rasd.InstanceID)
                 return rasd_insts, FAIL
 
             if guest == guest_name:
@@ -124,7 +124,7 @@ def init_device_list(virt, ip, guest_name):
         for dev in dev_list:
             guest, dev_id, status = parse_instance_id(dev.DeviceID)
             if status != PASS:
-                logger.error("Unable to parse InstanceID: %s" % dev.DeviceID)
+                logger.error("Unable to parse InstanceID: %s", dev.DeviceID)
                 return dev_insts, FAIL
 
             if guest == guest_name:

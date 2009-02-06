@@ -63,13 +63,16 @@ def main():
                 logger.info("Got excepted rc code and error string")
                 status = PASS
             else:
-                logger.error("Unexpected rc code %s and description %s\n" %(rc, desc))
+                logger.error("Unexpected rc code %s and description %s\n",
+                             rc, desc)
         except Exception, details:
             logger.error("Unknown exception happened")
             logger.error(details)
 
         if rc == 0:
-            logger.error("ResourceAllocationSettingData should NOT return excepted result with a wrong InstanceID value of %s input" %k)
+            logger.error("ResourceAllocationSettingData should NOT return \
+                         excepted result with a wrong InstanceID \
+                         value of %s input", k)
             status = FAIL
         
         return status        

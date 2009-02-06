@@ -125,7 +125,7 @@ def try_invalid_assoc(classname, name_val, i, field, virt="Xen"):
     ret_val = try_assoc(conn, classname, ac_classname, keys, field_name=field, \
                               expr_values=expr_values[field], bug_no="")
     if ret_val != PASS:
-        logger.error("------ FAILED: %s------" % field)
+        logger.error("------ FAILED: %s------", field)
     name_val[i] = temp
     return ret_val
 
@@ -142,7 +142,7 @@ def main():
     cxml = virt_xml(test_dom)
     ret = cxml.cim_define(options.ip)
     if not ret:
-        logger.error('Unable to define domain %s' % test_dom)
+        logger.error('Unable to define domain %s', test_dom)
         return FAIL
 
     hs = get_typed_class(options.virt, "HostSystem")

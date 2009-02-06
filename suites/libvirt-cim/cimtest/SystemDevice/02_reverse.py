@@ -63,7 +63,7 @@ def main():
         try:
             devs = enumclass.EnumInstances(options.ip, cn)
         except Exception, detail:
-            logger.error("Exception: %s" % detail)
+            logger.error("Exception: %s", detail)
             cxml.destroy(options.ip)
             cxml.undefine(options.ip)
             return FAIL
@@ -81,7 +81,7 @@ def main():
                                                 SystemName=dev.SystemName,
                                                 SystemCreationClassName=dev.SystemCreationClassName)
             except Exception, detail:
-                logger.error("Exception: %s" % detail)
+                logger.error("Exception: %s", detail)
                 cxml.destroy(options.ip)
                 cxml.undefine(options.ip)
                 return FAIL
@@ -92,7 +92,7 @@ def main():
                 cxml.undefine(options.ip)
                 return FAIL
             elif len(systems) != 1:
-                logger.error("%s systems returned, expected 1" % len(systems))
+                logger.error("%s systems returned, expected 1", len(systems))
                 cxml.destroy(options.ip)
                 cxml.undefine(options.ip)
                 return FAIL
@@ -106,9 +106,9 @@ def main():
         
             if system.Name == test_dom:
                 status = PASS
-                logger.info("Examined %s %s" % (system.Name, dev.DeviceID))
+                logger.info("Examined %s %s", system.Name, dev.DeviceID)
             else:
-                logger.error("Association returned wrong system: %s" % 
+                logger.error("Association returned wrong system: %s", 
                              system.Name)
 
     cxml.destroy(options.ip)

@@ -76,7 +76,7 @@ def main():
             raise Exception("Memory inst for %s not as expected." % default_dom)
 
     except Exception, detail:
-        logger.error("Exception: %s" % detail)
+        logger.error("Exception: %s", detail)
         status =  FAIL
 
     cxml.undefine(options.ip)

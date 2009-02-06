@@ -60,7 +60,7 @@ def main():
         return FAIL
     
     if len(cs) != 0:
-        logger.error("%s returned %d instead of empty list" % (cn, len(cs)))
+        logger.error("%s returned %d instead of empty list", cn, len(cs))
         status = FAIL
     else:
         status = PASS

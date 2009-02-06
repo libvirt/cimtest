@@ -80,7 +80,7 @@ def poll_for_enabledstate_value(server, virt):
 
     except Exception, detail:
         logger.error(CIM_ERROR_GETINSTANCE, 'ComputerSystem')
-        logger.error("Exception: %s" % detail)
+        logger.error("Exception: %s", detail)
         status = FAIL
 
     return status, dom_field_list 
@@ -113,18 +113,18 @@ def main():
 
     ret = cxml.cim_define(server)
     if not ret:
-        logger.error("Failed to define the dom: %s" % test_dom)
+        logger.error("Failed to define the dom: %s", test_dom)
         return FAIL 
 
     rc = call_request_state_change(test_dom, server, 2, TIME, virt)
     if rc != 0:
-        logger.error("Failed to start the dom: %s" % test_dom)
+        logger.error("Failed to start the dom: %s", test_dom)
         cxml.undefine(server)
         return FAIL 
 
     rc = call_request_state_change(test_dom, server, 9, TIME, virt)
     if rc != 0:
-        logger.error("Failed to suspend the dom: %s" % test_dom)
+        logger.error("Failed to suspend the dom: %s", test_dom)
         cxml.destroy(server)
         cxml.undefine(server)
 
@@ -181,7 +181,7 @@ def main():
 
     except Exception, detail:
         logger.error(CIM_ERROR_ASSOCIATORS,'HostedDependency')
-        logger.error("Exception: %s" % detail)
+        logger.error("Exception: %s", detail)
         status = FAIL
 
     cxml.destroy(server)

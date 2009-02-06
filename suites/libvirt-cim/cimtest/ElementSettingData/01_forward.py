@@ -72,11 +72,11 @@ def get_inst(ip, cn, key):
         inst = GetInstance(ip, cn, key_list)
 
     except Exception, details:
-        logger.error("Exception %s" % details)
+        logger.error("Exception %s", details)
         return None 
 
     if inst is None:
-        logger.error("Expected at least one %s instance" % cn)
+        logger.error("Expected at least one %s instance", cn)
         return None 
 
     return inst 
@@ -167,7 +167,7 @@ def main():
     for cn, inst in inst_list.iteritems():
         status = test_assoc(options.ip, esd_cn, cn, options.virt, inst)
         if status != PASS:
-            logger.error("Unable to get %s insts from %s" % (cn, esd_cn))
+            logger.error("Unable to get %s insts from %s", cn, esd_cn)
             break
         
     cxml.undefine(options.ip)

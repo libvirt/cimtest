@@ -57,7 +57,7 @@ def call_assoc(ip, cn, id, virt="Xen"):
 def filter(list, cn, exp_result):
     new_list = assoc.filter_by_result_class(list, cn)
     if len(new_list) != exp_result:
-        logger.error("Expected %d host, got %d" % (exp_result, len(new_list)))
+        logger.error("Expected %d host, got %d", exp_result, len(new_list))
         return FAIL, new_list
     return PASS, new_list
 
@@ -154,7 +154,7 @@ def main():
     cxml = virtxml(test_dom)
     ret = cxml.cim_define(options.ip)
     if not ret:
-        logger.error("Failed to define the dom: %s" % test_dom)
+        logger.error("Failed to define the dom: %s", test_dom)
         return FAIL
 
     cs = domain_list(options.ip, options.virt)

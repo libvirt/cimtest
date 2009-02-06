@@ -46,7 +46,7 @@ def define_guest_get_ref(ip, guest_name, virt):
         cxml = virt_xml(guest_name)
         cxml.cim_define(ip)
     except Exception:
-        logger.error("Error define domain %s" % guest_name)
+        logger.error("Error define domain %s", guest_name)
         return FAIL, None
 
     classname = 'Xen_ComputerSystem'
@@ -106,7 +106,7 @@ def start_guest(ip, guest_name, type, virt):
                 return FAIL, None
         
         except Exception:
-            logger.error("Error start domain %s" % guest_name)
+            logger.error("Error start domain %s", guest_name)
             return FAIL, None
 
     return PASS, cxml
@@ -156,11 +156,11 @@ def main():
                 break
 
             logger.info("Migrating guest with the following options:")
-            logger.info("%s" % item)
+            logger.info("%s", item)
             status, ret = migrate_guest_to_host(service, cs_ref, target_ip, item)
             if status == FAIL:
-                logger.error("MigrateVirtualSystemToHost: unexpected list length %s"
-                             % len(ret))
+                logger.error("MigrateVirtualSystemToHost: unexpected list length %s",
+                             len(ret))
                 cxml.destroy(options.ip)
                 cxml.undefine(options.ip)
                 return status 

@@ -56,7 +56,7 @@ from CimTest.ReturnCodes import PASS, FAIL
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 
 def print_err(err, detail, cn):
-    logger.error(err % cn)
+    logger.error(err, cn)
     logger.error("Exception: %s", detail)
 
 def print_field_error(fieldname, ret_value, exp_value):
@@ -76,7 +76,7 @@ def get_inst_from_list(server, cn, assoc_info, filter_name, exp_val):
 
     # When no records are found.
     if ret != PASS:
-        logger.error("%s with %s was not returned" % (cn, exp_val))
+        logger.error("%s with %s was not returned", cn, exp_val)
         status = FAIL
 
     return status, inst

@@ -70,7 +70,7 @@ test_vcpus = 1
 libvirt_input_graphics_changeset = 757
 
 def print_err(err, detail, cn):
-    logger.error(err % cn)
+    logger.error(err, cn)
     logger.error("Exception: %s", detail)
 
 def pool_init_list(virt, pool_assoc, net_name, dp_InstID):
@@ -194,8 +194,8 @@ def get_assocname_info(server, host_cn, an, qcn, hostname):
 
 def check_len(an, assoc_list_info, qcn, exp_len):
     if len(assoc_list_info) < exp_len:
-        logger.error("%s returned %i %s objects" % (an, 
-                     len(assoc_list_info), qcn))
+        logger.error("%s returned %i %s objects", 
+                     an, len(assoc_list_info), qcn)
         return FAIL
     return PASS
 

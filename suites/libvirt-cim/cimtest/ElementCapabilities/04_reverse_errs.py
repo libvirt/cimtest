@@ -50,14 +50,14 @@ def try_assoc(ref, ref_class, exp_rc, exp_desc, options):
             logger.info("Got expected rc code and error string")
             status = PASS
         else:
-            logger.error("Unexpected rc code %s and description %s\n" %(rc, desc))
+            logger.error("Unexpected rc code %s and description %s\n", rc, desc)
     except Exception, details:
         logger.error("Unknown exception happened")
         logger.error(details)
 
     if rc == 0:
         logger.error("ElementCapabilities associator should NOT return excepted result \
-                      with a wrong key name and value of %s input" % ref_class)
+                      with a wrong key name and value of %s input", ref_class)
         status = FAIL
     
     return status

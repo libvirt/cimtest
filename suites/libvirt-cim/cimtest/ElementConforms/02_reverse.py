@@ -93,7 +93,7 @@ def main():
 
     ret = cxml.cim_define(server)
     if not ret:
-        logger.error("ERROR: Failed to Define the dom: %s" % test_dom)
+        logger.error("ERROR: Failed to Define the dom: %s", test_dom)
         return status
 
     inst_list = {} 
@@ -102,7 +102,7 @@ def main():
     if rc != 0:
         cs = libvirt_cached_data_poll(server, virt, test_dom)
         if sys is None:
-            logger.error("Instance for %s not created" % test_dom)
+            logger.error("Instance for %s not created", test_dom)
             cxml.undefine(server)
             return FAIL 
 
@@ -116,7 +116,7 @@ def main():
             return status
 
     except Exception, details:
-        logger.error("DEBUG Exception: %s" % details)
+        logger.error("DEBUG Exception: %s", details)
         cxml.undefine(server)
         return FAIL 
 

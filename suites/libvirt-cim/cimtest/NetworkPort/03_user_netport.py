@@ -45,7 +45,7 @@ def main():
     cxml = KVMXML(test_dom, mac = test_mac, ntype='user')
     ret = cxml.cim_define(options.ip)
     if not ret:
-        logger.error('Unable to define domain %s' % test_dom)
+        logger.error('Unable to define domain %s', test_dom)
         return FAIL
 
     devid = "%s/%s" % (test_dom, test_mac)
@@ -59,7 +59,7 @@ def main():
     try:
         dev = GetInstance(options.ip, 'KVM_NetworkPort', key_list)
     except Exception, detail:
-        logger.error("Exception: %s" % detail)
+        logger.error("Exception: %s", detail)
         cxml.undefine(options.ip)
         return FAIL
 
@@ -73,17 +73,17 @@ def main():
     
     addrs = dev.NetworkAddresses
     if len(addrs) != 1:
-        logger.error("Too many NetworkAddress entries (%i instead of %i)" % \
-              (len(addrs), 1))
+        logger.error("Too many NetworkAddress entries (%i instead of %i)",
+                     len(addrs), 1)
         status = FAIL
         
     if addrs[0] != test_mac:
-        logger.error("MAC address reported incorrectly (%s instead of %s)" % \
-              (addrs[0], test_mac))
+        logger.error("MAC address reported incorrectly (%s instead of %s)",
+                     addrs[0], test_mac)
         status = FAIL
 
     if status == FAIL:
-        logger.error("Checked interface %s" % test_mac)
+        logger.error("Checked interface %s", test_mac)
 
     cxml.undefine(options.ip)
     return status

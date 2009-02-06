@@ -76,13 +76,13 @@ def compare_pool_to_ac(ac, pools, cn):
         for inst in ac:
             id = inst.InstanceID
             if pools[id].ResourceType != inst.ResourceType:
-                logger.error("%s ResourceType %s, Pool ResourceType %s" % (cn,
-                             inst.ResourceType, pools[id].ResourceType))
+                logger.error("%s ResourceType %s, Pool ResourceType %s", 
+                             cn, inst.ResourceType, pools[id].ResourceType)
                 return FAIL
 
     except Exception, details:
-        logger.error("%s returned instance with unexpected InstanceID %s" % (cn,
-                     details))
+        logger.error("%s returned instance with unexpected InstanceID %s", 
+                     cn, details)
         return FAIL
 
     return PASS
@@ -106,7 +106,7 @@ def main():
         return status
 
     if len(ac) != len(pools):
-        logger.error("%d %s insts != %d pool insts" % (len(ac), cn, len(pools)))
+        logger.error("%d %s insts != %d pool insts", len(ac), cn, len(pools))
         return FAIL
 
     status = compare_pool_to_ac(ac, pools, cn)

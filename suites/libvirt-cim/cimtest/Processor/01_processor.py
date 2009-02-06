@@ -64,11 +64,11 @@ def main():
             try:
                 dev = GetInstance(options.ip, proc_class, key_list)
                 if dev.DeviceID == devid:
-                    logger.info("Checked device %s" % devid)
+                    logger.info("Checked device %s", devid)
                 else:
-                    logger.error("Mismatching device, returned %s instead %s" % (dev.DeviceID, devid))
+                    logger.error("Mismatching device, returned %s instead %s", dev.DeviceID, devid)
             except Exception, details:
-                logger.error("Error check device %s: %s" % (devid, details))
+                logger.error("Error check device %s: %s", devid, details)
                 status = 1
 
     vsxml.stop(options.ip)

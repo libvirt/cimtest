@@ -116,16 +116,16 @@ def assoc_values(ip, assoc_info, cn, an, vssd):
 
     try: 
         if len(assoc_info) != 1:
-            logger.error("%s returned %i resource objects for '%s'" % \
-                         (an, len(assoc_info), cn))
+            logger.error("%s returned %i resource objects for '%s'",
+                         an, len(assoc_info), cn)
             return FAIL 
         status = compare_all_prop(assoc_info[0], vssd)
         if status != PASS:
             logger.error("Properties of inst returned by %s didn't \
-                         match expected" % assoc_info[0].classname)
+                         match expected", assoc_info[0].classname)
             return FAIL
     except  Exception, detail :
-        logger.error("Exception in assoc_values function: %s" % detail)
+        logger.error("Exception in assoc_values function: %s", detail)
         return FAIL
 
     return PASS 
@@ -166,12 +166,12 @@ def main():
     try:
         vssd = enumclass.GetInstance(options.ip, vssd_cn, key_list)
         if vssd is None:
-            logger.error("VSSD instance for %s not found" % test_dom)
+            logger.error("VSSD instance for %s not found", test_dom)
             cxml.undefine(options.ip)
             return FAIL
     except  Exception, detail :
         logger.error(Globals.CIM_ERROR_GETINSTANCE, vssd_cn)
-        logger.error("Exception : %s" % detail)
+        logger.error("Exception : %s", detail)
         cxml.undefine(options.ip)
         return FAIL 
 
@@ -191,7 +191,7 @@ def main():
  
     except  Exception, detail :
         logger.error(Globals.CIM_ERROR_ASSOCIATORS, an)
-        logger.error("Exception : %s" % detail)
+        logger.error("Exception : %s", detail)
         status = FAIL
 
     cxml.undefine(options.ip)

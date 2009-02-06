@@ -86,7 +86,7 @@ def main():
                             % default_dom)
    
     except Exception, detail:
-        logger.error("Exception: %s" % detail)
+        logger.error("Exception: %s", detail)
         status = FAIL
 
     cxml.undefine(options.ip)

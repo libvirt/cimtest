@@ -50,14 +50,14 @@ def main():
         local_ver = get_hv_ver(options.ip, options.virt)
 
         if cim_ver != local_ver:
-            logger.error("CIM says version is `%s', but libvirt says `%s'" \
-                         % (cim_ver, local_ver))
+            logger.error("CIM says version is `%s', but libvirt says `%s'",
+                         cim_ver, local_ver)
             if options.virt == 'LXC':
                 return XFAIL_RC(bug_libvirt)
             else:
                 return FAIL
         else:
-            logger.info("Verified %s == %s" % (cim_ver, local_ver))
+            logger.info("Verified %s == %s", cim_ver, local_ver)
     except Exception, details:
         logger.error(details)
         return FAIL

@@ -200,7 +200,7 @@ def try_invalid_assoc(classname, name_val, i, field, virt):
     ret_val = try_assoc(conn, classname, ac_classname, keys, field_name=field, 
                         expr_values=expr_values[field], bug_no='')
     if ret_val != PASS:
-        logger.error("------ FAILED: %s------" % field)
+        logger.error("------ FAILED: %s------", field)
     name_val[i] = temp
     return ret_val
 

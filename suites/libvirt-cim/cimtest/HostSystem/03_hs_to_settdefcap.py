@@ -73,7 +73,7 @@ def setup_env(server, virt="Xen"):
     return status, vsxml
 
 def print_err(err, detail, cn):
-    logger.error(err % cn)
+    logger.error(err, cn)
     logger.error("Exception: %s", detail)
 
 def get_inst_from_list(cn, qcn, list, filter, exp_val):
@@ -82,7 +82,7 @@ def get_inst_from_list(cn, qcn, list, filter, exp_val):
     inst = None
  
     if len(list) < 1:
-        logger.error("%s returned %i %s objects" % (qcn, len(list), cn))
+        logger.error("%s returned %i %s objects", qcn, len(list), cn)
         return FAIL, None
 
     for inst in list:
@@ -92,7 +92,7 @@ def get_inst_from_list(cn, qcn, list, filter, exp_val):
 
     if ret != PASS:
         status = FAIL
-        logger.error("%s with %s was not returned" % (cn, exp_val))
+        logger.error("%s with %s was not returned", cn, exp_val)
 
     return status, inst 
 
@@ -107,7 +107,7 @@ def get_hostsys(server, virt="Xen"):
             logger.error("Hostname mismatch") 
 
     except Exception, detail:
-        logger.error("Exception in %s : %s" % (cn, detail))
+        logger.error("Exception in %s : %s", cn, detail)
         status = FAIL 
 
     return status, host_inst.Name, host_inst.CreationClassName 
@@ -236,7 +236,7 @@ def get_rasddetails(server, alloccap, virt="Xen"):
                     if status != PASS:
                         return status
                 else:
-                    logger.error("Unexpected instance type %s" % cn)
+                    logger.error("Unexpected instance type %s", cn)
                     return FAIL
 
     except Exception, detail:
@@ -248,10 +248,10 @@ def get_rasddetails(server, alloccap, virt="Xen"):
 def check_rasd_vals(inst, rt):
     try:
         if inst['ResourceType'] != rt:
-            logger.error("In ResourceType for %s " % rt)
+            logger.error("In ResourceType for %s ", rt)
             return FAIL
     except Exception, detail:
-        logger.error("Error checking RASD attribute values %s" % detail)
+        logger.error("Error checking RASD attribute values %s", detail)
         return FAIL
 
     return PASS

@@ -50,7 +50,7 @@ def main():
     try:
         hs = enumclass.EnumInstances(options.ip, name)
     except Exception, details:
-        logger.error("%s %s: %s" % (CIM_ERROR_ENUMERATE, name, details))
+        logger.error("%s %s: %s", CIM_ERROR_ENUMERATE, name, details)
         status = FAIL
 
     if ret == PASS:
@@ -60,25 +60,25 @@ def main():
         else:
             if linux_cs.CreationClassName != 'Linux_ComputerSystem'\
               or linux_cs.Name != host:
-                logger.error("Exp Linux_ComputerSystem, got %s" \
-                             % linux_cs.CreationClassName)
-                logger.error("Exp %s, got %s" % (host, system.Name))
+                logger.error("Exp Linux_ComputerSystem, got %s",
+                             linux_cs.CreationClassName)
+                logger.error("Exp %s, got %s", host, system.Name)
                 return FAIL
             else:
                 return PASS
     else:
         if len(hs) != 1:
-            logger.error("Expected 1 %s instance returned" % name)
+            logger.error("Expected 1 %s instance returned", name)
             return FAIL
    
         system = hs[0]
 
         if system.CreationClassName != name or system.Name != host:
-            logger.error("Exp %s, got %s" % (name, system.CreationClassName))
-            logger.error("Exp %s, got %s" % (host, system.Name))
+            logger.error("Exp %s, got %s", name, system.CreationClassName)
+            logger.error("Exp %s, got %s", host, system.Name)
             status = FAIL
         else:
-            logger.info("%s is %s" % (name, host))
+            logger.info("%s is %s", name, host)
             status = PASS
 
     return status

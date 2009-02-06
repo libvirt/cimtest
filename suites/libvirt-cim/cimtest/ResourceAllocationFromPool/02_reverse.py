@@ -81,7 +81,7 @@ def init_rasd_list(virt, ip, guest_name):
         for rasd in rasd_list:
             guest, dev, status = parse_instance_id(rasd.InstanceID)
             if status != PASS:
-                logger.error("Unable to parse InstanceID: %s" % rasd.InstanceID)
+                logger.error("Unable to parse InstanceID: %s", rasd.InstanceID)
                 return rasd_insts, FAIL
 
             if guest == guest_name:
@@ -107,7 +107,7 @@ def filter_pool_list(virt, list, cn):
     for inst in list:
         guest, id, status = parse_instance_id(inst.InstanceID)
         if status != PASS:
-            logger.error("Unable to parse InstanceID: %s" % inst.InstanceID)
+            logger.error("Unable to parse InstanceID: %s", inst.InstanceID)
             return None, FAIL
 
         if id == exp_id:

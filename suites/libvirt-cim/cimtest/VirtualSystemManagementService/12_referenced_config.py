@@ -50,12 +50,12 @@ mac = "aa:aa:aa:00:00:00"
 def setup_first_guest(ip, virt, cxml):
     ret = cxml.cim_define(ip)
     if not ret:
-        logger.error("Unable to define %s using DefineSystem()" % test_dom)
+        logger.error("Unable to define %s using DefineSystem()", test_dom)
         return FAIL, None
 
     status = cxml.cim_start(ip)
     if status != PASS:
-        logger.error("Unable to start %s" % test_dom)
+        logger.error("Unable to start %s", test_dom)
         return FAIL, "define"
 
     return PASS, "start"
@@ -98,7 +98,7 @@ def setup_second_guest(ip, virt, cxml2, ref):
 
     ret = cxml2.cim_define(ip, ref_conf=ref)
     if not ret:
-        logger.error("Unable to define %s using DefineSystem()" % test_dom2)
+        logger.error("Unable to define %s using DefineSystem()", test_dom2)
         return FAIL, None
 
     return PASS, "define"

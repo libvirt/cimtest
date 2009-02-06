@@ -101,7 +101,7 @@ def get_inst_from_list(classname, vssd_list, filter_name, exp_val):
 
     # When no records are found.
     if ret != PASS:
-        logger.error("%s with %s was not returned" % (classname, exp_val))
+        logger.error("%s with %s was not returned", classname, exp_val)
         status = FAIL
 
     # We expect only one record to be returned. 
@@ -153,7 +153,7 @@ def get_rasd_values_from_vssdc_assoc(vssd_values):
                                              InstanceID = instIdval)
         if len(vssdc_assoc_info) == 1 and \
            vssdc_assoc_info[0].classname == 'LXC_MemResourceAllocationSettingData':
-           logger.info("%s returned expect objects" % assoc_cname)
+           logger.info("%s returned expect objects", assoc_cname)
         elif len(vssdc_assoc_info) < 4:
             logger.error("%s returned %i %s objects, expected 4", 
                          assoc_cname, len(vssdc_assoc_info), qcn)
@@ -161,7 +161,7 @@ def get_rasd_values_from_vssdc_assoc(vssd_values):
             
     except  Exception, details:
         logger.error(CIM_ERROR_ASSOCIATORS, assoc_cname)
-        logger.error("Exception : %s" % details)
+        logger.error("Exception : %s", details)
         status = FAIL 
     return status, vssdc_assoc_info
 
@@ -202,7 +202,7 @@ def verify_rasd_values(rasd_values_info):
                 logger.error("Mistmatching %s values", CCName )
                 break
     except  Exception, detail :
-        logger.error("Exception in verify_rasd_values function: %s" % detail)
+        logger.error("Exception in verify_rasd_values function: %s", detail)
         status =  FAIL
     return status
 

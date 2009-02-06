@@ -58,7 +58,7 @@ def main():
                                         Name = host_name)
 
     except Exception, deatils:
-        logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES % host_name)
+        logger.error(Globals.CIM_ERROR_ASSOCIATORNAMES, host_name)
         logger.error("Exception: details %s", details)
         return FAIL
     

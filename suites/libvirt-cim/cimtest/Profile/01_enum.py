@@ -66,16 +66,16 @@ def main():
                   x.RegisteredName, x.RegisteredVersion] for x in proflist]
     for exp_prof in explist:
         if exp_prof in checklist:
-            logger.info("Profile %s found" % exp_prof[0])
+            logger.info("Profile %s found", exp_prof[0])
         else:
-            logger.error("Profile %s is not found" % exp_prof[0])
+            logger.error("Profile %s is not found", exp_prof[0])
             status = FAIL
             break
 
     if status == PASS:
-        logger.info("Properties check for %s passed" % cn)
+        logger.info("Properties check for %s passed", cn)
     else:
-        logger.error("Properties check for %s failed" % cn)
+        logger.error("Properties check for %s failed", cn)
     return status
 
 if __name__ == "__main__":

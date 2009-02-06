@@ -70,7 +70,7 @@ def main():
             raise Exception("%s not in expected state" % test_dom)
 
     except Exception, detail:
-        logger.error("Exception: %s" % detail)
+        logger.error("Exception: %s", detail)
         status = FAIL
 
     cxml.cim_destroy(options.ip)
