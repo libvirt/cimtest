@@ -41,11 +41,14 @@ def main():
     rc = -1
     status = FAIL
 
-
-    dataset = {get_typed_class(options.virt, "MemResourceAllocationSettingData") : "wrong", 
-               get_typed_class(options.virt, "ProcResourceAllocationSettingData") : "wrong",
-               get_typed_class(options.virt, "DiskResourceAllocationSettingData") : "wrong",
-               get_typed_class(options.virt, "NetResourceAllocationSettingData") : "wrong"}
+    mrasd = get_typed_class(options.virt, "MemResourceAllocationSettingData")
+    prasd = get_typed_class(options.virt, "ProcResourceAllocationSettingData")
+    drasd = get_typed_class(options.virt, "DiskResourceAllocationSettingData")
+    nrasd = get_typed_class(options.virt, "NetResourceAllocationSettingData")
+    dataset = {mrasd : "wrong", 
+               prasd : "wrong",
+               drasd : "wrong",
+               nrasd : "wrong"}
     conn = assoc.myWBEMConnection('http://%s' % options.ip,                                        
                                   (Globals.CIM_USER, Globals.CIM_PASS),
                                   Globals.CIM_NS)
@@ -53,10 +56,10 @@ def main():
         instanceref = CIMInstanceName(k, 
                                       keybindings = {"InstanceID" : v})
         names = []
-
+        rafp = get_typed_class(options.virt, "ResourceAllocationFromPool")
         try:
             names = conn.AssociatorNames(instanceref, 
-                                         AssocClass = get_typed_class(options.virt, "ResourceAllocationFromPool"))
+                                         AssocClass = rafp)
             rc = 0
         except pywbem.CIMError, (rc, desc):
             if rc == exp_rc and desc.find(exp_desc) >= 0:

@@ -55,12 +55,14 @@ def main():
         return FAIL
 
     if len(vs_sservice) != 1:
-        logger.error("%s return %i instances, excepted only 1 instance", cn, len(vs_sservice))
+        logger.error("%s return %i instances, excepted only 1 instance", 
+                     cn, len(vs_sservice))
         return FAIL
     verify_vs_sservice = vs_sservice[0]
 
     if verify_vs_sservice['CreationClassName'] != cn:
-        print_error('CreationClassName', verify_vs_sservice['CreationClassName'], cn)
+        print_error('CreationClassName', 
+                    verify_vs_sservice['CreationClassName'], cn)
         return FAIL
 
     if verify_vs_sservice['Name'] != Name:
@@ -72,7 +74,8 @@ def main():
         return FAIL
 
     if verify_vs_sservice['SystemCreationClassName'] != classname:
-        print_error('SystemCreationClassName', verify_vs_sservice['SystemCreationClassName'], classname)
+        print_error('SystemCreationClassName', 
+                    verify_vs_sservice['SystemCreationClassName'], classname)
         return FAIL
 
     return PASS

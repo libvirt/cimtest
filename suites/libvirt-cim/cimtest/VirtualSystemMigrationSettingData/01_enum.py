@@ -39,7 +39,8 @@ def print_error(fieldname, ret_value, exp_value):
 def main():
     options = main.options
     # Expected results from enumeration
-    cn       =  get_typed_class(options.virt, "VirtualSystemMigrationSettingData")
+    cn       =  get_typed_class(options.virt, 
+                                "VirtualSystemMigrationSettingData")
     instid   = 'MigrationSettingData'
     MType    = 2 #[CIM_MIGRATE_LIVE]
     priority = 0 
@@ -52,7 +53,8 @@ def main():
         return FAIL
 
     if len(vsmsd) != 1:
-        logger.error("%s return %i instances, excepted only 1 instance", cn, len(vsmsd))
+        logger.error("%s return %i instances, excepted only 1 instance", 
+                     cn, len(vsmsd))
         return FAIL
     verify_vsmsd = vsmsd[0]
     if verify_vsmsd.classname != cn:

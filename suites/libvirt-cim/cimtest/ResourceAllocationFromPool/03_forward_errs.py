@@ -55,17 +55,18 @@ def main():
         instanceref = CIMInstanceName(k, 
                                       keybindings = {"InstanceID" : v})
         names = []
-
+        rafp = get_typed_class(options.virt, "ResourceAllocationFromPool")
         try:
             names = conn.AssociatorNames(instanceref, 
-                                         AssocClass = get_typed_class(options.virt, "ResourceAllocationFromPool"))
+                                         AssocClass = rafp)
             rc = 0
         except pywbem.CIMError, (rc, desc):
             if rc == exp_rc and desc.find(exp_desc) >= 0:
                 logger.info("Got excepted rc code and error string")
                 status = PASS
             else:
-                logger.error("Unexpected rc code %s and description %s\n", rc, desc)
+                logger.error("Unexpected rc code %s and description %s\n", 
+                             rc, desc)
         except Exception, details:
             logger.error("Unknown exception happened")
             logger.error(details)
