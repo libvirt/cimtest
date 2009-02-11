@@ -56,6 +56,7 @@ sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 test_dom = "domgst_test"
 test_vcpus = 1
 libvirt_rasd_template_changes = 707
+libvirt_rasd_new_changes = 805
 
 def setup_env(server, virt="Xen"):
     status = PASS
@@ -214,14 +215,20 @@ def get_rasddetails(server, alloccap, virt="Xen"):
                                      InstanceID = ap['InstanceID'])
 
             curr_cim_rev, changeset = get_provider_version(virt, server)
-            if 'DiskPool' in ap['InstanceID'] and virt =='Xen' and \
-                curr_cim_rev >= libvirt_rasd_template_changes:
+            exp_len = 4
+            if 'DiskPool' in ap['InstanceID']:
                 # For Diskpool, we have info 1 for each of Min, Max, 
                 # default, Increment and 1 for each of PV and FV 
                 # hence 4 * 2 = 8 records
-                exp_len = 8
-            else:
-                exp_len = 4 
+                if virt == 'Xen':
+                    if curr_cim_rev >= libvirt_rasd_template_changes and \
+                       curr_cim_rev < libvirt_read_new_changes:
+                        exp_len = 8
+                    if curr_cim_rev >= libvirt_read_new_changes:
+                        exp_len = 16
+                if virt == 'KVM':
+                    if curr_cim_rev >= libvirt_rasd_new_changes:
+                        exp_len = 8
 
             if len(assoc_info) != exp_len:
                 logger.error("'%s' returned %i RASD objects instead of %i", 
