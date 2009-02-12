@@ -139,8 +139,8 @@ def compare_all_prop(inst, exp_inst):
         val = eval('exp_inst.' + key)
 
         if prop_vals[i][1] != val:
-            logger.error("%s val mismatch: got %s, expected %s" % (key,
-                         prop_vals[i][1], val))
+            logger.error("%s val mismatch: got %s, expected %s", key,
+                         prop_vals[i][1], val)
             return FAIL
 
     return PASS

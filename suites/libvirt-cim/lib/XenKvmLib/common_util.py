@@ -60,7 +60,7 @@ def get_cs_instance(domain_name, ip, virt='Xen'):
         cs = enumclass.GetInstance(ip, cs_class, keys)
 
         if cs.Name != domain_name:
-            logger.error("VS %s is not found" % domain_name)
+            logger.error("VS %s is not found", domain_name)
             return (1, cs)
 
     except Exception, detail:
@@ -104,11 +104,11 @@ def create_using_definesystem(domain_name, ip, params=None, ref_config=' ',
                 return PASS
             return FAIL
 
-        logger.error('Unexpected rc code %s and description:\n %s' % (rc, desc))
+        logger.error('Unexpected rc code %s and description:\n %s', rc, desc)
         return FAIL
 
     except Exception, details:
-        logger.error('Error invoke method `DefineSystem\'.  %s' % details)
+        logger.error('Error invoke method `DefineSystem\'.  %s', details)
         return FAIL 
 
     if exp_err != None:    
@@ -150,7 +150,7 @@ def call_request_state_change(domain_name, ip, rs, time, virt='Xen'):
                               TimeoutPeriod=pywbem.cim_types.CIMDateTime(time))
 
     except Exception, detail:
-        logger.error("Exception: %s" % detail)
+        logger.error("Exception: %s", detail)
         return FAIL 
 
     return PASS 
@@ -189,16 +189,16 @@ def poll_for_state_change(server, virt, dom, exp_state, timeout=30):
                 break
 
     except Exception, detail:
-        logger.error("Exception: %s" % detail)
+        logger.error("Exception: %s", detail)
         return FAIL, dom_cs
 
     if dom_cs is None or dom_cs.Name != dom:
-        logger.error("CS instance not returned for %s." % dom)
+        logger.error("CS instance not returned for %s.", dom)
         return FAIL, dom_cs
 
     if dom_cs.EnabledState != exp_state:
-        logger.error("EnabledState is %i instead of %i." % (dom_cs.EnabledState,
-                     exp_state))
+        logger.error("EnabledState is %i instead of %i.", dom_cs.EnabledState,
+                     exp_state)
         logger.error("Try to increase the timeout and run the test again")
         return FAIL, dom_cs
 

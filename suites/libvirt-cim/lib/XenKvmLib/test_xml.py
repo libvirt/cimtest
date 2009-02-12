@@ -45,10 +45,11 @@ disk_path = os.path.join(image_dir, 'default-xen-dimage')
 
 default_mac = '11:22:33:aa:bb:cc'
 
-def testxml(test_dom="domU1", mem = 128, vcpus = 1, mac = default_mac, \
- disk_file_path = disk_path, disk = "xvda"):
+def testxml(test_dom="domU1", mem = 128, vcpus = 1, mac = default_mac,
+            disk_file_path = disk_path, disk = "xvda"):
     if not (os.path.exists(kernel_path) and os.path.exists(init_path)) :
-        logger.error("ERROR: Either the kernel image or the init_path does not exist")
+        logger.error("ERROR: Either the kernel image or the "
+                     "init_path does not exist")
         sys.exit(SKIP)
     test_xml = """
     <domain type='xen' id='23'>
@@ -76,19 +77,20 @@ def testxml(test_dom="domU1", mem = 128, vcpus = 1, mac = default_mac, \
         </disk>
       </devices>
     </domain>
-    """ % ( test_dom, set_uuid(), kernel_path, init_path, mem*1024, vcpus, mac, \
-                                                disk_file_path, disk )
+    """ % ( test_dom, set_uuid(), kernel_path, init_path, mem*1024, vcpus,
+            mac, disk_file_path, disk )
     return test_xml
 
-def testxml_bl(test_dom="domU1", mem = 128, vcpus = 1, mac = default_mac, \
-               disk_file_path = disk_path, disk = "xvda", server = "", \
+def testxml_bl(test_dom="domU1", mem = 128, vcpus = 1, mac = default_mac,
+               disk_file_path = disk_path, disk = "xvda", server = "",
                gtype = 0):
     if server == "":
-        logger.error("ERROR: Server info cannot be empty \
-specify either localhost or remote machine ip/name " )
+        logger.error("ERROR: Server info cannot be empty "
+                     "specify either localhost or remote machine ip/name ")
         sys.exit(SKIP)
     if not (os.path.exists(kernel_path) and os.path.exists(init_path)) :
-        logger.error("ERROR: Either the kernel image or the init_path does not exist")
+        logger.error("ERROR: Either the kernel image or the "
+                     "init_path does not exist")
         sys.exit(SKIP)
     test_xml = """
     <domain type='xen' id='23'>
@@ -117,15 +119,16 @@ specify either localhost or remote machine ip/name " )
         </disk>
       </devices>
     </domain>
-    """ % ( test_dom, set_uuid(), bootloader(server, gtype), \
+    """ % ( test_dom, set_uuid(), bootloader(server, gtype),
             kernel_path, init_path, mem*1024, vcpus, mac, disk_file_path, disk )
     return test_xml
 
-def testxml_bridge(test_dom="domU1", mem = 128, vcpus = 1, \
-            mac = default_mac, disk_file_path = disk_path,
-            disk = "xvda", server = ""): 
+def testxml_bridge(test_dom="domU1", mem = 128, vcpus = 1,
+                   mac = default_mac, disk_file_path = disk_path,
+                   disk = "xvda", server = ""): 
     if not (os.path.exists(kernel_path) and os.path.exists(init_path)) :
-        logger.error("ERROR: Either the kernel image or the init_path does not exist")
+        logger.error("ERROR: Either the kernel image or the "
+                     "init_path does not exist")
         sys.exit(SKIP)
     vir_network = net_list(server)
     if len(vir_network) > 0 :
@@ -140,7 +143,8 @@ def testxml_bridge(test_dom="domU1", mem = 128, vcpus = 1, \
         net_xml, bridge = netxml(server, bridgename, networkname)
         ret = create_vnet(server, net_xml)
         if not ret:
-            logger.error("Failed to create the Virtual Network '%s'", networkname)
+            logger.error("Failed to create the Virtual Network '%s'", 
+                         networkname)
             sys.exit(SKIP)
 
     test_xml = """
@@ -179,7 +183,8 @@ def netxml(server, bridgename, networkname):
     if bridgename in bridges:
         bridge_name = bridgename + str(random.randint(1, 100))
         if bridge_name in bridges:
-            logger.error("Need to give different bridge name since it alreay exists")
+            logger.error("Need to give different bridge name since "
+                         "it alreay exists")
             sys.exit(SKIP)
     else:
         bridge_name = bridgename

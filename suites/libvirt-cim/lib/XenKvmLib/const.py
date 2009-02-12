@@ -140,8 +140,8 @@ def do_main(types=['Xen'], p=parser):
                     destroy_and_undefine_all(options.ip, options.virt)
                     rc = f()
                 except Exception, e:
-                    logger.error('%s : %s' % (e.__class__.__name__, e))
-                    logger.error("%s" % traceback.print_exc())
+                    logger.error('%s : %s', e.__class__.__name__, e)
+                    logger.error("%s", traceback.print_exc())
                     rc = FAIL
                 return rc
             setattr(do_try, 'options', options)

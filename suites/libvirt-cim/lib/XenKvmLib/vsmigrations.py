@@ -78,7 +78,7 @@ def check_possible_host_migration(service, cs_ref, ip):
                                                           DestinationHost=ip)
     except Exception, details:
         logger.error("Error invoke 'CheckVirtualSystemIsMigratableToHost\'.")
-        logger.error("%s" % details)
+        logger.error("%s", details)
         return FAIL 
 
     if rc == None or rc[1]['IsMigratable'] != True:
@@ -142,7 +142,7 @@ def verify_domain_list(list, local_migrate, test_dom):
         status = FAIL
 
     if status != PASS:
-        logger.error("%s migrate failed" % test_dom)
+        logger.error("%s migrate failed", test_dom)
         return FAIL
 
     return PASS
@@ -155,7 +155,7 @@ def check_migration_job(ip, id, target_ip, test_dom, local_migrate, virt='Xen'):
     for i in range(0, 50):
         if job_inst.JobState == 7:
             if job_inst.Status != "Completed":
-                logger.error("%s migrate failed" % test_dom)
+                logger.error("%s migrate failed", test_dom)
                 return FAIL
             list_after = domain_list(ip)
             status = verify_domain_list(list_after, local_migrate, test_dom)

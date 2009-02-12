@@ -28,7 +28,7 @@ from XenKvmLib.xm_virt_util import network_by_bridge, virsh_vcpuinfo, \
 get_bridge_from_network_xml
 
 def print_mod_err_msg(func_str, details):
-        logger.error('Error invoking ModifyRS: %s' % func_str)
+        logger.error('Error invoking ModifyRS: %s', func_str)
         logger.error(details)
 
 def mod_disk_res(server, service, cxml, dasd, ndpath):
@@ -37,7 +37,7 @@ def mod_disk_res(server, service, cxml, dasd, ndpath):
         cxml.dumpxml(server)
         dpath = cxml.xml_get_disk_source()
         if dpath != ndpath:
-            logger.error("Got %s, exp %s." % (dpath, ndpath))
+            logger.error("Got %s, exp %s.", dpath, ndpath)
             raise Exception('Error changing rs for disk path')
         logger.info('good status for disk path')
     except Exception, details:
@@ -61,8 +61,8 @@ def mod_net_res(server, service, virt, cxml, nasd, ntype, net_name):
             name = network_by_bridge(br_name, server, virt)
 
         if type != ntype or name != net_name:
-            logger.error('Got %s, exp %s. Got %s, exp %s' %
-                         (type, ntype, name, net_name))
+            logger.error('Got %s, exp %s. Got %s, exp %s',
+                         type, ntype, name, net_name)
             raise Exception('Error changing rs for net mac')
         logger.info('good status for net mac')
     except Exception, details:
@@ -77,7 +77,7 @@ def mod_mem_res(server, service, cxml, masd, nmem):
         cxml.dumpxml(server)
         mem = cxml.xml_get_mem()
         if int(mem) != int(nmem) * 1024:
-            logger.error("Got %d, exp %d." % (int(mem), (int(nmem) * 1024)))
+            logger.error("Got %d, exp %d.", int(mem), (int(nmem) * 1024))
             raise Exception('Error changing rs for mem')
         logger.info('good status for mem')
     except Exception, details:
@@ -96,7 +96,7 @@ def mod_vcpu_res(server, service, cxml, pasd, ncpu, virt):
             logger.info("Unable to get vcpuinfo from virsh, using XML values")
             cpu = cxml.xml_get_vcpu()
         if int(cpu) != int(ncpu):
-            logger.error("Got %d, exp %d." % (int(cpu), int(ncpu)))
+            logger.error("Got %d, exp %d.", int(cpu), int(ncpu))
             raise Exception('Error changing rs for vcpu')
         logger.info('good status for vcpu')
     except Exception, details:
@@ -106,7 +106,7 @@ def mod_vcpu_res(server, service, cxml, pasd, ncpu, virt):
     return PASS
 
 def print_add_err_msg(func_str, details):
-        logger.error('Error invoking AddRS: %s' % func_str)
+        logger.error('Error invoking AddRS: %s', func_str)
         logger.error(details)
 
 def add_disk_res(server, service, cxml, vssd_ref, dasd, attr):
@@ -119,8 +119,8 @@ def add_disk_res(server, service, cxml, vssd_ref, dasd, attr):
         dpath = cxml.get_value_xpath(
                '/domain/devices/disk/source/@file[. = "%s"]' % attr['src_path'])
         if disk_dev != attr['nddev'] or dpath != attr['src_path']:
-            logger.error("Got %s, exp %s.  Got %s, exp %s" % (disk_dev, 
-                         attr['nddev'], dpath, attr['src_path']))
+            logger.error("Got %s, exp %s.  Got %s, exp %s", disk_dev, 
+                         attr['nddev'], dpath, attr['src_path'])
             raise Exception('Error adding rs for disk_dev')
         logger.info('good status for disk path')
     except Exception, details:
@@ -154,8 +154,8 @@ def add_net_res(server, service, virt, cxml, vssd_ref, nasd, attr):
                 name = attr['net_name']
 
         if mac != attr['nmac'] or name != attr['net_name']:
-            logger.error("Got %s, exp %s. Got %s, exp %s." % (mac, 
-                         attr['nmac'], name, attr['net_name']))
+            logger.error("Got %s, exp %s. Got %s, exp %s.", mac, 
+                         attr['nmac'], name, attr['net_name'])
             raise Exception('Error adding rs for net mac')
 
         logger.info('good status for net_mac')

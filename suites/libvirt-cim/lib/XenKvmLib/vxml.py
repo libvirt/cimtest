@@ -525,14 +525,14 @@ class VirtCIM:
                                  ResourceSettings=res_settings,
                                  ReferenceConfiguration=ref_conf)
         except pywbem.CIMError, (rc, desc):
-            logger.error('Got CIM error %s with return code %s' % (desc, rc))
+            logger.error('Got CIM error %s with return code %s', desc, rc)
             self.err_rc = rc 
             self.err_desc = desc 
             return False
 
         except Exception, details:
-            logger.error('Got error %s with exception %s' \
-                    % (details, details.__class__.__name__))
+            logger.error('Got error %s with exception %s',
+                         details, details.__class__.__name__)
             return False
 
         set_uuid(viruuid(self.domain_name, ip, self.virt))
@@ -546,15 +546,15 @@ class VirtCIM:
         try:
             ret = service.DestroySystem(AffectedSystem=target)
         except pywbem.CIMError, (rc, desc):
-            logger.error('Got CIM error %s with return code %s' % (desc, rc))
+            logger.error('Got CIM error %s with return code %s', desc, rc)
             self.err_rc = rc 
             self.err_desc = desc 
             return False
 
         except Exception, details:
             logger.error('Error invoking DestroySystem')
-            logger.error('Got error %s with exception %s' \
-                    % (details, details.__class__.__name__))
+            logger.error('Got error %s with exception %s',
+                         details, details.__class__.__name__)
             return False
         return ret[0] == 0
 
@@ -580,7 +580,7 @@ class VirtCIM:
 
         except Exception, detail:
             logger.error("Unable to check guest state")
-            logger.error("Exception: %s" % detail)
+            logger.error("Exception: %s", detail)
             return FAIL
 
         return PASS
@@ -604,7 +604,7 @@ class VirtCIM:
                                   TimeoutPeriod=time_period)
 
         except pywbem.CIMError, (rc, desc):
-            logger.error('Got CIM error %s with return code %s' % (desc, rc))
+            logger.error('Got CIM error %s with return code %s', desc, rc)
             self.err_rc = rc 
             self.err_desc = desc 
             return FAIL 
