@@ -98,6 +98,6 @@ def log_param(log_level=logging.ERROR, file_name="cimtest.log"):
     logger.info("====%s Log====", CIM_TC)
 
 def log_bug(bug_num):
-    logger.info("Known Bug:%s" % bug_num)
+    logger.info("Known Bug:%s", bug_num)
     print "Bug:<%s>" % bug_num
 
