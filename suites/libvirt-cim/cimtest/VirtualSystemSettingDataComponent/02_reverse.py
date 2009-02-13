@@ -51,11 +51,11 @@ from XenKvmLib import assoc
 from XenKvmLib.test_doms import destroy_and_undefine_all 
 from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.rasd import InstId_err
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS
 from XenKvmLib.const import do_main
-from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 
+bug_libvirt = "00009"
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 
 test_dom    = "VSSDC_dom"
@@ -66,7 +66,7 @@ test_mac    = "00:11:22:33:44:aa"
 def check_rasd_values(id, exp_id):
     try:
         if id != exp_id:
-            InstId_err(assoc_info[i], rasd_list['proc_rasd'])
+            logger.error("Returned %s instead of %s", id, exp_id)
             return FAIL
  
     except Exception, detail :
@@ -127,6 +127,8 @@ def assoc_values(ip, assoc_info, virt="Xen"):
             elif inst.classname == input_cn:
                 status = check_rasd_values(inst['InstanceID'],
                                            rasd_list['input_rasd'])
+                if status == FAIL and virt == "LXC":
+                    return XFAIL_RC(bug_libvirt)
             elif inst.classname == grap_cn:
                 status = check_rasd_values(inst['InstanceID'],
                                            rasd_list['grap_rasd'])
@@ -154,6 +156,8 @@ def main():
     global test_disk
     if options.virt == "Xen":
         test_disk = "xvdb"
+    elif options.virt == "LXC":
+        test_disk = "/tmp"
     else:
         test_disk = "hdb"
 
