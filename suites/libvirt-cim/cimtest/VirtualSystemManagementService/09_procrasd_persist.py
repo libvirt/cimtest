@@ -19,56 +19,89 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 #
+# Purpose:
+#   Verify values for VirtualQuantity, limit and weight of ProcRASD are 
+#   persisted properly over define/start/destroy sequence of the guest. 
+#
+# Steps:
+#  1) Get the default rasds 
+#  2) Set the ProcRASD VirtualQuantity, Weight, Limit, InstanceID values
+#  3) Define the guest using the configuration
+#  4) Verify the proc settings of the guest
+#  5) start  the guest and verify the proc settings of the guest
+#  6) Destroy and undefine the guest 
+#  Repeat the Sequence 3 - 6 in loop to see that 
+#  the VirtualQuantity, limit and weight are maintained as passed to
+#  via the ProcRASD.
+#
 
 import sys
-import pywbem
-from XenKvmLib.common_util import call_request_state_change, \
-                                  poll_for_state_change 
-from XenKvmLib import vsms
-from XenKvmLib.enumclass import GetInstance
-from XenKvmLib.common_util import get_typed_class
-from VirtLib import utils 
+from pywbem.cim_types import Uint64, Uint32
+from XenKvmLib.vxml import get_class
+from XenKvmLib.enumclass import EnumInstances
+from XenKvmLib.classes import get_typed_class, inst_to_mof
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import FAIL, PASS
-from XenKvmLib.test_doms import destroy_and_undefine_domain 
+from XenKvmLib.rasd import get_default_rasds
 
 sup_types = ['Xen', 'XenFV', 'KVM']
-default_dom = 'rstest_domain'
+test_dom = 'procrasd_persist_dom'
 
-nvcpu = 2
+nvcpu = 3
 weight = 124
-limit = 256
+limit = 512
 
-REQUESTED_STATE = 2
-TIME = "00000000000000.000000:000"
+def setup_guest(ip, virt, cxml, prasd_cn):
+    rasds = get_default_rasds(ip, virt)
+    rasd_list= { prasd_cn : None }
+    
+    for rasd in rasds:
+        if rasd.classname == prasd_cn:
+            rasd['InstanceID'] = '%s/proc' %test_dom
+            rasd['VirtualQuantity'] = Uint64(nvcpu)
+            rasd['Weight'] = Uint32(weight)
+            rasd['Limit'] = Uint64(limit)
+            rasd_list[prasd_cn] = inst_to_mof(rasd)
 
-def setup_rasd_mof(ip, vtype):
-    vssd, rasd = vsms.default_vssd_rasd_str(default_dom, virt=vtype)
+    if rasd_list[prasd_cn] is None:
+        logger.error("Unable to set template ProcRASD")
+        return FAIL
 
-    class_pasd = vsms.get_pasd_class(vtype)
-    proc_inst = class_pasd(default_dom, nvcpu, weight, limit)
-    proc_mof = proc_inst.mof()
+    cxml.set_res_settings(rasd_list)
+    ret = cxml.cim_define(ip)
+    if not ret:
+        logger.error("Unable to define %s ", test_dom)
+        return FAIL
 
-    for i in range(len(rasd)):
-        if "ProcResourceAllocationSettingData" in rasd[i]:
-            rasd[i] = proc_mof
-            return PASS, vssd, rasd
+    return PASS
 
-    return FAIL, vssd, rasd
-
-def check_proc_sched(server, virt):
+def check_proc_sched(server, cn_name):
     try:
-        key_list = {"InstanceID" : '%s/proc' %default_dom}
-        cn_name  = get_typed_class(virt, 'ProcResourceAllocationSettingData')
-        proc = GetInstance(server, cn_name, key_list)
+        proc_rasd = None
+        rasds = EnumInstances(server, cn_name, ret_cim_inst=True)
+        for rasd in rasds:
+            if test_dom in rasd["InstanceID"]:
+                proc_rasd = rasd
+                break
+
+        if proc_rasd == None:
+            logger.error("Did not find test RASD on server")
+            return FAIL
    
-        if proc.Limit != limit:
-            logger.error("Limit is %i, expected %i", proc.Limit, limit)
+        if proc_rasd["VirtualQuantity"] != nvcpu:
+            logger.error("VirtualQuantity is %i, expected %i", 
+                         proc_rasd["VirtualQuantity"], nvcpu)
             return FAIL
 
-        if proc.Weight != weight:
-            logger.error("Weight is %i, expected %i", proc.Weight, weight)
+        if proc_rasd["Limit"] != limit:
+            logger.error("Limit is %i, expected %i", 
+                         proc_rasd["Limit"], limit)
+            return FAIL
+
+        if proc_rasd["Weight"] != weight:
+            logger.error("Weight is %i, expected %i", 
+                          proc_rasd["Weight"], weight)
             return FAIL
 
     except Exception, details:
@@ -79,40 +112,50 @@ def check_proc_sched(server, virt):
 
 @do_main(sup_types)
 def main():
-    options = main.options
-
-    status, vssd, rasd = setup_rasd_mof(options.ip, options.virt)
-    if status != PASS:
-        return status
-
+    options = main.options   
+    virt = options.virt
+    server = options.ip
+    
+    cxml = get_class(virt)(test_dom)
+    prasd_cn = get_typed_class(virt, "ProcResourceAllocationSettingData")
+    dom_define = dom_start = False
     try:
-        service = vsms.get_vsms_class(options.virt)(options.ip)
-        service.DefineSystem(SystemSettings=vssd,
-                             ResourceSettings=rasd,
-                             ReferenceConfiguration=' ')
+        for count in range(3):
+            status = setup_guest(server, virt, cxml, prasd_cn)
+            if status != PASS:
+                return status
+    
+            dom_define = True
+            status = check_proc_sched(server, prasd_cn)
+            if status != PASS:
+                raise Exception("CPU scheduling not set properly for "
+                                " defined dom: %s" % test_dom)
+        
+            status = cxml.cim_start(server)
+            if status != PASS:
+                raise Exception("Unable to start %s " % test_dom)
 
-        rc = call_request_state_change(default_dom, options.ip,
-                                       REQUESTED_STATE, TIME, options.virt)
-        if rc != 0:
-            raise Exception("Unable to start %s using RequestedStateChange()" %
-                            default_dom)
+            dom_start = True
+            status = check_proc_sched(server, prasd_cn)
+            if status != PASS:
+                raise Exception("CPU scheduling not set properly for the dom: "
+                                "%s" % test_dom)
 
-        status, dom_cs = poll_for_state_change(options.ip, options.virt, 
-                                               default_dom, REQUESTED_STATE)
-        if status != PASS:
-            raise Exception("%s didn't change state as expected" % default_dom)
+            cxml.cim_destroy(server)
+            dom_start = False
 
-        status = check_proc_sched(options.ip, options.virt)
-        if status != PASS:
-            raise Exception("%s CPU scheduling not set properly" % default_dom)
-
-        status = PASS
+            cxml.undefine(server)
+            dom_define = False
       
     except Exception, details:
         logger.error("Exception: details %s", details)
         status = FAIL
 
-    destroy_and_undefine_domain(default_dom, options.ip, options.virt)
+    if dom_start == True:
+        cxml.cim_destroy(server)
+
+    if dom_define == True: 
+        cxml.undefine(server)
 
     return status 
 
