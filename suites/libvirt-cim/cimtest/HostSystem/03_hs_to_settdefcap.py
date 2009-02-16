@@ -222,9 +222,9 @@ def get_rasddetails(server, alloccap, virt="Xen"):
                 # hence 4 * 2 = 8 records
                 if virt == 'Xen':
                     if curr_cim_rev >= libvirt_rasd_template_changes and \
-                       curr_cim_rev < libvirt_read_new_changes:
+                       curr_cim_rev < libvirt_rasd_new_changes:
                         exp_len = 8
-                    if curr_cim_rev >= libvirt_read_new_changes:
+                    if curr_cim_rev >= libvirt_rasd_new_changes:
                         exp_len = 16
                 if virt == 'KVM':
                     if curr_cim_rev >= libvirt_rasd_new_changes:
