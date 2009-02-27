@@ -53,8 +53,17 @@ def main():
         cxml = virt_xml(test_dom, mac=test_mac)
         devlist = [ "NetworkPort", "Memory", "LogicalDisk", "Processor",
                     "PointingDevice", "DisplayController" ]
-    cxml.create(options.ip)
 
+    ret = cxml.cim_define(options.ip)
+    if not ret:
+        logger.error('Unable to define domain %s', test_dom)
+        return FAIL
+
+    status = cxml.cim_start(options.ip)
+    if status != PASS:
+        cxml.undefine(options.ip)
+        logger.error('Unable to start domain %s', test_dom)
+        return FAIL
 
     key_list = ["DeviceID", "CreationClassName", "SystemName",
                 "SystemCreationClassName"]
@@ -64,7 +73,7 @@ def main():
             devs = enumclass.EnumInstances(options.ip, cn)
         except Exception, detail:
             logger.error("Exception: %s", detail)
-            cxml.destroy(options.ip)
+            cxml.cim_destroy(options.ip)
             cxml.undefine(options.ip)
             return FAIL
 
@@ -82,18 +91,18 @@ def main():
                                                 SystemCreationClassName=dev.SystemCreationClassName)
             except Exception, detail:
                 logger.error("Exception: %s", detail)
-                cxml.destroy(options.ip)
+                cxml.cim_destroy(options.ip)
                 cxml.undefine(options.ip)
                 return FAIL
 
             if systems == None:
                 logger.error("Device association failed")
-                cxml.destroy(options.ip)
+                cxml.cim_destroy(options.ip)
                 cxml.undefine(options.ip)
                 return FAIL
             elif len(systems) != 1:
                 logger.error("%s systems returned, expected 1", len(systems))
-                cxml.destroy(options.ip)
+                cxml.cim_destroy(options.ip)
                 cxml.undefine(options.ip)
                 return FAIL
             
@@ -111,7 +120,7 @@ def main():
                 logger.error("Association returned wrong system: %s", 
                              system.Name)
 
-    cxml.destroy(options.ip)
+    cxml.cim_destroy(options.ip)
     cxml.undefine(options.ip)
 
     return status
