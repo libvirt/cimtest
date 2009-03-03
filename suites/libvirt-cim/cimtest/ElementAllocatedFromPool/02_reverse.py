@@ -45,14 +45,11 @@
 #                                                Date : 29-11-2007
 
 import sys
-import os
-import pywbem
 from XenKvmLib.assoc import Associators
 from XenKvmLib.vxml import get_class
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
-from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.logicaldevices import verify_device_values
 from XenKvmLib.const import default_pool_name
@@ -182,7 +179,6 @@ def main():
         test_disk = 'hda'
 
     # Getting the VS list and deleting the test_dom if it already exists.
-    destroy_and_undefine_all(server)
     virt_type = get_class(virt)
     if virt == 'LXC':
         vsxml = virt_type(test_dom, vcpus = test_vcpus)
@@ -190,17 +186,24 @@ def main():
         vsxml = virt_type(test_dom,  mem = test_mem, vcpus = test_vcpus, 
                           mac = test_mac, disk = test_disk)
 
-    ret = vsxml.create(server)
+    ret = vsxml.cim_define(server)
     if not ret:
-        logger.error("Failed to Create the dom: '%s'", test_dom)
+        logger.error("Failed to define the dom: '%s'", test_dom)
         return FAIL
 
+    status = vsxml.cim_start(server)
+    if status != PASS:
+        vsxml.undefine(server)
+        logger.error("Failed to start the dom: '%s'", test_dom)
+        return status
+    
     # Get pool list against which the EAFP should be queried
     pllist = init_pllist(virt, vsxml, default_pool_name)
 
     
     status = verify_eafp_values(server, virt, pllist, test_disk)
-    vsxml.destroy(server)
+    vsxml.cim_destroy(server)
+    vsxml.undefine(server)
     return status
 
 if __name__ == "__main__":
