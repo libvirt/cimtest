@@ -145,7 +145,6 @@
 
 import sys
 import pywbem
-from VirtLib import utils
 from XenKvmLib import assoc
 from XenKvmLib import vxml
 from XenKvmLib.common_util import try_assoc
@@ -221,9 +220,15 @@ def main():
         cxml= virt_xml(test_dom, vcpus = test_vcpus, mac = test_mac,
                        disk = test_disk)
 
-    ret = cxml.create(options.ip)
+    ret = cxml.cim_define(options.ip)
     if not ret:
-        logger.error("Failed to Create the dom: %s", test_dom)
+        logger.error("Failed to define the dom: %s", test_dom)
+        return FAIL
+
+    status = cxml.cim_start(options.ip)
+    if status != PASS:
+        cxml.undefine(options.ip)
+        logger.error("Failed to start the dom: %s", test_dom)
         return FAIL
 
     global conn
@@ -262,8 +267,8 @@ def main():
             if retval != PASS:
                 status = retval
 
-    cxml.destroy(options.ip)
-    cxml.destroy(options.ip)
+    cxml.cim_destroy(options.ip)
+    cxml.undefine(options.ip)
     return status
 
 if __name__ == "__main__":
