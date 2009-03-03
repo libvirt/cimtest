@@ -27,7 +27,6 @@
 
 import sys
 from sets import Set
-from VirtLib import utils
 from XenKvmLib import assoc
 from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class
@@ -61,10 +60,16 @@ def main():
         cxml = virt_xml(test_dom, vcpus = test_cpu, mac = test_mac, 
                         disk = test_disk)
 
-    ret = cxml.create(server)
+    ret = cxml.cim_define(server)
     if not ret:
-        logger.error('Unable to create domain %s', test_dom)
+        logger.error('Unable to define domain %s', test_dom)
         return FAIL
+
+    status = cxml.cim_start(server)
+    if status != PASS:
+        cxml.undefine(server)
+        logger.error('Unable to start domain %s', test_dom)
+        return status
 
     sd_classname = get_typed_class(virt, 'SystemDevice')
     cs_classname = get_typed_class(virt, 'ComputerSystem')
@@ -73,12 +78,14 @@ def main():
                                  Name=test_dom, CreationClassName=cs_classname)
     if devs == None:
         logger.error("'%s' association failed", sd_classname)
-        cxml.destroy(server)
+        cxml.cim_destroy(server)
+        cxml.undefine(server)
         return FAIL
 
     if len(devs) == 0:
         logger.error("No devices returned")
         cxml.destroy(server)
+        cxml.undefine(server)
         return FAIL
 
     mem_cn = get_typed_class(virt, "Memory")
@@ -137,6 +144,7 @@ def main():
          status = FAIL
 
     cxml.destroy(server)
+    cxml.undefine(server)
     return status
         
 if __name__ == "__main__":
