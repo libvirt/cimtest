@@ -31,7 +31,6 @@
 import sys
 import pywbem
 from pywbem.cim_obj import CIMInstanceName
-from VirtLib import utils
 from XenKvmLib import vxml
 from XenKvmLib import assoc
 from XenKvmLib import enumclass
@@ -73,11 +72,16 @@ def main():
                         disk = test_disk)
         devlist = [ "NetworkPort", "Memory", "LogicalDisk", "Processor" ]
 
-    ret = cxml.create(options.ip)
+    ret = cxml.cim_define(options.ip)
     if not ret :
-        logger.info("error while 'create' of VS")
+        logger.error("Failed to define the domain '%s'",  test_dom)
         return FAIL
 
+    status = cxml.cim_start(options.ip)
+    if status != PASS :
+        cxml.undefine(options.ip)
+        logger.error("Failed to start the domain '%s'",  test_dom)
+        return status 
 
     # Building the dict for avoiding the correct key:val pairs 
     # while verifying with the Invalid values for the association
@@ -102,15 +106,19 @@ def main():
 
     except Exception, details:
         logger.info("Exception %s for class %s", details , item)
+        cxml.cim_destroy(options.ip)
+        cxml.cim_undefine(options.ip)
         return FAIL 
 
     if len(name) <=0 or len(names) <= 0:
+        cxml.cim_destroy(options.ip)
+        cxml.cim_undefine(options.ip)
         logger.info("Error: Could not find the device ID's")
         return FAIL
 
     conn = assoc.myWBEMConnection('http://%s' % options.ip, \
                                  (Globals.CIM_USER, Globals.CIM_PASS), 
-                                 Globals.CIM_NS)
+                                  Globals.CIM_NS)
 
     # Testing with different combinations of keys and values 
     # for assocn of SysDevice class 
@@ -164,13 +172,15 @@ def main():
                         logger.info("Success returned for wrong key and ID")
                         logger.info("Class = %s , key = %s , keyval = %s ",
                                     item, i , keyval)
+                        cxml.cim_destroy(options.ip)
+                        cxml.cim_undefine(options.ip)
                         return XFAIL_RC(bug)
 
             except Exception, details:
                 logger.info("exception" , details)
                 status = FAIL
 
-    cxml.destroy(options.ip)
+    cxml.cim_destroy(options.ip)
     cxml.undefine(options.ip)
     return status
 
