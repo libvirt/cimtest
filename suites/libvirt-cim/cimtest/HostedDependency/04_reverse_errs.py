@@ -71,9 +71,12 @@ def verify_err_fields(cxml, server, conn, keys, classname,
                         bug_no="")
         if ret != PASS:
             logger.error("--- FAILED: %s---", msg)
-            cxml.destroy(server)
+            cxml.cim_destroy(server)
+            cxml.cim_undefine(server)
     except Exception, details:
         logger.error("Exception: %s", details)
+        cxml.cim_destroy(server)
+        cxml.cim_undefine(server)
         return FAIL
     return ret
 
@@ -89,9 +92,15 @@ def main():
     else:
         cxml = virtxml(test_dom, mac = test_mac)
 
-    ret = cxml.create(server)
+    ret = cxml.cim_define(server)
     if not ret:
-        logger.error("Failed to Create the dom: %s", test_dom)
+        logger.error("Failed to define the dom: %s", test_dom)
+        return FAIL
+
+    status = cxml.cim_start(server)
+    if status != PASS:
+        cxml.undefine(server)
+        logger.error("Failed to start the dom: %s", test_dom)
         return FAIL
 
     conn = assoc.myWBEMConnection('http://%s' % server,
@@ -101,7 +110,8 @@ def main():
     status, host_inst = get_host_info(server, virt)
     if status:
         logger.error("Unable to get host info")
-        cxml.destroy(server)
+        cxml.cim_destroy(server)
+        cxml.undefine(server)
         return status
 
     classname = host_inst.CreationClassName 
@@ -138,7 +148,9 @@ def main():
     keys = { 'CreationClassName'  : field, 'Name'  : host_name }
     ret_value = verify_err_fields(cxml, server, conn, keys, classname, 
                                   acn, msg, field, expr_values)
-    cxml.destroy(server)
+    if ret_value == PASS:
+        cxml.cim_destroy(server)
+        cxml.undefine(server)
     return ret_value 
 if __name__ == "__main__":
     sys.exit(main())
