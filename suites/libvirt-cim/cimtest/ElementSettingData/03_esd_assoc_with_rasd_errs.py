@@ -50,7 +50,6 @@
 
 import sys
 import pywbem
-from VirtLib import utils
 from XenKvmLib import vxml
 from XenKvmLib import assoc
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS, \
@@ -86,11 +85,18 @@ def main():
         cxml = virtxml(test_dom)
     else:
         cxml = virtxml(test_dom, mac = test_mac)
-    ret = cxml.create(options.ip)
+
+    ret = cxml.cim_define(options.ip)
     if not ret:
-        logger.error("Failed to Create the dom: %s", test_dom)
-        status = FAIL
-        return status
+        logger.error("Failed to define the dom: %s", test_dom)
+        return FAIL
+
+    status = cxml.cim_start(options.ip)
+    if status != PASS:
+        cxml.undefine(options.ip)
+        logger.error("Failed to start the dom: %s", test_dom)
+        return status 
+
     if options.virt == "XenFV":
         options.virt = "Xen"
     try:
@@ -100,14 +106,16 @@ def main():
         rasd_list = assoc.Associators(options.ip, an, cn, InstanceID=instid)
     except Exception:
         logger.error(CIM_ERROR_ASSOCIATORS, an)
-        cxml.destroy(options.ip)
+        cxml.cim_destroy(options.ip)
         cxml.undefine(options.ip)
         return FAIL
+
     if len(rasd_list) < 1:
         logger.error("returned %i objects, expected at least 1", len(rasd_list))
-        cxml.destroy(options.ip)
+        cxml.cim_destroy(options.ip)
         cxml.undefine(options.ip)
         return FAIL
+
     conn = assoc.myWBEMConnection('http://%s' % options.ip, 
                                   (CIM_USER, CIM_PASS), CIM_NS)
     assoc_classname = get_typed_class(options.virt, esd_cn)
@@ -133,7 +141,7 @@ def main():
             status = ret_value
         if status != PASS:
             break
-    cxml.destroy(options.ip)
+    cxml.cim_destroy(options.ip)
     cxml.undefine(options.ip)
     return status
 if __name__ == "__main__":
