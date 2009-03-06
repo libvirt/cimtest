@@ -42,9 +42,10 @@ from XenKvmLib.enumclass import EnumInstances
 from XenKvmLib.classes import get_typed_class, inst_to_mof
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
-from CimTest.ReturnCodes import FAIL, PASS
+from CimTest.ReturnCodes import FAIL, PASS, XFAIL_RC
 from XenKvmLib.rasd import get_default_rasds
 
+libvirt_bug = '00013'
 sup_types = ['Xen', 'XenFV', 'KVM']
 test_dom = 'procrasd_persist_dom'
 
@@ -76,7 +77,7 @@ def setup_guest(ip, virt, cxml, prasd_cn):
 
     return PASS
 
-def check_proc_sched(server, cn_name):
+def check_proc_sched(server, virt, cn_name):
     try:
         proc_rasd = None
         rasds = EnumInstances(server, cn_name, ret_cim_inst=True)
@@ -89,10 +90,12 @@ def check_proc_sched(server, cn_name):
             logger.error("Did not find test RASD on server")
             return FAIL
    
-        if proc_rasd["VirtualQuantity"] != nvcpu:
+        if proc_rasd["VirtualQuantity"] != nvcpu and virt != 'KVM':
             logger.error("VirtualQuantity is %i, expected %i", 
                          proc_rasd["VirtualQuantity"], nvcpu)
             return FAIL
+        elif proc_rasd["VirtualQuantity"] != nvcpu and virt == "KVM":
+            return XFAIL_RC(libvirt_bug)
 
         if proc_rasd["Limit"] != limit:
             logger.error("Limit is %i, expected %i", 
@@ -126,7 +129,7 @@ def main():
                 return status
     
             dom_define = True
-            status = check_proc_sched(server, prasd_cn)
+            status = check_proc_sched(server, virt, prasd_cn)
             if status != PASS:
                 raise Exception("CPU scheduling not set properly for "
                                 " defined dom: %s" % test_dom)
@@ -136,10 +139,12 @@ def main():
                 raise Exception("Unable to start %s " % test_dom)
 
             dom_start = True
-            status = check_proc_sched(server, prasd_cn)
-            if status != PASS:
+            status = check_proc_sched(server, virt, prasd_cn)
+            if status != PASS and virt != 'KVM':
                 raise Exception("CPU scheduling not set properly for the dom: "
                                 "%s" % test_dom)
+            elif status != PASS and virt == 'KVM':
+                break
 
             cxml.cim_destroy(server)
             dom_start = False
@@ -156,7 +161,7 @@ def main():
 
     if dom_define == True: 
         cxml.undefine(server)
-
+    
     return status 
 
 if __name__ == "__main__":
