@@ -50,10 +50,11 @@ from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import logger
 from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.const import do_main
+from XenKvmLib.const import do_main, get_provider_version
 from XenKvmLib.enumclass import GetInstance, CIM_CimtestClass, EnumInstances
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
+libvirt_err_changes = 821
 
 expected_values = {
            "invalid_name"   : {'rc'   : CIM_ERR_NOT_FOUND,
@@ -114,6 +115,11 @@ def main():
         expr_values = expected_values[tc]
 
         ref = CIMInstanceName(cn, keybindings=keys)
+
+        curr_cim_rev, changeset = get_provider_version(options.virt, options.ip)
+        if tc == 'invalid_name' and curr_cim_rev >= libvirt_err_changes:
+            expr_values['desc'] = "Referenced domain `invalid_name'" + \
+                                  " does not exist: Domain not found"
 
         try:
             inst = CIM_CimtestClass(options.ip, ref)
