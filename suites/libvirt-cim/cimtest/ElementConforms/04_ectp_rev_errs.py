@@ -80,33 +80,40 @@
 
 import sys
 import pywbem
-from VirtLib import utils
 from VirtLib.live import full_hostname
 from XenKvmLib import assoc
 from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class 
 from XenKvmLib.common_util import try_assoc
-from XenKvmLib.test_doms import destroy_and_undefine_all
 from CimTest.ReturnCodes import PASS, FAIL
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
-from XenKvmLib.const import do_main
+from XenKvmLib.const import do_main, get_provider_version
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
-
+libvrit_eleconform_changes = 815
 test_dom = "domU"
+invalid_desc = 'No domain name specified'
 
 cs_values = {
-                "INVALID_CCName_Keyname"  : { 'rc' : 6 , 'desc' : 'No such instance' }, \
-                "INVALID_CCName_Keyvalue" : { 'rc' : 6 , 'desc' : 'No such instance' }, \
-                "INVALID_Name_Keyname"    : { 'rc' : 1 , 'desc' : 'No domain name specified'}, \
-                "INVALID_Name_Keyvalue"   : { 'rc' : 6 , 'desc' : 'No such instance' }
+                "INVALID_CCName_Keyname"  : { 'rc' : 6 , 
+                                              'desc' : 'No such instance' },
+                "INVALID_CCName_Keyvalue" : { 'rc' : 6 , 
+                                              'desc' : 'No such instance' },
+                "INVALID_Name_Keyname"    : { 'rc' : 1 , 
+                                              'desc' : invalid_desc},
+                "INVALID_Name_Keyvalue"   : { 'rc' : 6 , 
+                                              'desc' : 'No such instance' }
               }
 
 hs_values = {
-                "INVALID_CCName_Keyname"  : { 'rc' : 6 , 'desc' : 'No such instance' }, \
-                "INVALID_CCName_Keyvalue" : { 'rc' : 6 , 'desc' : 'No such instance' }, \
-                "INVALID_Name_Keyname"    : { 'rc' : 6 , 'desc' : 'No such instance'}, \
-                "INVALID_Name_Keyvalue"   : { 'rc' : 6 , 'desc' : 'No such instance' }
+                "INVALID_CCName_Keyname"  : { 'rc' : 6 , 
+                                              'desc' : 'No such instance' },
+                "INVALID_CCName_Keyvalue" : { 'rc' : 6 , 
+                                              'desc' : 'No such instance' },
+                "INVALID_Name_Keyname"    : { 'rc' : 6 , 
+                                              'desc' : 'No such instance'},
+                "INVALID_Name_Keyvalue"   : { 'rc' : 6 , 
+                                              'desc' : 'No such instance' }
               }
 
 def try_invalid_assoc(classname, name_val, i, field, virt="Xen"):
@@ -122,8 +129,8 @@ def try_invalid_assoc(classname, name_val, i, field, virt="Xen"):
         expr_values = hs_values
     else:
         expr_values = cs_values
-    ret_val = try_assoc(conn, classname, ac_classname, keys, field_name=field, \
-                              expr_values=expr_values[field], bug_no="")
+    ret_val = try_assoc(conn, classname, ac_classname, keys, field_name=field,
+                        expr_values=expr_values[field], bug_no="")
     if ret_val != PASS:
         logger.error("------ FAILED: %s------", field)
     name_val[i] = temp
@@ -137,7 +144,8 @@ def main():
     status = PASS
 
     global conn
-    conn = assoc.myWBEMConnection('http://%s' % options.ip, (CIM_USER, CIM_PASS), CIM_NS)
+    conn = assoc.myWBEMConnection('http://%s' % options.ip, 
+                                  (CIM_USER, CIM_PASS), CIM_NS)
     virt_xml = vxml.get_class(options.virt)
     cxml = virt_xml(test_dom)
     ret = cxml.cim_define(options.ip)
@@ -149,29 +157,37 @@ def main():
     cs = get_typed_class(options.virt, "ComputerSystem")
     host_name = full_hostname(options.ip)
     host_name_val = [
-                        'CreationClassName', hs, \
+                        'CreationClassName', hs,
                         'Name',              host_name
                     ]
 
     comp_name_val = [
-                        'CreationClassName', cs, \
+                        'CreationClassName', cs,
                         'Name',              test_dom
                     ]
 
     tc_scen =       [
-                        'INVALID_CCName_Keyname', \
-                        'INVALID_CCName_Keyvalue', \
-                        'INVALID_Name_Keyname', \
+                        'INVALID_CCName_Keyname', 
+                        'INVALID_CCName_Keyvalue',
+                        'INVALID_Name_Keyname',
                         'INVALID_Name_Keyvalue'
                     ]
 
+    curr_cim_rev, changeset = get_provider_version(options.virt, options.ip)
     for i in range(len(tc_scen)):
-        retval = try_invalid_assoc(hs, host_name_val, i, tc_scen[i], options.virt)
+        if tc_scen[i] == 'INVALID_Name_Keyvalue' and \
+           curr_cim_rev >= libvrit_eleconform_changes:
+            desc = "Referenced domain `INVALID_Name_Keyvalue'" \
+                   " does not exist: Domain not found"
+            cs_values[tc_scen[i]]['desc'] = desc
+        retval = try_invalid_assoc(hs, host_name_val, i, tc_scen[i], 
+                                   options.virt)
         if retval != PASS:
             status = retval
 
     for i in range(len(tc_scen)):
-        retval = try_invalid_assoc(cs, comp_name_val, i, tc_scen[i], options.virt)
+        retval = try_invalid_assoc(cs, comp_name_val, i, tc_scen[i], 
+                                   options.virt)
         if retval != PASS:
             status = retval
     
