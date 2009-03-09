@@ -37,13 +37,12 @@
 #                                                          Date : 04-12-2007
 
 import sys
-from VirtLib import utils, live
 from XenKvmLib import assoc
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib import vxml
 from CimTest import Globals 
-from XenKvmLib.common_util import print_field_error, get_host_info 
+from XenKvmLib.common_util import get_host_info 
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from XenKvmLib.const import do_main, get_provider_version 
 from CimTest.ReturnCodes import PASS, FAIL
@@ -53,7 +52,9 @@ sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 test_dom = "domU"
 bug_sblim = '00007'
 libvirt_cim_ectp_changes = 686
-libvirt_cim_input_graphics_ectp = 773 
+libvirt_cim_input_graphics_ectp = 773
+libvirt_cim_ac_lower = 796
+libvirt_cim_ac_upper = 818
 
 def  init_managed_ele_values(server, virt):
     verify_ectp_list = {} 
@@ -63,7 +64,7 @@ def  init_managed_ele_values(server, virt):
     curr_cim_rev, changeset = get_provider_version(virt, server)
     if curr_cim_rev >= libvirt_cim_ectp_changes:
         cn_names2 = ["VirtualSystemMigrationService", "DiskPool", "NetworkPool",
-                     "ProcessorPool", "MemoryPool"]
+                     "ProcessorPool", "MemoryPool", "AllocationCapabilities"]
         cn_names.extend(cn_names2)
     if curr_cim_rev >= libvirt_cim_input_graphics_ectp:
         cn_names.append("ConsoleRedirectionService")
@@ -135,6 +136,12 @@ def get_proflist(server, reg_classname, virt):
     for profile in proflist:
         if profile.InstanceID not in unsupp_prof:
             profiles_instid_list.append(profile.InstanceID)
+
+    for prof_id in profiles_instid_list:
+        if prof_id == "CIM:DSP1041-ResourceAllocation-1.1.0c" and \
+           curr_cim_rev >= libvirt_cim_ac_lower and \
+           curr_cim_rev< libvirt_cim_ac_upper:
+            profiles_instid_list.remove(prof_id)
 
     return status, profiles_instid_list 
 
