@@ -27,13 +27,11 @@ from XenKvmLib import assoc
 from XenKvmLib import enumclass
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS 
-from XenKvmLib.const import do_main
+from XenKvmLib.const import do_main, get_provider_version
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
-
-exp_rc = 6 #CIM_ERR_NOT_FOUND
-exp_desc = "No such instance"
+libvirt_ec_changes = 815
 
 def try_assoc(ref, ref_class, exp_rc, exp_desc, options):
     conn = assoc.myWBEMConnection('http://%s' % options.ip,
@@ -42,23 +40,24 @@ def try_assoc(ref, ref_class, exp_rc, exp_desc, options):
     status = FAIL
     rc = -1
     names = []
-
+    ec = get_typed_class(options.virt, "ElementCapabilities")
     try:
-        names = conn.AssociatorNames(ref, AssocClass = get_typed_class(options.virt, "ElementCapabilities"))
+        names = conn.AssociatorNames(ref, AssocClass = ec)
         rc = 0
     except pywbem.CIMError, (rc, desc):
         if rc == exp_rc and desc.find(exp_desc) >= 0:
             logger.info("Got expected rc code and error string")
             status = PASS
         else:
-            logger.error("Unexpected rc code %s and description %s\n", rc, desc)
+            logger.error("Unexpected rc code %s and description %s\n", rc, 
+                          desc)
     except Exception, details:
         logger.error("Unknown exception happened")
         logger.error(details)
 
     if rc == 0:
-        logger.error("ElementCapabilities associator should NOT return excepted \
-                      result with a wrong key name and value of %s input", ref_class)
+        logger.error("ElementCapabilities associator should NOT" \
+                     " return records with a wrong key name and value")
         status = FAIL
      
     return status
@@ -66,6 +65,9 @@ def try_assoc(ref, ref_class, exp_rc, exp_desc, options):
 
 @do_main(sup_types)
 def main():
+    exp_rc = 6 #CIM_ERR_NOT_FOUND
+    exp_desc = "No such instance"
+
     options = main.options
     rc = PASS
 
@@ -73,7 +75,8 @@ def main():
     cs = get_typed_class(options.virt, "ComputerSystem")
 
     instanceref = CIMInstanceName(hs,
-                                  keybindings = {"Name" : "wrong", "CreationClassName" : "wrong"})
+                                  keybindings = {"Name" : "wrong", 
+                                  "CreationClassName" : "wrong"})
     rc = try_assoc(instanceref, hs, exp_rc, exp_desc, options)
     
     if rc != PASS:
@@ -81,7 +84,13 @@ def main():
         return status
 
     instance_cs = CIMInstanceName(cs,
-                                  keybindings = {"Name" : "wrong", "CreationClassName" : "Xen_ComputerSystem"})
+                                  keybindings = {"Name" : "wrong", 
+                                  "CreationClassName" : cs})
+
+    curr_cim_rev, changeset = get_provider_version(options.virt, options.ip)
+    if curr_cim_rev >= libvirt_ec_changes:
+        exp_desc = "Referenced domain `wrong' does not exist:" \
+                   " Domain not found"
     rc = try_assoc(instance_cs, cs, exp_rc, exp_desc, options)
     if rc != PASS:
         status = FAIL         
