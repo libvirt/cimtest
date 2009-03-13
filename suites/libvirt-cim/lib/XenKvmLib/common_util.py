@@ -36,7 +36,7 @@ from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, \
                             CIM_ERROR_GETINSTANCE
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 from XenKvmLib.xm_virt_util import diskpool_list, virsh_version, net_list,\
-                                   domain_list, virt2uri
+                                   domain_list, virt2uri, net_destroy
 from XenKvmLib.vxml import PoolXML, NetXML
 from VirtLib import utils 
 from XenKvmLib.const import default_pool_name, default_network_name
@@ -438,11 +438,9 @@ def destroy_netpool(server, virt, net_name):
     if net_name == None:
         return FAIL
   
-    netxml = NetXML(server, virt=virt, networkname=net_name)
-    ret = netxml.destroy_vnet()
-    if not ret:
-        logger.error("Failed to destroy Virtual Network '%s'",
-                     net_name)
+    ret = net_destroy(net_name, server, virt)
+    if ret != 0:
+        logger.error("Failed to destroy Virtual Network '%s'", net_name)
         return FAIL
 
     return PASS 

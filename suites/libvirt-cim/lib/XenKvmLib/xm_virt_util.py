@@ -184,6 +184,14 @@ def get_bridge_from_network_xml(network, server, virt="Xen"):
     if len(bridge) > 1:
         return bridge[1]
 
+def net_destroy(network, server, virt="Xen"):
+    """Function destroys a given virtual network"""
+
+    cmd = "virsh -c %s net-destroy %s" % (virt2uri(virt), network)
+    ret, out = utils.run_remote(server, cmd)
+
+    return ret 
+
 def network_by_bridge(bridge, server, virt="Xen"):
     """Function returns virtual network for a given bridge"""
 

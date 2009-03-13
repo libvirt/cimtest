@@ -32,6 +32,7 @@
 # shared by XenXML & KVMXML.
 import os
 import sys
+import random
 import platform
 import tempfile
 from time import sleep
@@ -39,7 +40,8 @@ import pywbem
 from xml.dom import minidom, Node
 from xml import xpath
 from VirtLib import utils, live
-from XenKvmLib.xm_virt_util import get_bridge_from_network_xml, bootloader 
+from XenKvmLib.xm_virt_util import get_bridge_from_network_xml, bootloader, \
+                                   net_list 
 from XenKvmLib.test_doms import set_uuid, viruuid
 from XenKvmLib import vsms
 from XenKvmLib import const
@@ -182,7 +184,6 @@ class NetXML(Virsh, XMLClass):
         def get_valid_bridge_name(server):
             bridge_list = live.available_bridges(server)
             if bridgename in bridge_list:
-                import random
                 vbr = bridgename + str(random.randint(1, 100))
                 if vbr in bridge_list:
                     logger.error('Need to give different bridge name '
@@ -207,13 +208,27 @@ class NetXML(Virsh, XMLClass):
         self.add_sub_node(network, 'name', self.net_name)
         self.add_sub_node(network, 'uuid', set_uuid())
         self.add_sub_node(network, 'forward')
-        subnet = '192.168.122.'
+        subnet = '192.168.123.'
         self.add_sub_node(network, 'bridge', name=self.vbr, stp='on',
                                              forwardDelay='0')
-        ip = self.add_sub_node(network, 'ip', address=subnet+'1',
+        ip_base = random.randint(1, 100)
+        addr = subnet+'%d' % ip_base
+
+        n_list = net_list(server, virt)
+        for _net_name in n_list:
+            cmd = "virsh net-dumpxml %s | awk '/ip address/ {print}' | \
+                   cut -d ' ' -f 4 | sed 's/address=//'" % _net_name 
+            s, in_use_addr = utils.run_remote(server, cmd)
+            in_use_addr = in_use_addr.strip("'")
+            if in_use_addr == addr:
+                logger.error("IP address is in use by a different network")
+                return None 
+
+        ip = self.add_sub_node(network, 'ip', address=addr,
                                               netmask='255.255.255.0')
         dhcp = self.add_sub_node(ip, 'dhcp')
-        self.add_sub_node(dhcp, 'range', start=subnet+'2',
+        range_addr = subnet+'%d' % (ip_base + 1)
+        self.add_sub_node(dhcp, 'range', start=range_addr,
                                          end=subnet+'254')
 
     def create_vnet(self):
