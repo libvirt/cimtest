@@ -595,7 +595,7 @@ class VirtCIM:
         keys = { 'Name' : self.domain_name, 'CreationClassName' : cs_class }
         cs = GetInstance(server, cs_class, keys)
         if cs is None or cs.Name != self.domain_name:
-            return status
+            return FAIL 
 
         try:
             req_state_change = pywbem.cim_types.Uint16(req_state)
