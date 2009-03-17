@@ -20,80 +20,87 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 #
+# This test case is used to verify the VSMS.DestroySystem with invalid vs.
+
 
 import sys
 import pywbem
 from pywbem.cim_obj import CIMInstanceName
-from VirtLib import utils
 from XenKvmLib import vsms
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.test_doms import undefine_test_domain
 from CimTest.Globals import logger
-from XenKvmLib.const import do_main
+from XenKvmLib.const import do_main, get_provider_version
 from CimTest.ReturnCodes import FAIL, PASS, SKIP
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
-vsms_status_version = 534
+vsms_err_message = 814
 
 def destroysystem_fail(tc, options):
     service = vsms.get_vsms_class(options.virt)(options.ip)
     
     classname = get_typed_class(options.virt, 'ComputerSystem')
+    curr_cim_rev, changeset = get_provider_version(options.virt, options.ip)
 
     if tc == 'noname':
         cs_ref = CIMInstanceName(classname, 
                               keybindings = {'CreationClassName':classname})
 
-        exp_value = { 'rc'    : pywbem.CIM_ERR_FAILED,
-                      'desc'  : 'Unable to retrieve domain name.'
-                    }
+        if curr_cim_rev >= vsms_err_message:
+            exp_value = { 'rc'    : pywbem.CIM_ERR_NOT_FOUND,
+                          'desc'  : 'Unable to retrieve domain name: Error 0'
+                        }
+        else:
+            exp_value = { 'rc'    : pywbem.CIM_ERR_FAILED,
+                          'desc'  : 'Unable to retrieve domain name.'
+                        }
 
     elif tc == 'nonexistent':
         cs_ref = CIMInstanceName(classname,keybindings = {
                                 'Name':'##@@!!cimtest_domain',
                                 'CreationClassName':classname})
 
-        exp_value = { 'rc'   : pywbem.CIM_ERR_FAILED,
-                      'desc' : 'Failed to find domain' 
-                    }
+        if curr_cim_rev >= vsms_err_message:
+            exp_value = { 'rc'   : pywbem.CIM_ERR_NOT_FOUND,
+                          'desc' : "Referenced domain `##@@!!cimtest_domain'" \
+                                   " does not exist: Domain not found"
+                        }
+        else:
+            exp_value = { 'rc'   : pywbem.CIM_ERR_FAILED,
+                          'desc' : 'Failed to find domain'
+                        }
 
-    else:
-        return SKIP
-
-    status = FAIL
     try:
         ret = service.DestroySystem(AffectedSystem=cs_ref)
 
     except Exception, details:
         err_no   = details[0]
         err_desc = details[1]
+        logger.info("For Invalid Scenario '%s'", tc)
         if err_no == exp_value['rc'] and err_desc.find(exp_value['desc']) >= 0:
-            logger.error("For Invalid Scenario '%s'", tc)
             logger.info('Got expected error no: %s', err_no)
             logger.info('Got expected error desc: %s',err_desc)
             return PASS
+        else:
+            logger.error('Got error no %s, but expected no %s', 
+                          err_no, exp_value['rc'])
+            logger.error('Got error desc: %s, but expected desc: %s',
+                          err_desc, exp_value['desc'])
+            return FAIL
 
-        logger.error('destroy_fail>> %s: Error executing DestroySystem', tc)
-        logger.error(details)
-        return FAIL
+    logger.error('destroy_fail>> %s: Error executing DestroySystem', tc)
+    return FAIL
 
 @do_main(sup_types)
 def main():
     options = main.options
     rc1 = destroysystem_fail('noname', options)
     rc2 = destroysystem_fail('nonexistent', options)
-
+    
     status = FAIL
     if rc1 == PASS and rc2 == PASS:
-        status = PASS
-    else:
-        rclist = [rc1, rc2]
-        rclist.sort()
-        if rclist[0] == PASS and rclist[1] == SKIP:
-            status = PASS
-    
+        return PASS
+
     return status
 
 if __name__ == "__main__":
     sys.exit(main())
-    
