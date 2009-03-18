@@ -82,10 +82,12 @@ Xen_default_disk_dev = 'xvda'
 Xen_default_mac = '11:22:33:aa:bb:cc'
 
 # vxml.KVMXML
-if fv_cap(CIM_IP):
-    KVM_default_emulator = '/usr/bin/qemu-kvm'
-else:
-    KVM_default_emulator = '/usr/bin/qemu'
+KVM_default_emulator = '/usr/local/bin/qemu-system-x86_64'
+if not os.path.exists(KVM_default_emulator):
+    if fv_cap(CIM_IP):
+        KVM_default_emulator = '/usr/bin/qemu-kvm'
+    else:
+        KVM_default_emulator = '/usr/bin/qemu'
 KVM_disk_path = os.path.join(_image_dir, 'default-kvm-dimage')
 KVM_secondary_disk_path = os.path.join(_image_dir, 'default-kvm-dimage.2ND')
 KVM_default_disk_dev = 'hda'
@@ -115,6 +117,8 @@ LXC_netns_support = False
 parser = OptionParser()
 parser.add_option("-i", "--ip", dest="ip", default="localhost",
                   help="IP address of machine to test, default: localhost")
+parser.add_option("-m", "--target_url", dest="t_url", default="localhost:5988",
+                  help="URL of destination host for remote migration ")
 parser.add_option("-v", "--virt", dest="virt", type="choice",
                   choices=['Xen', 'KVM', 'XenFV', 'LXC'], default="Xen",
                   help="Virt type, select from: 'Xen' & 'KVM' & 'XenFV' & 'LXC', default: Xen")
