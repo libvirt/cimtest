@@ -44,6 +44,8 @@ from XenKvmLib.common_util import create_netpool_conf, destroy_netpool, \
 parser = OptionParser()
 parser.add_option("-i", "--ip", dest="ip", default="localhost",
                   help="IP address of machine to test (default: localhost)")
+parser.add_option("-m", "--target_url", dest="t_url", default="localhost:5988",
+                  help="URL of destination host for remote migration ")
 parser.add_option("-p", "--port", dest="port", type="int", default=5988,
                   help="CIMOM port (default: 5988)")
 parser.add_option("-g", "--group", dest="group",
@@ -199,6 +201,14 @@ def main():
     # with a different port 
     if options.port:
         os.environ['CIMOM_PORT'] = str(options.port)
+   
+    # src and target host info to be able to use
+    # in the tc for comparison in remote migration case
+    if ":" in options.ip:
+        (options.ip, port) = options.ip.split(":")
+
+    if ":" in options.t_url:
+        (options.t_url, port) = options.t_url.split(":")
 
     if options.report:
         to_addr = options.report
@@ -243,8 +253,9 @@ def main():
         t_path = os.path.join(TEST_SUITE, test['group'])
         os.environ['CIM_TC'] = test['test'] 
         cdto = 'cd %s' % t_path
-        run = 'python %s -i %s -v %s %s' % (test['test'], options.ip, 
-                                            options.virt, dbg)
+        run = 'python %s -i %s -v %s %s -m %s' % (test['test'], options.ip, 
+                                                  options.virt, dbg,
+                                                  options.t_url)
         cmd = cdto + ' && ' + ' ' + run
         status, output = commands.getstatusoutput(cmd)
 
