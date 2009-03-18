@@ -164,11 +164,28 @@ class Virsh:
         else:
             name = param
 
+        # We need to copy the xml files to remote machine for 
+        # successful execution of the ssh remote commands like net-createa via virsh, 
+        # otherwise the remote execution of the command fails when the 
+        # file is not locally present on the remote machine.
+        if vcmd == 'define' or vcmd == 'create' or vcmd == 'net-create' or \
+           vcmd == 'pool-create':
+            s, o = utils.copy_remote(ip, name, remote=name)
+            if s != 0:
+                logger.error("Failed to copy the tempxml file to execute '%s'"\
+                             " cmd on '%s'", vcmd, ip) 
+                return 0
+
         cmd = 'virsh -c %s %s %s' % (self.vuri, vcmd, name)
         s, o = utils.run_remote(ip, cmd)
-        if vcmd == 'define' or vcmd == 'create':
+        if vcmd == 'define' or vcmd == 'create' or vcmd == 'net-create' \
+           or vcmd == 'pool-create':
             # don't wait till gc does the ntf.close()
             ntf.close()
+
+            # Remove the tmp file copied to the remote machine
+            cmd = 'rm -rf %s' % name
+            utils.run_remote(ip, cmd)
 
         return s == 0
 
