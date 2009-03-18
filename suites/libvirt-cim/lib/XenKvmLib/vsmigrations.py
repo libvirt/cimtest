@@ -3,6 +3,7 @@
 #
 # Authors:
 #    Guolian Yun <yunguol@cn.ibm.com>
+#    Deepti B. Kalakeri <deeptik@linux.vnet.ibm.com>
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public
@@ -18,34 +19,59 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 #
-import pywbem
-import time
+# 
+
+from time import sleep
+from pywbem import WBEMConnection, CIMInstanceName
 from CimTest.CimExt import CIMMethodClass, CIMClassMOF
-from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from CimTest.ReturnCodes import PASS, FAIL
-from XenKvmLib.test_doms import destroy_and_undefine_domain
-from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from XenKvmLib import enumclass
-from XenKvmLib.classes import get_typed_class
+from XenKvmLib.classes import get_typed_class, virt_types
 from XenKvmLib.xm_virt_util import domain_list 
 from XenKvmLib.const import get_provider_version
+from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS, \
+                            CIM_ERROR_ENUMERATE
+# Migration constants
+CIM_MIGRATE_OFFLINE=1
+CIM_MIGRATE_LIVE=2
+CIM_MIGRATE_RESUME=3
+CIM_MIGRATE_RESTART=4
+
+CIM_JOBSTATE_STARTING=3
+CIM_JOBSTATE_COMPLETE=7
+CIM_JOBSTATE_RUNNING=4
 
 libvirt_mig_changes = 668
+
+def eval_cls(basename):
+    def func(f):
+        def body(virt):
+            if virt in virt_types:
+                return eval(get_typed_class(virt, basename))
+        return body
+    return func
+
 
 class CIM_VirtualSystemMigrationService(CIMMethodClass):
     conn = None
     inst = None
 
-    def __init__(self, server, hyp):
-        self.conn = pywbem.WBEMConnection('http://%s' % server,
-                                          (CIM_USER, CIM_PASS), CIM_NS)
+    def __init__(self, server, virt='Xen'):
+        self.conn = WBEMConnection('http://%s' % server,
+                                  (CIM_USER, CIM_PASS), CIM_NS)
 
-        self.inst = hyp + '_VirtualSystemMigrationService'
+        self.inst = get_typed_class(virt, 'VirtualSystemMigrationService')
 
+
+@eval_cls('VirtualSystemMigrationService')
+def get_vs_mig_setting_class(virt):
+    pass
 
 class Xen_VirtualSystemMigrationService(CIM_VirtualSystemMigrationService):
-    def __init__(self, server):
-        CIM_VirtualSystemMigrationService.__init__(self, server, 'Xen')
+    pass
+
+class KVM_VirtualSystemMigrationService(CIM_VirtualSystemMigrationService):
+    pass
 
 # classes to define VirtualSystemMigrationSettingData parameters
 class CIM_VirtualSystemMigrationSettingData(CIMClassMOF):
@@ -56,118 +82,242 @@ class CIM_VirtualSystemMigrationSettingData(CIMClassMOF):
         self.Priority = priority 
 
 class Xen_VirtualSystemMigrationSettingData(CIM_VirtualSystemMigrationSettingData):
-    def __init__(self, type, priority):
-        CIM_VirtualSystemMigrationSettingData.__init__(self, type, 
-                                                       priority)
+    pass
 
 class KVM_VirtualSystemMigrationSettingData(CIM_VirtualSystemMigrationSettingData):
-    def __init__(self, type, priority):
-        CIM_VirtualSystemMigrationSettingData.__init__(self, type, 
-                                                       priority)
+    pass
 
+def get_msd(virt, mtype='live', mpriority=0):
+    if mtype == "live":
+        mtype = CIM_MIGRATE_LIVE
+    elif mtype == "resume":
+        mtype = CIM_MIGRATE_RESUME
+    elif mtype == "restart":
+        mtype = CIM_MIGRATE_RESTART
+    elif mtype == "offline":
+        mtype = CIM_MIGRATE_OFFLINE
+    else:
+        logger.error("Invalid migration type '%s' specified", mtype)
+        return None
+    try:
+        vsmsd_cn = get_typed_class(virt, "VirtualSystemMigrationSettingData")
+        msd = eval(vsmsd_cn)(type=mtype, priority=mpriority)
+    except Exception, details:
+        logger.error("In get_msd() Exception details: %s", details)
+        return None
+
+    return msd.mof()
+
+def get_guest_ref(guest, virt):
+    guest_cn = get_typed_class(virt, "ComputerSystem")
+    keys = { 'Name' : guest, 'CreationClassName' : guest_cn } 
+    cs_ref = None
+
+    try:
+        cs_ref = CIMInstanceName(guest_cn, keybindings=keys) 
+
+    except Exception, details:
+        logger.error("In fn get_guest_ref() Exception details: %s", details)
+        return None
+
+    return cs_ref
+
+#Remove this once vsms.02_host_migrate_type.py uses get_msd()
 def default_msd_str(mtype=3, mpriority=0):
     msd = Xen_VirtualSystemMigrationSettingData(type=mtype, 
                                                 priority=mpriority)
    
     return msd.mof()
 
-def check_possible_host_migration(service, cs_ref, ip):
-    rc = None
+def check_possible_host_migration(service, cs_ref, ip, msd=None):
+    res = None
     try:
-        rc = service.CheckVirtualSystemIsMigratableToHost(ComputerSystem=cs_ref,
-                                                          DestinationHost=ip)
+        checkfn_name = 'service.CheckVirtualSystemIsMigratableToHost'
+        if msd == None:
+            res = eval(checkfn_name)(ComputerSystem=cs_ref, DestinationHost=ip)
+        else:
+            res = eval(checkfn_name)(ComputerSystem=cs_ref,
+                                     DestinationHost=ip,
+                                     MigrationSettingData=msd)
     except Exception, details:
-        logger.error("Error invoke 'CheckVirtualSystemIsMigratableToHost\'.")
+        logger.error("Error invoke 'CheckVirtualSystemIsMigratableToHost'.")
         logger.error("%s", details)
         return FAIL 
 
-    if rc == None or rc[1]['IsMigratable'] != True:
+    if res == None or res[1]['IsMigratable'] != True:
+        logger.error("Migration check failed")
         return FAIL 
 
     return PASS 
 
-def migrate_guest_to_host(service, ref, ip, msd=None):
+
+def migrate_guest_to_host(service, cs_ref, dest_ip, msd=None):
     ret = []
     try:
         if msd == None:
-            ret = service.MigrateVirtualSystemToHost(ComputerSystem=ref,
-                                                     DestinationHost=ip)
+            ret = service.MigrateVirtualSystemToHost(ComputerSystem=cs_ref,
+                                                     DestinationHost=dest_ip)
         else:
-            ret = service.MigrateVirtualSystemToHost(ComputerSystem=ref,
-                                                     DestinationHost=ip,
+            ret = service.MigrateVirtualSystemToHost(ComputerSystem=cs_ref,
+                                                     DestinationHost=dest_ip,
                                                      MigrationSettingData=msd)
     except Exception, details:
-        logger.error("Error invoke method 'MigrateVirtualSystemToHost\'.")
-        logger.error("%s", details)
+        logger.error("Failed to invoke method 'MigrateVirtualSystemToHost'.")
+        logger.error("Exception in fn migrate_guest_to_host() %s", details)
         return FAIL, ret
 
     if len(ret) == 0:
         logger.error("MigrateVirtualSystemToHost returns an empty list")
         return FAIL, ret
+
     return PASS, ret
 
-def get_migration_job_instance(ip, virt, id):
+def get_migration_job_instance(src_ip, virt, id):
     job = []
-    key_list = ["instanceid"]
-    curr_cim_rev, changeset = get_provider_version(virt, ip)
+    curr_cim_rev, changeset = get_provider_version(virt, src_ip)
     if curr_cim_rev < libvirt_mig_changes:
         mig_job_cn   =  'Virt_MigrationJob'
     else:
         mig_job_cn   = get_typed_class(virt, 'MigrationJob')
 
     try:
-        job = enumclass.EnumInstances(ip, mig_job_cn)
+        job = enumclass.EnumInstances(src_ip, mig_job_cn)
+        if len(job) < 1:
+            logger.error("'%s' returned empty list", mig_job_cn)
+            return FAIL, None
+
+        for i in range(0, len(job)):
+            if job[i].InstanceID == id:
+                break
+            elif i == len(job)-1 and job[i].InstanceID != id:
+                logger.error("%s err: can't find expected job inst", mig_job_cn)
+                return FAIL, None
     except Exception, details:
         logger.error(CIM_ERROR_ENUMERATE, mig_job_cn)
-        logger.error(details)
+        logger.error("Exception in fn get_migration_job_instance() " \
+                     "details: %s", details)
         return FAIL, None
-
-    if len(job) < 1:
-        return FAIL, None
-
-    for i in range(0, len(job)):
-        if job[i].InstanceID == id:
-            break
-        elif i == len(job)-1 and job[i].InstanceID != id:
-            logger.error("%s err: can't find expected job inst", mig_job_cn)
-            return FAIL, None
 
     return PASS, job[i]
 
-def verify_domain_list(list, local_migrate, test_dom):
-    status = PASS
-    if local_migrate == 0 and test_dom not in list:
-        status = FAIL
-    if local_migrate == 1 and test_dom in list:
-        status = FAIL
+def verify_domain_list(virt, remote_migrate, test_dom, src_ip, target_ip):
+    status = FAIL
+    list_src = domain_list(src_ip, virt)
+    if remote_migrate == 0:
+        if test_dom in list_src:
+            status = PASS
+    elif remote_migrate == 1 :
+        list_target = domain_list(target_ip, virt)
+        if test_dom not in list_src and test_dom in list_target:
+            status = PASS
+    else:
+        logger.error("Invalid migration option")
 
     if status != PASS:
-        logger.error("%s migrate failed", test_dom)
-        return FAIL
+        logger.error("Migration verification for '%s' failed", test_dom)
+        return status 
 
-    return PASS
+    return status
 
-def check_migration_job(ip, id, target_ip, test_dom, local_migrate, virt='Xen'):
-    status, job_inst = get_migration_job_instance(ip, virt, id)
-    if status != PASS:
-        return FAIL
-
-    for i in range(0, 50):
-        if job_inst.JobState == 7:
-            if job_inst.Status != "Completed":
-                logger.error("%s migrate failed", test_dom)
-                return FAIL
-            list_after = domain_list(ip)
-            status = verify_domain_list(list_after, local_migrate, test_dom)
-            break
-        elif job_inst.JobState == 4 and i < 49:
-            time.sleep(3)
-            status, job_inst = get_migration_job_instance(ip, virt, id)
-            if status != PASS:
-                return FAIL
-        else:
-            logger.error("MigrateVirtualSystemToHost took too long")
+def check_migration_job(src_ip, id, target_ip, test_dom, 
+                        remote_migrate, virt='Xen', timeout=50):
+    try:
+        status, job_inst = get_migration_job_instance(src_ip, virt, id)
+        if status != PASS:
+            logger.error("Unable to get mig_job instance for '%s'", test_dom)
             return FAIL
 
-    return PASS
+        status = FAIL
 
+        for i in range(0, timeout):
+            if job_inst.JobState == CIM_JOBSTATE_COMPLETE:
+                sleep(3)
+                if job_inst.Status != "Completed":
+                    logger.error("JobStatus for dom '%s' has '%s' instead of "\
+                                 "'Completed'", test_dom, job_inst.Status)
+                    return FAIL
+                else:
+                    status = verify_domain_list(virt, remote_migrate, test_dom, 
+                                                src_ip, target_ip)
+                    if status != FAIL:
+                         logger.info("Migration for '%s' succeeded.", test_dom)
+                         logger.info("Migration job status is : %s", 
+                                      job_inst.Status)
+                    return status
+            elif job_inst.JobState == CIM_JOBSTATE_RUNNING and i < (timeout-1):
+                sleep(3)
+                status, job_inst = get_migration_job_instance(src_ip, virt, id)
+                if status != PASS:
+                    logger.error("Could not get mig_job instance for '%s'", 
+                                  test_dom)
+                    return status  
+            else:
+                logger.error("Migration timed out.... ")
+                logger.error("Increase timeout > %s and try again..", timeout)
+                return FAIL
+
+    except Exception, details:
+        logger.error("In check_migration_job() Exception details: %s", details)
+        return  FAIL
+
+# Desc:
+# Fn Name : local_remote_migrate()
+#
+# Parameters:
+# This fn executes local/remote migration depending on the 
+# value of remote_migrate. 
+# Parameters used:
+# vsmservice = VSMigrationService Instance
+# s_sysname = src host on which migration is initiated
+# t_sysname = Target machine for migration
+# virt = Xen, KVM
+# remote_migrate = 1 [for remote migration, 0 for local]
+# mtype = live/resume/offline/restart
+# mpriority=0 by default
+# guest_name = name of the guest to be migrated
+# time_out = time for which migration is tried.
+#
+def local_remote_migrate(s_sysname, t_sysname, virt='KVM', 
+                         remote_migrate=1, mtype='live', mpriority=0,
+                         guest_name=None, time_out=40):
+
+    if guest_name == None:
+        logger.error("Guest to be migrated not specified.")
+        return FAIL 
+
+    # Get the guest ref
+    guest_ref = get_guest_ref(guest_name, virt)
+    if guest_ref == None or guest_ref['Name']  != guest_name:
+        logger.error("Failed to get the guest refernce to be migrated")
+        return FAIL 
+
+    # Get MigrationSettingData information
+    msd = get_msd(virt, mtype, mpriority)
+    if msd == None:
+        return FAIL
+
+    # Get VirtualSystemMigrationService object
+    vsms_cn = get_vs_mig_setting_class(virt)
+    vsmservice = vsms_cn(s_sysname, virt)
+
+    # Verify is destination(t_sysname) can be used for migration
+    status = check_possible_host_migration(vsmservice, guest_ref, 
+                                           t_sysname, msd) 
+    if status != PASS:
+        return FAIL
+
+    logger.info("Migrating %s.. this will take some time.",  guest_name)
+    # Migrate the guest to t_sysname
+    status, ret = migrate_guest_to_host(vsmservice, guest_ref, t_sysname, msd)
+    if status == FAIL:
+        logger.error("Failed to Migrate guest '%s' from '%s' to '%s'",
+                     guest_name, s_sysname, t_sysname)
+        return status 
+    elif len(ret) == 2:
+        id = ret[1]['Job'].keybindings['InstanceID']
+
+    # Verify if migration status
+    status =  check_migration_job(s_sysname, id, t_sysname, guest_name, 
+                                  remote_migrate, virt, timeout=time_out)
+
+    return status
