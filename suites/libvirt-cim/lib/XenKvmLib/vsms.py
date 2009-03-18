@@ -98,6 +98,10 @@ class CIM_VirtualSystemSettingData(CIMClassMOF):
         self.CreationClassName = self.__class__.__name__
         self.AutomaticShutdownAction = VSSD_RECOVERY_NONE
         self.AutomaticRecoveryAction = VSSD_RECOVERY_NONE
+        if virt == 'KVM' :
+            self.Emulator = const.KVM_default_emulator
+        elif virt == 'XenFV' :
+            self.Emulator = const.XenFV_default_emulator
 
         self.isFullVirt = (type == 'KVM' or virt == 'XenFV')
         if self.isFullVirt:
