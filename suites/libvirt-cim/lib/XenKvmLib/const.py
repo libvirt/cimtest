@@ -138,9 +138,7 @@ def do_main(types=['Xen'], p=parser):
                 try:
                     from CimTest.Globals import logger, log_param 
                     log_param()
-                    from VirtLib.utils import setup_ssh_key
                     from XenKvmLib.test_doms import destroy_and_undefine_all
-                    setup_ssh_key()
                     destroy_and_undefine_all(options.ip, options.virt)
                     rc = f()
                 except Exception, e:

@@ -22,6 +22,8 @@
 
 import sys
 import os
+sys.path.append('./lib')
+from VirtLib.utils import setup_ssh_key
 
 SUITES_DIR = 'suites'
 MAIN_FILE = 'main.py'
@@ -52,6 +54,8 @@ def main():
         print "Available test suites:"
         print "\t%s" % ", ".join(available_suites())
         return 1
+
+    setup_ssh_key()
 
     suite = sys.argv[1]
     print "Starting test suite: %s" % suite
