@@ -35,14 +35,14 @@ from CimTest.Globals import logger
 from CimTest.ReturnCodes import FAIL, PASS
 from XenKvmLib.classes import get_typed_class, inst_to_mof
 from XenKvmLib.rasd import get_default_rasds
-from XenKvmLib.const import do_main, _image_dir, f9_changeset, \
-                            KVM_default_disk_dev, get_provider_version
+from XenKvmLib.const import do_main, _image_dir, get_provider_version
 from XenKvmLib.vxml import get_class
 from XenKvmLib.common_util import parse_instance_id
 from XenKvmLib.enumclass import EnumInstances
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
 test_dom = 'rstest_disk_domain'
+libvirt_cim_dasd_caption = 707
 
 def make_long_disk_path(ip):
     path = os.path.join(_image_dir, 'cimtest_large_image')
@@ -64,14 +64,19 @@ def get_rasd_list(ip, virt, addr, disk_type):
 
     rasd_list = {} 
 
+    if virt == 'Xen':
+        test_disk = 'xvda'
+    else:
+        test_disk = 'hda'
+
     for rasd in rasds:
         if rasd.classname == drasd_cn:
-            if disk_type != "" and rasd['Caption'] != disk_type:
+            curr_cim_rev, changeset = get_provider_version(virt, ip)
+            if disk_type != "" and rasd['Caption'] != disk_type and \
+               curr_cim_rev >= libvirt_cim_dasd_caption:
                 continue
             rasd['Address'] = addr
-            curr_cim_rev, changeset = get_provider_version(virt, ip)
-            if changeset == f9_changeset and virt == 'KVM':
-                    rasd['VirtualDevice'] = KVM_default_disk_dev
+            rasd['VirtualDevice'] = test_disk
         rasd_list[rasd.classname] = inst_to_mof(rasd)
 
     return rasd_list 
