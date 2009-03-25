@@ -71,64 +71,6 @@ def get_cs_instance(domain_name, ip, virt='Xen'):
 
     return (0, cs) 
 
-def create_using_definesystem(domain_name, ip, params=None, ref_config=' ', 
-                              exp_err=None, virt='Xen'):
-    bug = "85673"
-    try:
-        class_vsms = eval('vsms.' + \
-                get_typed_class(virt, 'VirtualSystemManagementService'))
-        service = class_vsms(ip)
-
-        if params == None or len(params) == 0:
-            vssd, rasd = vsms.default_vssd_rasd_str(
-                            dom_name=domain_name, virt=virt)
-        else:
-            vssd = params['vssd']
-            rasd = params['rasd']
-
-        if exp_err == None or len(exp_err) == 0:
-            exp_rc = 0
-            exp_desc = ''
-
-        else:
-            exp_rc = exp_err['exp_rc']
-            exp_desc = exp_err['exp_desc'] 
-
-        service.DefineSystem(SystemSettings=vssd,
-                             ResourceSettings=rasd,
-                             ReferenceConfiguration=ref_config)
-    except pywbem.CIMError, (rc, desc):
-        if rc == exp_rc and desc.find(exp_desc) >= 0:
-            logger.info('Got expected rc code and error string.')
-            if exp_err != None:
-                return PASS
-            return FAIL
-
-        logger.error('Unexpected rc code %s and description:\n %s', rc, desc)
-        return FAIL
-
-    except Exception, details:
-        logger.error('Error invoke method `DefineSystem\'.  %s', details)
-        return FAIL 
-
-    if exp_err != None:    
-        logger.error('DefineSystem should NOT return OK with invalid arg')
-        undefine_test_domain(dname, options.ip, virt=virt)
-        return XFAIL_RC(bug)
-
-    set_uuid(viruuid(domain_name, ip, virt=virt))
-    myxml = dumpxml(domain_name, ip, virt=virt)
-
-    name = xml_get_dom_name(myxml)
-
-    if name != domain_name:
-        logger.error ("Name should be '%s' instead of '%s'",
-                      domain_name, name)
-        undefine_test_domain(name, ip, virt=virt)
-        return FAIL
-
-    return PASS 
-
 def verify_err_desc(exp_rc, exp_desc, err_no, err_desc):
     if err_no == exp_rc and err_desc.find(exp_desc) >= 0:
         logger.info("Got expected exception where ")
