@@ -89,7 +89,7 @@ def enumerate_instances(server, virt='Xen'):
 
 # classes to define VSSD parameters
 class CIM_VirtualSystemSettingData(CIMClassMOF):
-    def __init__(self, name, virt, bldr=None):
+    def __init__(self, name, virt, bldr=None, emulator=None):
         type = get_class_type(self.__class__.__name__)
         self.InstanceID = '%s:%s' % (type, name)
         self.Caption = self.Description = 'Virtual System'
@@ -98,10 +98,9 @@ class CIM_VirtualSystemSettingData(CIMClassMOF):
         self.CreationClassName = self.__class__.__name__
         self.AutomaticShutdownAction = VSSD_RECOVERY_NONE
         self.AutomaticRecoveryAction = VSSD_RECOVERY_NONE
-        if virt == 'KVM' :
-            self.Emulator = const.KVM_default_emulator
-        elif virt == 'XenFV' :
-            self.Emulator = const.XenFV_default_emulator
+
+        if emulator is not None:
+            self.Emulator = emulator 
 
         self.isFullVirt = (type == 'KVM' or virt == 'XenFV')
         if self.isFullVirt:

@@ -22,7 +22,6 @@ import os
 import platform
 import traceback
 from optparse import OptionParser
-from VirtLib.live import fv_cap
 from VirtLib.utils import run_remote 
 from CimTest.Globals import CIM_IP
 from pywbem import WBEMConnection
@@ -84,12 +83,7 @@ Xen_default_disk_dev = 'xvda'
 Xen_default_mac = '11:22:33:aa:bb:cc'
 
 # vxml.KVMXML
-KVM_default_emulator = '/usr/local/bin/qemu-system-x86_64'
-if not os.path.exists(KVM_default_emulator):
-    if fv_cap(CIM_IP):
-        KVM_default_emulator = '/usr/bin/qemu-kvm'
-    else:
-        KVM_default_emulator = '/usr/bin/qemu'
+KVM_default_emulator = '/usr/bin/qemu-system-x86_64'
 KVM_disk_path = os.path.join(_image_dir, 'default-kvm-dimage')
 KVM_secondary_disk_path = os.path.join(_image_dir, 'default-kvm-dimage.2ND')
 KVM_default_disk_dev = 'hda'
