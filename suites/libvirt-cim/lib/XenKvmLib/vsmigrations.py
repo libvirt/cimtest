@@ -21,16 +21,19 @@
 #
 # 
 
+import random
 from time import sleep
+from VirtLib import utils
 from pywbem import WBEMConnection, CIMInstanceName
 from CimTest.CimExt import CIMMethodClass, CIMClassMOF
 from CimTest.ReturnCodes import PASS, FAIL
-from XenKvmLib import enumclass
+from XenKvmLib.enumclass import EnumInstances
 from XenKvmLib.classes import get_typed_class, virt_types
 from XenKvmLib.xm_virt_util import domain_list 
 from XenKvmLib.const import get_provider_version
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS, \
                             CIM_ERROR_ENUMERATE
+
 # Migration constants
 CIM_MIGRATE_OFFLINE=1
 CIM_MIGRATE_LIVE=2
@@ -129,6 +132,48 @@ def default_msd_str(mtype=3, mpriority=0):
    
     return msd.mof()
 
+def remote_copy_guest_image(virt, s_sysname, t_sysname, test_dom):
+    cn_name = get_typed_class(virt, 'DiskResourceAllocationSettingData')    
+    req_image = backup_image = None
+
+    try:
+       d_rasds = EnumInstances(s_sysname, cn_name, ret_cim_inst=True)
+       for d_rasd in d_rasds:
+           if test_dom in d_rasd["InstanceID"]:
+               req_image = d_rasd["Address"]
+               break
+
+       if req_image == None:
+           logger.error("Failed to get Disk RASD info for '%s'", test_dom)
+           return FAIL, req_image, backup_image
+
+       # Check if the image file with the same name already exist on the machine.
+       # Back it up. Copy the required working image to the destination.
+       cmd = "ls -l %s" % req_image
+       rc, out = utils.run_remote(t_sysname, cmd)
+       if rc == 0:
+           backup_image = req_image + "." + str(random.randint(1, 100))
+           cmd = 'mv %s %s' % (req_image, backup_image)
+           rc, out = utils.run_remote(t_sysname, cmd)
+           if rc != 0:
+               backup_image = None
+               logger.error("Failed to backup the image '%s' on '%s'", 
+                            req_image, t_sysname)
+               return FAIL, req_image, backup_image
+       
+       s, o = utils.copy_remote(t_sysname, req_image, remote=req_image)
+       if s != 0:
+           logger.error("Failed to copy the image file '%s' for migration"\
+                        " to '%s'", req_image, t_sysname) 
+           return FAIL, req_image, backup_image
+
+    except Exception, details:
+       logger.error("Exception in remote_copy_guest_image()")
+       logger.error("Exception details %s", details)
+       return FAIL, req_image, backup_image
+
+    return PASS, req_image, backup_image
+
 def check_possible_host_migration(service, cs_ref, ip, msd=None):
     res = None
     try:
@@ -181,7 +226,7 @@ def get_migration_job_instance(src_ip, virt, id):
         mig_job_cn   = get_typed_class(virt, 'MigrationJob')
 
     try:
-        job = enumclass.EnumInstances(src_ip, mig_job_cn)
+        job = EnumInstances(src_ip, mig_job_cn)
         if len(job) < 1:
             logger.error("'%s' returned empty list", mig_job_cn)
             return FAIL, None
@@ -260,6 +305,25 @@ def check_migration_job(src_ip, id, target_ip, test_dom,
         logger.error("In check_migration_job() Exception details: %s", details)
         return  FAIL
 
+
+def cleanup_image(backup_image, req_image, t_sysname, remote_migrate=1):
+    # Make sure we do not remove the images on the local machine
+    if remote_migrate == 1:
+        # Cleanup the images that is copied on the remote machine
+        cmd = "rm -rf %s" % req_image
+        rc, out = utils.run_remote(t_sysname, cmd)
+        if rc != 0:
+            logger.info("Failed to remove the copied image '%s' from '%s'",
+                         req_image, t_sysname)
+
+        # Copy the backed up image if any on the remote machine
+        if backup_image != None:
+            cmd = 'mv  %s %s' % (backup_image, req_image)
+            rc, out = utils.run_remote(t_sysname, cmd)
+            if rc != 0:
+                logger.info("Failed to restore the original backed up image" \
+                            "'%s' on '%s'", backup_image, t_sysname)
+
 # Desc:
 # Fn Name : local_remote_migrate()
 #
@@ -285,39 +349,54 @@ def local_remote_migrate(s_sysname, t_sysname, virt='KVM',
         logger.error("Guest to be migrated not specified.")
         return FAIL 
 
-    # Get the guest ref
-    guest_ref = get_guest_ref(guest_name, virt)
-    if guest_ref == None or guest_ref['Name']  != guest_name:
-        logger.error("Failed to get the guest refernce to be migrated")
-        return FAIL 
+    try:
+        if remote_migrate == 1:
+            status, req_image, backup_image = remote_copy_guest_image(virt, 
+                                                                      s_sysname, 
+                                                                      t_sysname,
+                                                                      guest_name)
+            if status != PASS:
+                raise Exception("Failure from remote_copy_guest_image()")
 
-    # Get MigrationSettingData information
-    msd = get_msd(virt, mtype, mpriority)
-    if msd == None:
-        return FAIL
+        # Get the guest ref
+        guest_ref = get_guest_ref(guest_name, virt)
+        if guest_ref == None or guest_ref['Name']  != guest_name:
+            raise Exception ("Failed to get the guest refernce to be migrated")
 
-    # Get VirtualSystemMigrationService object
-    vsms_cn = get_vs_mig_setting_class(virt)
-    vsmservice = vsms_cn(s_sysname, virt)
+        # Get MigrationSettingData information
+        msd = get_msd(virt, mtype, mpriority)
+        if msd == None:
+            raise Exception("No MigrationSettingData details found")
 
-    # Verify is destination(t_sysname) can be used for migration
-    status = check_possible_host_migration(vsmservice, guest_ref, 
-                                           t_sysname, msd) 
-    if status != PASS:
-        return FAIL
+        # Get VirtualSystemMigrationService object
+        vsms_cn = get_vs_mig_setting_class(virt)
+        vsmservice = vsms_cn(s_sysname, virt)
 
-    logger.info("Migrating %s.. this will take some time.",  guest_name)
-    # Migrate the guest to t_sysname
-    status, ret = migrate_guest_to_host(vsmservice, guest_ref, t_sysname, msd)
-    if status == FAIL:
-        logger.error("Failed to Migrate guest '%s' from '%s' to '%s'",
-                     guest_name, s_sysname, t_sysname)
-        return status 
-    elif len(ret) == 2:
-        id = ret[1]['Job'].keybindings['InstanceID']
+        # Verify if destination(t_sysname) can be used for migration
+        status = check_possible_host_migration(vsmservice, guest_ref, 
+                                               t_sysname, msd) 
+        if status != PASS:
+            raise Exception("Failed to verify Migration support on host '%s'" \
+                             % t_sysname)
 
-    # Verify if migration status
-    status =  check_migration_job(s_sysname, id, t_sysname, guest_name, 
-                                  remote_migrate, virt, timeout=time_out)
+        logger.info("Migrating '%s'.. this will take some time.",  guest_name)
 
+        # Migrate the guest to t_sysname
+        status, ret = migrate_guest_to_host(vsmservice, guest_ref, t_sysname, msd)
+        if status == FAIL:
+            raise Exception("Failed to Migrate guest '%s' from '%s' to '%s'" \
+                            % (guest_name, s_sysname, t_sysname))
+        elif len(ret) == 2:
+            id = ret[1]['Job'].keybindings['InstanceID']
+
+        # Verify if migration status
+        status =  check_migration_job(s_sysname, id, t_sysname, guest_name, 
+                                      remote_migrate, virt, timeout=time_out)
+
+    except Exception, details:
+        logger.error("Exception in local_remote_migrate()")
+        logger.error("Exception details %s", details)
+        status = FAIL
+
+    cleanup_image(backup_image, req_image, t_sysname, remote_migrate=1)
     return status
