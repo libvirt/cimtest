@@ -28,14 +28,14 @@
 
 import sys
 import os
-from  socket import gethostname, gethostbyaddr
+from  socket import gethostname
 from XenKvmLib import vxml
 from XenKvmLib.xm_virt_util import domain_list, net_list
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main, default_network_name
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.vsmigrations import local_remote_migrate
+from XenKvmLib.vsmigrations import check_mig_support, local_remote_migrate
 from XenKvmLib.common_util import poll_for_state_change, create_netpool_conf,\
                                   destroy_netpool
 
@@ -110,12 +110,9 @@ def cleanup_guest_netpool(virt, cxml, test_dom, t_sysname, s_sysname):
 def main():
     options = main.options
     virt = options.virt
-    s_sysname = gethostbyaddr(options.ip)[0]
-    t_sysname = gethostbyaddr(options.t_url)[0] 
-    if options.virt == 'KVM' and (t_sysname == s_sysname or \
-       t_sysname in s_sysname):
-        logger.info("Libvirt does not support local migratoin for KVM")
-        return SKIP
+    status, s_sysname, t_sysname = check_mig_support(virt, options)
+    if status != PASS:
+        return status
 
     status = FAIL
     test_dom = 'VM_frm_' + gethostname()
