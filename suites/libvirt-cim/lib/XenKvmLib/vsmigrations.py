@@ -23,6 +23,7 @@
 
 import random
 from time import sleep
+from  socket import gethostbyaddr
 from VirtLib import utils
 from pywbem import WBEMConnection, CIMInstanceName
 from CimTest.CimExt import CIMMethodClass, CIMClassMOF
@@ -89,6 +90,16 @@ class Xen_VirtualSystemMigrationSettingData(CIM_VirtualSystemMigrationSettingDat
 
 class KVM_VirtualSystemMigrationSettingData(CIM_VirtualSystemMigrationSettingData):
     pass
+
+def check_mig_support(virt, options):
+    s_sysname = gethostbyaddr(options.ip)[0]
+    t_sysname = gethostbyaddr(options.t_url)[0]
+    if virt == 'KVM' and (t_sysname == s_sysname or t_sysname in s_sysname):
+        logger.info("Libvirt does not support local migration for KVM")
+        return SKIP, s_sysname, t_sysname
+
+    return PASS, s_sysname, t_sysname
+
 
 def get_msd(virt, mtype='live', mpriority=0):
     if mtype == "live":
