@@ -64,10 +64,12 @@ from XenKvmLib.const import do_main, default_pool_name, default_network_name
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import print_field_error
 from XenKvmLib.const import get_provider_version
+from XenKvmLib.pool import enum_volumes
 
 platform_sup = ['Xen', 'KVM', 'XenFV', 'LXC']
 libvirt_rasd_template_changes = 707
 libvirt_rasd_new_changes = 805
+libvirt_rasd_dpool_changes = 839
 
 memid = "MemoryPool/0"
 procid = "ProcessorPool/0"
@@ -184,8 +186,12 @@ def verify_sdc_with_ac(virt, server, pool):
                     if curr_cim_rev >= libvirt_rasd_new_changes:  
                         exp_len = 16
                 if virt == 'KVM':
-                    if curr_cim_rev >= libvirt_rasd_new_changes:
+                    if curr_cim_rev >= libvirt_rasd_new_changes and \
+                       curr_cim_rev < libvirt_rasd_dpool_changes:
                         exp_len = 8
+                    if curr_cim_rev >= libvirt_rasd_dpool_changes:
+                        volumes = enum_volumes(virt, server)
+                        exp_len = volumes * 4
 
             if len(assoc_info) != exp_len:
                 logger.error("%s returned %i ResourcePool objects instead"
