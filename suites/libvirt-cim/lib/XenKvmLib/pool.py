@@ -26,6 +26,8 @@ from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.const import get_provider_version 
 from XenKvmLib.enumclass import EnumInstances
+from VirtLib.utils import run_remote
+from XenKvmLib.xm_virt_util import virt2uri
 
 input_graphics_pool_rev = 757
 
@@ -77,4 +79,17 @@ def enum_pools(virt, ip):
         return pool_insts, FAIL
 
     return pool_insts, PASS
+
+def enum_volumes(virt, server):
+    volume = 0
+    cmd = "virsh -c %s vol-list %s | sed -e '1,2 d' -e '$ d'" % \
+          (virt2uri(virt), 'cimtest-diskpool')
+    ret, out = run_remote(server ,cmd)
+    if ret != 0:
+        return None
+    lines = out.split("\n")
+    for line in lines:
+        volume = volume + 1
+
+    return volume
 

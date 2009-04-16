@@ -51,12 +51,14 @@ from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.test_xml import testxml
 from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib.const import get_provider_version
+from XenKvmLib.pool import enum_volumes
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 test_dom = "domgst_test"
 test_vcpus = 1
 libvirt_rasd_template_changes = 707
 libvirt_rasd_new_changes = 805
+libvirt_rasd_dpool_changes = 839
 
 def setup_env(server, virt="Xen"):
     status = PASS
@@ -227,8 +229,12 @@ def get_rasddetails(server, alloccap, virt="Xen"):
                     if curr_cim_rev >= libvirt_rasd_new_changes:
                         exp_len = 16
                 if virt == 'KVM':
-                    if curr_cim_rev >= libvirt_rasd_new_changes:
+                    if curr_cim_rev >= libvirt_rasd_new_changes and \
+                       curr_cim_rev < libvirt_rasd_dpool_changes:
                         exp_len = 8
+                    if curr_cim_rev >= libvirt_rasd_dpool_changes:
+                        volumes = enum_volumes(virt, server)
+                        exp_len = volumes * 4
 
             if len(assoc_info) != exp_len:
                 logger.error("'%s' returned %i RASD objects instead of %i", 
