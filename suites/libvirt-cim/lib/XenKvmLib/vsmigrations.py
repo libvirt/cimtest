@@ -158,6 +158,10 @@ def remote_copy_guest_image(virt, s_sysname, t_sysname, test_dom):
            logger.error("Failed to get Disk RASD info for '%s'", test_dom)
            return FAIL, req_image, backup_image
 
+       if t_sysname == s_sysname or t_sysname in s_sysname:
+           #Localhost migration, no need to copy image
+           return PASS, req_image, backup_image
+
        # Check if the image file with the same name already exist on the machine.
        # Back it up. Copy the required working image to the destination.
        cmd = "ls -l %s" % req_image
