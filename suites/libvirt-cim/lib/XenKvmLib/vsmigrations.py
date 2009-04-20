@@ -27,7 +27,7 @@ from  socket import gethostbyaddr
 from VirtLib import utils
 from pywbem import WBEMConnection, CIMInstanceName
 from CimTest.CimExt import CIMMethodClass, CIMClassMOF
-from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from XenKvmLib.enumclass import EnumInstances
 from XenKvmLib.classes import get_typed_class, virt_types
 from XenKvmLib.xm_virt_util import domain_list 
