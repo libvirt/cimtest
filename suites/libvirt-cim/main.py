@@ -107,12 +107,10 @@ def pre_check(ip, virt):
         cmd = "qemu -help"
         ret, out = utils.run_remote(ip, cmd)
         if ret != 0: 
-            return "Encountered an error querying for qemu" 
-
-        cmd = "qemu-kvm -help"
-        ret, out = utils.run_remote(ip, cmd)
-        if ret != 0: 
-            return "Encountered an error querying for qemu-kvm " 
+            cmd = "qemu-kvm -help"
+            ret, out = utils.run_remote(ip, cmd)
+            if ret != 0: 
+                return "Encountered an error querying for qemu-kvm and qemu " 
 
     cmd = "ps -ef | grep -v grep | grep cimserver"
     rc, out = utils.run_remote(ip, cmd)
