@@ -63,13 +63,9 @@ from CimTest.Globals import logger, CIM_ERROR_GETINSTANCE, CIM_ERROR_ASSOCIATORS
 from XenKvmLib.const import do_main, default_pool_name, default_network_name
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import print_field_error
-from XenKvmLib.const import get_provider_version
-from XenKvmLib.pool import enum_volumes
+from XenKvmLib.rasd import get_exp_template_rasd_len 
 
 platform_sup = ['Xen', 'KVM', 'XenFV', 'LXC']
-libvirt_rasd_template_changes = 707
-libvirt_rasd_new_changes = 805
-libvirt_rasd_dpool_changes = 839
 
 memid = "MemoryPool/0"
 procid = "ProcessorPool/0"
@@ -173,25 +169,7 @@ def verify_sdc_with_ac(virt, server, pool):
             assoc_info = assoc.Associators(server, assoc_cname, cn, 
                                            InstanceID = instid)  
 
-            curr_cim_rev, changeset = get_provider_version(virt, server)
-            exp_len = 4
-            if 'DiskPool' in instid:
-                # For Diskpool, we have info 1 for each of Min, Max, 
-                # default, Increment and 1 for each of PV and FV 
-                # hence 4 * 2 = 8 records
-                if virt == 'Xen' or virt == 'XenFV':
-                    if curr_cim_rev >= libvirt_rasd_template_changes and \
-                       curr_cim_rev < libvirt_rasd_new_changes:
-                        exp_len = 8
-                    if curr_cim_rev >= libvirt_rasd_new_changes:  
-                        exp_len = 16
-                if virt == 'KVM':
-                    if curr_cim_rev >= libvirt_rasd_new_changes and \
-                       curr_cim_rev < libvirt_rasd_dpool_changes:
-                        exp_len = 8
-                    if curr_cim_rev >= libvirt_rasd_dpool_changes:
-                        volumes = enum_volumes(virt, server)
-                        exp_len = volumes * 4
+            exp_len = get_exp_template_rasd_len(virt, server, instid)
 
             if len(assoc_info) != exp_len:
                 logger.error("%s returned %i ResourcePool objects instead"
