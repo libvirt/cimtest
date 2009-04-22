@@ -28,7 +28,9 @@ from XenKvmLib import const
 from XenKvmLib.classes import get_typed_class, get_class_type
 from XenKvmLib.enumclass import GetInstance, EnumInstances
 from XenKvmLib.assoc import Associators 
-from XenKvmLib.const import default_pool_name, default_network_name 
+from XenKvmLib.const import default_pool_name, default_network_name, \
+                            get_provider_version
+from XenKvmLib.pool import enum_volumes
 
 pasd_cn = 'ProcResourceAllocationSettingData'
 nasd_cn = 'NetResourceAllocationSettingData'
@@ -301,4 +303,46 @@ def enum_rasds(virt, ip):
         return rasd_insts, FAIL
 
     return rasd_insts, PASS
+
+def get_exp_template_rasd_len(virt, ip, id):
+    libvirt_rasd_template_changes = 707
+    libvirt_rasd_new_changes = 805
+    libvirt_rasd_dpool_changes = 839
+
+    curr_cim_rev, changeset = get_provider_version(virt, ip)
+
+    # For Diskpool, we have info 1 for each of Min, Max, Default, and Incr
+    exp_base_num = 4
+    exp_cdrom = 4
+
+    exp_len = exp_base_num
+
+    if 'DiskPool' in id:
+        if virt == 'Xen' or virt == 'XenFV':
+            # For Xen and XenFV, there is a template for PV and FV, so you 
+            # end up with double the number of templates
+            xen_multi = 2
+
+            if curr_cim_rev >= libvirt_rasd_template_changes and \
+               curr_cim_rev < libvirt_rasd_new_changes:
+                exp_len = exp_base_num + exp_cdrom
+
+            elif curr_cim_rev >= libvirt_rasd_new_changes and \
+                 curr_cim_rev < libvirt_rasd_dpool_changes:
+                exp_len = (exp_base_num + exp_cdrom) * xen_multi 
+
+            elif curr_cim_rev >= libvirt_rasd_dpool_changes:
+                volumes = enum_volumes(virt, ip)
+                exp_len = ((volumes * exp_base_num) + exp_cdrom) * xen_multi
+
+        elif virt == 'KVM':
+            if curr_cim_rev >= libvirt_rasd_new_changes and \
+               curr_cim_rev < libvirt_rasd_dpool_changes:
+                exp_len = exp_base_num + exp_cdrom
+
+            elif curr_cim_rev >= libvirt_rasd_dpool_changes:
+                volumes = enum_volumes(virt, ip)
+                exp_len = (volumes * exp_base_num) + exp_cdrom
+
+    return exp_len
 
