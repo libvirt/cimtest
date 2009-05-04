@@ -25,7 +25,7 @@ elif [ -e "/usr/lib/xen/bin/qemu-dm" ]; then
 fi
 
 if [ -z $QEMU_FILE ]; then
-    CU_QEMU_VER=0
+    CUR_QEMU_VER=0
 else
     CUR_QEMU_VER=`strings $QEMU_FILE | awk '/version [0-9]/ { print $5; }' | sed 's/,//' | sed 's/\.//g'`
 fi
