@@ -34,6 +34,7 @@ RASD_TYPE_NET_ETHER = 10
 RASD_TYPE_NET_OTHER = 11
 RASD_TYPE_DISK = 17
 RASD_TYPE_GRAPHICS = 24
+RASD_TYPE_INPUT = 13
 
 VSSD_RECOVERY_NONE     = 2
 VSSD_RECOVERY_RESTART  = 3
@@ -266,6 +267,32 @@ class LXC_GraphicsResourceAllocationSettingData(CIM_GraphicsResourceAllocationSe
 def get_gasd_class(virt):
     pass
 
+class CIM_InputResourceAllocationSettingData(CIMClassMOF):
+    def __init__(self, name, res_sub_type=None, bus_type=None):
+        self.InstanceID = '%s' % name
+        self.ResourceType = RASD_TYPE_INPUT
+
+        if res_sub_type != None: 
+            self.ResourceSubType = res_sub_type
+            self.InstanceID += '/%s' % res_sub_type
+
+        if bus_type != None:
+           self.BusType = bus_type
+           self.InstanceID += ':%s' % bus_type
+
+class Xen_InputResourceAllocationSettingData(CIM_InputResourceAllocationSettingData):
+    pass
+
+class KVM_InputResourceAllocationSettingData(CIM_InputResourceAllocationSettingData):
+    pass
+
+class LXC_InputResourceAllocationSettingData(CIM_InputResourceAllocationSettingData):
+    pass
+
+@eval_cls('InputResourceAllocationSettingData')
+def get_iasd_class(virt):
+    pass
+  
 def default_vssd_rasd_str(dom_name='test_domain', 
                           disk_dev='xvda',
                           disk_source=const.Xen_disk_path,
