@@ -197,7 +197,8 @@ class NetXML(Virsh, XMLClass):
 
     def __init__(self, server, bridgename=const.default_bridge_name, 
                                networkname=const.default_network_name,
-                               virt='xen'):
+                               virt='xen',
+                               is_new_net=True):
 
         def get_valid_bridge_name(server):
             bridge_list = live.available_bridges(server)
@@ -222,6 +223,17 @@ class NetXML(Virsh, XMLClass):
         self.net_name = networkname
         self.server = server
 
+        if is_new_net is False:
+            cmd = "virsh net-dumpxml %s" % self.net_name
+            s, net_xml = utils.run_remote(server, cmd)
+            if s != 0:
+                logger.error("Encounter error dump netxml")
+                return None
+            else:
+                self.xml_string = net_xml
+                self.xdoc = minidom.parseString(self.xml_string)
+                return 
+    
         network = self.add_sub_node(self.xdoc, 'network')
         self.add_sub_node(network, 'name', self.net_name)
         self.add_sub_node(network, 'uuid', set_uuid())
@@ -259,6 +271,22 @@ class NetXML(Virsh, XMLClass):
         npoolname = self.get_value_xpath('/network/name')
         return npoolname
 
+    def xml_get_netpool_attr_list(self):
+        pool_attr_list = []
+        
+        npoolmode = self.get_value_xpath('/network/forward/@mode')
+        npooladdr = self.get_value_xpath('/network/ip/@address')
+        npoolmask = self.get_value_xpath('/network/ip/@netmask')
+        npoolstart = self.get_value_xpath('/network/ip/dhcp/range/@start')
+        npoolend = self.get_value_xpath('/network/ip/dhcp/range/@end')
+
+        pool_attr_list.append(npoolmode)
+        pool_attr_list.append(npooladdr)
+        pool_attr_list.append(npoolmask)
+        pool_attr_list.append(npoolstart)
+        pool_attr_list.append(npoolend)
+
+        return pool_attr_list
 
 class PoolXML(Virsh, XMLClass):
 
