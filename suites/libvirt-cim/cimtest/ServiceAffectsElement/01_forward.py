@@ -115,7 +115,7 @@ def verify_assoc(server, virt, an, assoc_info):
     assoc_insts = {}
     try:
         assoc_insts, status = get_dom_records(an, assoc_info, assoc_insts)
-        if status != PASS or len(assoc_insts) != 3:
+        if status != PASS or len(assoc_insts) < 1 :
             raise Exception("Failed to get insts for domain %s" % test_dom)
 
         in_list, status = init_list_for_compare(server, virt)
@@ -124,7 +124,7 @@ def verify_assoc(server, virt, an, assoc_info):
 
         in_list_keys = Set(in_list.keys())
         assoc_list_keys = Set(assoc_insts.keys())
-        if len(in_list_keys & assoc_list_keys) != 3:
+        if len(in_list_keys & assoc_list_keys) < 1 :
             raise Exception("Mistmatching Class Names, expected %s, got %s" \
                             % (in_list_keys, assoc_list_keys))
 
