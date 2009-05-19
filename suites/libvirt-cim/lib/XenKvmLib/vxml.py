@@ -271,16 +271,18 @@ class NetXML(Virsh, XMLClass):
         npoolname = self.get_value_xpath('/network/name')
         return npoolname
 
+    def xml_get_netpool_mode(self):
+        npoolmode = self.get_value_xpath('/network/forward/@mode')
+        return npoolmode
+
     def xml_get_netpool_attr_list(self):
         pool_attr_list = []
         
-        npoolmode = self.get_value_xpath('/network/forward/@mode')
         npooladdr = self.get_value_xpath('/network/ip/@address')
         npoolmask = self.get_value_xpath('/network/ip/@netmask')
         npoolstart = self.get_value_xpath('/network/ip/dhcp/range/@start')
         npoolend = self.get_value_xpath('/network/ip/dhcp/range/@end')
 
-        pool_attr_list.append(npoolmode)
         pool_attr_list.append(npooladdr)
         pool_attr_list.append(npoolmask)
         pool_attr_list.append(npoolstart)

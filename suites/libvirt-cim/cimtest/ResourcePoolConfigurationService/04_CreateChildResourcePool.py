@@ -39,45 +39,71 @@
 # OUT -- Error -- String  -- Encoded error instance if the operation 
 #                            failed and did not return a job
 #
-# REVISIT : 
-# --------
-# As of now the CreateChildResourcePool() simply throws an Exception.
-# We must improve this tc once the service is implemented. 
-# 
-#                                                                            -Date: 20.02.2008
-
+# Exception details before Revision 837
+# -----
+# Error code: CIM_ERR_NOT_SUPPORTED 
+#
+# After revision 837, the service is implemented
+#
+#                                                   -Date: 20.02.2008
 
 import sys
-import pywbem 
-from XenKvmLib import rpcs_service
+import random
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import FAIL, PASS
 from XenKvmLib.const import do_main, platform_sup
 from XenKvmLib.classes import get_typed_class
+from XenKvmLib.common_util import destroy_netpool
+from XenKvmLib.pool import create_netpool, verify_pool, undefine_netpool
 
-cim_errno  = pywbem.CIM_ERR_NOT_SUPPORTED
-cim_mname  = "CreateChildResourcePool"
+test_pool = "testpool"
 
 @do_main(platform_sup)
 def main():
     options = main.options
-    rpcs_conn = eval("rpcs_service." + get_typed_class(options.virt, \
-                      "ResourcePoolConfigurationService"))(options.ip)
-    try:
-        rpcs_conn.CreateChildResourcePool()
-    except pywbem.CIMError, (err_no, desc):
-        if err_no == cim_errno :
-            logger.info("Got expected exception for '%s' service", cim_mname)
-            logger.info("Errno is '%s' ", err_no)
-            logger.info("Error string is '%s'", desc)
-            return PASS
-        else:
-            logger.error("Unexpected rc code %s and description %s\n",
-                         err_no, desc)
+
+    np = get_typed_class(options.virt, 'NetworkPool')
+    np_id = "NetworkPool/%s" % test_pool
+
+    subnet = '192.168.0.'
+    ip_base = random.randint(1, 100)
+    addr = subnet+'%d' % ip_base
+    range_addr_start = subnet+'%d' % (ip_base + 1)
+    range_addr_end = subnet+'%d' %(ip_base + 10)
+    pool_attr = {
+                 "Address" : addr,
+                 "Netmask" : "255.255.255.0",
+                 "IPRangeStart" : range_addr_start,
+                 "IPRangeEnd"   : range_addr_end
+                }
+    for item in range(0, 3):    
+        status = create_netpool(options.ip, options.virt, 
+                                test_pool, pool_attr, mode_type=item)
+        if status != PASS:
+            logger.error("Error in networkpool creation")
             return FAIL
-     
-    logger.error("The execution should not have reached here!!")
-    return FAIL
+
+        status = verify_pool(options.ip, options.virt, np,
+                             test_pool, pool_attr, mode_type=item)
+        if status != PASS:
+            logger.error("Error in networkpool verification")
+            destroy_netpool(options.ip, options.virt, test_pool)
+            undefine_netpool(options.ip, options.virt, test_pool)
+            return FAIL
+
+        status = destroy_netpool(options.ip, options.virt, test_pool)
+        if status != PASS:
+            logger.error("Unable to destroy networkpool %s", test_pool)
+            return FAIL
+
+        status = undefine_netpool(options.ip, options.virt, test_pool)
+        if status != PASS:
+            logger.error("Unable to undefine networkpool %s", test_pool)
+            return FAIL
+
+        status = PASS
+ 
+    return status
+
 if __name__ == "__main__":
     sys.exit(main())
-    

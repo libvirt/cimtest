@@ -33,6 +33,7 @@ from XenKvmLib import rpcs_service
 import pywbem
 from CimTest.CimExt import CIMClassMOF
 from XenKvmLib.vxml import NetXML
+from XenKvmLib.xm_virt_util import virsh_version
 
 cim_errno  = pywbem.CIM_ERR_NOT_SUPPORTED
 cim_mname  = "CreateChildResourcePool"
@@ -144,7 +145,7 @@ def undefine_netpool(server, virt, net_name):
 
     return PASS    
 
-def create_netpool(server, virt, test_pool, pool_attr_list): 
+def create_netpool(server, virt, test_pool, pool_attr_list, mode_type=0): 
     status = PASS
     rpcs = get_typed_class(virt, "ResourcePoolConfigurationService")
     rpcs_conn = eval("rpcs_service." + rpcs)(server)
@@ -177,11 +178,14 @@ def create_netpool(server, virt, test_pool, pool_attr_list):
             logger.error("We can not get NetPoolRASDs")
             return FAIL
         else:
-            net_pool_rasds[0]['PoolID'] = "NetworkPool/%s" % test_pool
-            for attr, val in pool_attr_list.iteritems():
-                net_pool_rasds[0][attr] = val
-           
-            pool_settings = inst_to_mof(net_pool_rasds[0])
+            for i in range(0, len(net_pool_rasds)):
+                if net_pool_rasds[i]['ForwardMode'] == mode_type:
+                    net_pool_rasds[i]['PoolID'] = "NetworkPool/%s" % test_pool
+                    for attr, val in pool_attr_list.iteritems():
+                        net_pool_rasds[i][attr] = val
+                    break
+          
+            pool_settings = inst_to_mof(net_pool_rasds[i])
             
         try:
             rpcs_conn.CreateChildResourcePool(ElementName=test_pool, 
@@ -194,7 +198,7 @@ def create_netpool(server, virt, test_pool, pool_attr_list):
         return status
 
 
-def verify_pool(server, virt, pooltype, poolname, pool_attr_list):
+def verify_pool(server, virt, pooltype, poolname, pool_attr_list, mode_type=0):
     status = FAIL
     pool_list = EnumInstances(server, pooltype)
     if len(pool_list) < 1:
@@ -210,6 +214,19 @@ def verify_pool(server, virt, pooltype, poolname, pool_attr_list):
 
         net_xml = NetXML(server, virt=virt, networkname=poolname, 
                          is_new_net=False)
+      
+        ret_mode = net_xml.xml_get_netpool_mode()
+        libvirt_version = virsh_version(server, virt)
+
+        #Forward mode support was added in 0.4.2
+        if libvirt_version >= '0.4.2':
+            if mode_type == 1 and ret_mode != "nat":
+                logger.error("Got error when verify nat type")
+                return FAIL
+            elif mode_type == 2 and ret_mode != "route":
+                logger.error("Got error when verify route type")
+                return FAIL
+
         ret_pool_attr_list = net_xml.xml_get_netpool_attr_list()
         
         for i in range(0, len(ret_pool_attr_list)):
