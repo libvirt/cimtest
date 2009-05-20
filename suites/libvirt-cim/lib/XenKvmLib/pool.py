@@ -106,12 +106,13 @@ def enum_volumes(virt, server, pooln=default_pool_name):
 
     return volume
 
-def get_pool_rasds(server, virt):
+def get_pool_rasds(server, virt, 
+                   pool_type="NetworkPool", filter_default=True):
     net_pool_rasds = []
 
     ac_cn = get_typed_class(virt, "AllocationCapabilities")
     an_cn = get_typed_class(virt, "SettingsDefineCapabilities")
-    key_list = {"InstanceID" : "NetworkPool/0" }
+    key_list = {"InstanceID" : "%s/0" %pool_type }
     
     try:
         inst = GetInstance(server, ac_cn, key_list)
@@ -119,10 +120,13 @@ def get_pool_rasds(server, virt):
     except Exception, detail:
         logger.error("Exception: %s", detail)
         return None
-
-    for item in rasd:
-        if item['InstanceID'] == "Default":
-           net_pool_rasds.append(item)
+     
+    if filter_default == True:
+        for item in rasd:
+            if item['InstanceID'] == "Default":
+               net_pool_rasds.append(item)
+    else:
+        return rasd
 
     return net_pool_rasds
 
