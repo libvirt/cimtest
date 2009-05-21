@@ -67,7 +67,6 @@ def main():
     options = main.options
     virt = options.virt
     server = options.ip
-    status = FAIL 
     netpool_rasd = get_pool_rasds(server, virt, filter_default=False)
     inst_list = [ 'Default', 'Minimum', 'Maximum', 'Increment' ]
     n_rec_val = { 'ResourceType' : 10,
@@ -110,7 +109,5 @@ def main():
 
     return PASS
 
-
-    return status
 if __name__ == "__main__":
     sys.exit(main())
