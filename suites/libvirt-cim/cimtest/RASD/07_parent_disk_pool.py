@@ -65,8 +65,10 @@ def main():
     options = main.options
     virt = options.virt
     server = options.ip
-    diskpool_rasd = get_pool_rasds(server, virt, pool_type="DiskPool", 
-                                   filter_default=False)
+    status, diskpool_rasd = get_pool_rasds(server, virt, pool_type="DiskPool", 
+                                           filter_default=False)
+    if status != PASS:
+        return status
     inst_list = [ 'Default', 'Minimum', 'Maximum', 'Increment' ]
     n_rec_val = { 'ResourceType' : 17,
                   'PoolID'       : "DiskPool/0",
