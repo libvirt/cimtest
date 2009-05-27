@@ -81,7 +81,7 @@ def main():
                                 test_pool, pool_attr, mode_type=item)
         if status != PASS:
             logger.error("Error in networkpool creation")
-            return FAIL
+            return status 
 
         status = verify_pool(options.ip, options.virt, np,
                              test_pool, pool_attr, mode_type=item)
@@ -89,17 +89,17 @@ def main():
             logger.error("Error in networkpool verification")
             destroy_netpool(options.ip, options.virt, test_pool)
             undefine_netpool(options.ip, options.virt, test_pool)
-            return FAIL
+            return status 
 
         status = destroy_netpool(options.ip, options.virt, test_pool)
         if status != PASS:
             logger.error("Unable to destroy networkpool %s", test_pool)
-            return FAIL
+            return status 
 
         status = undefine_netpool(options.ip, options.virt, test_pool)
         if status != PASS:
             logger.error("Unable to undefine networkpool %s", test_pool)
-            return FAIL
+            return status 
 
         status = PASS
  

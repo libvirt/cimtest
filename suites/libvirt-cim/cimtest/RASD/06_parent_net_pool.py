@@ -67,7 +67,11 @@ def main():
     options = main.options
     virt = options.virt
     server = options.ip
-    netpool_rasd = get_pool_rasds(server, virt, filter_default=False)
+
+    status, netpool_rasd = get_pool_rasds(server, virt, filter_default=False)
+    if status != PASS:
+        return status
+
     inst_list = [ 'Default', 'Minimum', 'Maximum', 'Increment' ]
     n_rec_val = { 'ResourceType' : 10,
                   'PoolID'  :  "NetworkPool/0",

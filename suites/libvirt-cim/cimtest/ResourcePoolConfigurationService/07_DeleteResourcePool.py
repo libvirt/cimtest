@@ -93,14 +93,14 @@ def main():
         status = create_netpool(options.ip, options.virt, test_pool, pool_attr)
         if status != PASS:
             logger.error("Error in networkpool creation")
-            return FAIL
+            return status 
         
         status = verify_pool(options.ip, options.virt, np, 
                              test_pool, pool_attr)
         if status != PASS:
             logger.error("Error in networkpool verification")
             destroy_netpool(options.ip, options.virt, test_pool)
-            return FAIL
+            return status 
 
         netpool = EnumNames(options.ip, np)
         for i in range(0, len(netpool)):
@@ -118,7 +118,6 @@ def main():
             status = PASS
         except Exception, details:
             logger.error(details)
-            return FAIL
 
     return status
 

@@ -22,7 +22,7 @@
 
 import sys
 from CimTest.Globals import logger, CIM_NS
-from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from XenKvmLib.classes import get_typed_class, inst_to_mof
 from XenKvmLib.const import get_provider_version, default_pool_name 
 from XenKvmLib.enumclass import EnumInstances, GetInstance
@@ -108,6 +108,22 @@ def enum_volumes(virt, server, pooln=default_pool_name):
 
 def get_pool_rasds(server, virt, 
                    pool_type="NetworkPool", filter_default=True):
+
+    net_pool_rasd_rev = 867 
+    disk_pool_rasd_rev = 863 
+
+    try:
+        rev, changeset = get_provider_version(virt, server)
+        if pool_type == "NetworkPool" and rev < net_pool_rasd_rev:
+            raise Exception("Supported in version %d" % net_pool_rasd_rev)
+ 
+        if pool_type == "DiskPool" and rev < disk_pool_rasd_rev:
+            raise Exception("Supported in version %d" % disk_pool_rasd_rev)
+
+    except Exception, detail:
+        logger.error("%s template RASDs not supported. %s.", pool_type, detail)
+        return SKIP, None
+
     net_pool_rasds = []
 
     ac_cn = get_typed_class(virt, "AllocationCapabilities")
@@ -119,16 +135,16 @@ def get_pool_rasds(server, virt,
         rasd = Associators(server, an_cn, ac_cn, InstanceID=inst.InstanceID)
     except Exception, detail:
         logger.error("Exception: %s", detail)
-        return None
+        return FAIL, None
      
     if filter_default == True:
         for item in rasd:
             if item['InstanceID'] == "Default":
                net_pool_rasds.append(item)
     else:
-        return rasd
+        return PASS, rasd
 
-    return net_pool_rasds
+    return PASS, net_pool_rasds
 
 def net_undefine(network, server, virt="Xen"):
     """Function undefine a given virtual network"""
@@ -177,7 +193,10 @@ def create_netpool(server, virt, test_pool, pool_attr_list, mode_type=0):
                 logger.error("IP address is in use by a different network")
                 return FAIL
         
-        net_pool_rasds = get_pool_rasds(server, virt)
+        status, net_pool_rasds = get_pool_rasds(server, virt)
+        if status != PASS:
+            return status 
+
         if len(net_pool_rasds) == 0:
             logger.error("We can not get NetPoolRASDs")
             return FAIL
