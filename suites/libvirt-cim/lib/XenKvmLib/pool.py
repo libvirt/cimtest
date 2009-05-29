@@ -92,7 +92,7 @@ def enum_pools(virt, ip):
 def enum_volumes(virt, server, pooln=default_pool_name):
     volume = 0
     cmd = "virsh -c %s vol-list %s | sed -e '1,2 d' -e '$ d'" % \
-          (virt2uri(virt), default_pool_name)
+          (virt2uri(virt), pooln)
     ret, out = run_remote(server ,cmd)
     if ret != 0:
         return None

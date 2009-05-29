@@ -204,8 +204,10 @@ def get_rasddetails(server, alloccap, virt="Xen"):
     else:
         rtype = {
                   "%s_DiskResourceAllocationSettingData" % virt : 17, \
+                  "%s_DiskPoolResourceAllocationSettingData" % virt : 17, \
                   "%s_MemResourceAllocationSettingData" % virt :  4, \
                   "%s_NetResourceAllocationSettingData" % virt : 10, \
+                  "%s_NetPoolResourceAllocationSettingData" % virt : 10, \
                   "%s_ProcResourceAllocationSettingData" % virt :  3
                  }
     try:
@@ -218,8 +220,8 @@ def get_rasddetails(server, alloccap, virt="Xen"):
             exp_len = get_exp_template_rasd_len(virt, server, ap['InstanceID'])
 
             if len(assoc_info) != exp_len:
-                logger.error("'%s' returned %i RASD objects instead of %i", 
-                             an, len(assoc_info), exp_len)
+                logger.error("%s returned %i RASD objects instead of %i for %s",
+                             an, len(assoc_info), exp_len, ap['InstanceID'])
                 return FAIL
 
             for inst in assoc_info:
