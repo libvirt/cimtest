@@ -54,7 +54,7 @@ from CimTest.ReturnCodes import FAIL, PASS
 from XenKvmLib.const import do_main, platform_sup
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import destroy_netpool
-from XenKvmLib.pool import create_netpool, verify_pool, undefine_netpool
+from XenKvmLib.pool import create_pool, verify_pool, undefine_netpool
 
 test_pool = "testpool"
 
@@ -76,15 +76,17 @@ def main():
                  "IPRangeStart" : range_addr_start,
                  "IPRangeEnd"   : range_addr_end
                 }
-    for item in range(0, 3):    
-        status = create_netpool(options.ip, options.virt, 
-                                test_pool, pool_attr, mode_type=item)
+    net_type = ["isolated", "nat", "route"]
+    for item in range(0, len(net_type)):    
+        logger.info("Creating '%s' type network", net_type[item])
+        status = create_pool(options.ip, options.virt, 
+                             test_pool, pool_attr, mode_type=item)
         if status != PASS:
             logger.error("Error in networkpool creation")
             return status 
 
-        status = verify_pool(options.ip, options.virt, np,
-                             test_pool, pool_attr, mode_type=item)
+        status = verify_pool(options.ip, options.virt,
+                              test_pool, pool_attr, mode_type=item)
         if status != PASS:
             logger.error("Error in networkpool verification")
             destroy_netpool(options.ip, options.virt, test_pool)
@@ -94,11 +96,6 @@ def main():
         status = destroy_netpool(options.ip, options.virt, test_pool)
         if status != PASS:
             logger.error("Unable to destroy networkpool %s", test_pool)
-            return status 
-
-        status = undefine_netpool(options.ip, options.virt, test_pool)
-        if status != PASS:
-            logger.error("Unable to undefine networkpool %s", test_pool)
             return status 
 
         status = PASS

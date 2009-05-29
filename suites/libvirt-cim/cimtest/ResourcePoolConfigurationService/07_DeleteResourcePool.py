@@ -52,7 +52,7 @@ from XenKvmLib.const import do_main, platform_sup, get_provider_version
 from XenKvmLib.enumclass import EnumInstances, EnumNames
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import destroy_netpool
-from XenKvmLib.pool import create_netpool, verify_pool
+from XenKvmLib.pool import create_pool, verify_pool
 
 cim_errno  = pywbem.CIM_ERR_NOT_SUPPORTED
 cim_mname  = "DeleteResourcePool"
@@ -71,7 +71,8 @@ def main():
             rpcs_conn.DeleteResourcePool()
         except pywbem.CIMError, (err_no, desc):
             if err_no == cim_errno :
-                logger.info("Got expected exception for '%s' service", cim_mname)
+                logger.info("Got expected exception for '%s' service",
+                            cim_mname)
                 logger.info("Errno is '%s' ", err_no)
                 logger.info("Error string is '%s'", desc)
                 return PASS
@@ -87,21 +88,22 @@ def main():
                      "IPRangeEnd"   : "192.168.0.15",
                      "ForwardMode" : "nat"
                     }
-        np = get_typed_class(options.virt, 'NetworkPool')
-        np_id = "NetworkPool/%s" % test_pool
 
-        status = create_netpool(options.ip, options.virt, test_pool, pool_attr)
+        status = create_pool(options.ip, options.virt, test_pool, pool_attr)
         if status != PASS:
             logger.error("Error in networkpool creation")
             return status 
         
-        status = verify_pool(options.ip, options.virt, np, 
-                             test_pool, pool_attr)
+        status = verify_pool(options.ip, options.virt,  
+                              test_pool, pool_attr)
+
         if status != PASS:
             logger.error("Error in networkpool verification")
             destroy_netpool(options.ip, options.virt, test_pool)
             return status 
 
+        np = get_typed_class(options.virt, 'NetworkPool')
+        np_id = "NetworkPool/%s" % test_pool
         netpool = EnumNames(options.ip, np)
         for i in range(0, len(netpool)):
             ret_pool = netpool[i].keybindings['InstanceID']

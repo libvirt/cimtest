@@ -150,7 +150,7 @@ def net_undefine(network, server, virt="Xen"):
 
     cmd = "virsh -c %s net-undefine %s" % (virt2uri(virt), network)
     ret, out = run_remote(server, cmd)
-        
+
     return ret
 
 def undefine_netpool(server, virt, net_name):
