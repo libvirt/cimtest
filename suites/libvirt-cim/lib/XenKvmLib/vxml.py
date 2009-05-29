@@ -293,7 +293,7 @@ class NetXML(Virsh, XMLClass):
 class PoolXML(Virsh, XMLClass):
 
     def __init__(self, server, poolname=const.default_pool_name,
-                               virt='xen'):
+                 virt='xen', is_new_pool=True):
 
         XMLClass.__init__(self)
         if virt == 'XenFV':
@@ -301,6 +301,17 @@ class PoolXML(Virsh, XMLClass):
         Virsh.__init__(self, str(virt).lower())
         self.pool_name = poolname
         self.server = server
+
+        if is_new_pool is False:
+            cmd = "virsh pool-dumpxml %s" % self.pool_name
+            s, disk_xml = utils.run_remote(server, cmd)
+            if s != 0:
+                logger.error("Encounter error dump netxml")
+                return None
+            else:
+                self.xml_string = disk_xml
+                self.xdoc = minidom.parseString(self.xml_string)
+                return
 
         pool = self.add_sub_node(self.xdoc, 'pool', type='dir')
         self.add_sub_node(pool, 'name', self.pool_name)
@@ -313,10 +324,19 @@ class PoolXML(Virsh, XMLClass):
     def destroy_vpool(self):
         return self.run(self.server, 'pool-destroy', self.pool_name)
 
+    def undefine_vpool(self):
+        return self.run(self.server, 'pool-undefine', self.pool_name)
+
     def xml_get_diskpool_name(self):
         dpoolname = self.get_value_xpath('/pool/name')
         return dpoolname
 
+    def xml_get_pool_attr_list(self):
+        pool_attr_list = []
+        poolpath = self.get_value_xpath('/pool/target/path')
+        pool_attr_list.append(poolpath)
+
+        return pool_attr_list
 
 class VirtXML(Virsh, XMLClass):
     """Base class for all XML generation & operation"""

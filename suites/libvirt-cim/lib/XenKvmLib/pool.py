@@ -32,7 +32,7 @@ from XenKvmLib.xm_virt_util import virt2uri, net_list
 from XenKvmLib import rpcs_service
 import pywbem
 from CimTest.CimExt import CIMClassMOF
-from XenKvmLib.vxml import NetXML
+from XenKvmLib.vxml import NetXML, PoolXML
 from XenKvmLib.xm_virt_util import virsh_version
 
 cim_errno  = pywbem.CIM_ERR_NOT_SUPPORTED
@@ -106,8 +106,7 @@ def enum_volumes(virt, server, pooln=default_pool_name):
 
     return volume
 
-def get_pool_rasds(server, virt, 
-                   pool_type="NetworkPool", filter_default=True):
+def get_pool_rasds(server, virt, pool_type="NetworkPool", filter_default=True):
 
     net_pool_rasd_rev = 867 
     disk_pool_rasd_rev = 863 
@@ -124,7 +123,7 @@ def get_pool_rasds(server, virt,
         logger.error("%s template RASDs not supported. %s.", pool_type, detail)
         return SKIP, None
 
-    net_pool_rasds = []
+    n_d_pool_rasds = []
 
     ac_cn = get_typed_class(virt, "AllocationCapabilities")
     an_cn = get_typed_class(virt, "SettingsDefineCapabilities")
@@ -140,11 +139,11 @@ def get_pool_rasds(server, virt,
     if filter_default == True:
         for item in rasd:
             if item['InstanceID'] == "Default":
-               net_pool_rasds.append(item)
+               n_d_pool_rasds.append(item)
     else:
         return PASS, rasd
 
-    return PASS, net_pool_rasds
+    return PASS, n_d_pool_rasds
 
 def net_undefine(network, server, virt="Xen"):
     """Function undefine a given virtual network"""
@@ -165,16 +164,32 @@ def undefine_netpool(server, virt, net_name):
 
     return PASS    
 
-def create_netpool(server, virt, test_pool, pool_attr_list, mode_type=0): 
-    status = PASS
+def undefine_diskpool(server, virt, dp_name):
+    libvirt_version = virsh_version(server, virt)
+    if libvirt_version >= '0.4.1':
+        if dp_name == None:
+           return FAIL
+
+        cmd = "virsh -c %s pool-undefine %s" % (virt2uri(virt), dp_name)
+        ret, out = run_remote(server, cmd)
+        if ret != 0:
+            logger.error("Failed to undefine pool '%s'", dp_name)
+            return FAIL
+
+    return PASS    
+
+def create_pool(server, virt, test_pool, pool_attr_list, 
+                mode_type=0, pool_type="NetworkPool"): 
+
     rpcs = get_typed_class(virt, "ResourcePoolConfigurationService")
     rpcs_conn = eval("rpcs_service." + rpcs)(server)
     curr_cim_rev, changeset = get_provider_version(virt, server)
     if curr_cim_rev < libvirt_cim_child_pool_rev:
+
         try:
             rpcs_conn.CreateChildResourcePool()
         except pywbem.CIMError, (err_no, desc):
-            if err_no == cim_errno :
+            if err_no == cim_errno:
                 logger.info("Got expected exception for '%s'service", cim_mname)
                 logger.info("Errno is '%s' ", err_no)
                 logger.info("Error string is '%s'", desc)
@@ -183,78 +198,92 @@ def create_netpool(server, virt, test_pool, pool_attr_list, mode_type=0):
                 logger.error("Unexpected rc code %s and description %s\n",
                              err_no, desc)
                 return FAIL
+
     elif curr_cim_rev >= libvirt_cim_child_pool_rev: 
-        n_list = net_list(server, virt)
-        for _net_name in n_list:
-            net_xml = NetXML(server=server, networkname=_net_name, 
-                             virt=virt, is_new_net=False)
-            pool_use_attr = net_xml.xml_get_netpool_attr_list()
-            if pool_attr_list['Address'] in pool_use_attr:
-                logger.error("IP address is in use by a different network")
-                return FAIL
+
+        if pool_type == "NetworkPool" :
+            n_list = net_list(server, virt)
+            for _net_name in n_list:
+                net_xml = NetXML(server=server, networkname=_net_name, 
+                                 virt=virt, is_new_net=False)
+                pool_use_attr = net_xml.xml_get_netpool_attr_list()
+                if pool_attr_list['Address'] in pool_use_attr:
+                    logger.error("IP address is in use by a different network")
+                    return FAIL
         
-        status, net_pool_rasds = get_pool_rasds(server, virt)
+        status, n_d_pool_rasds = get_pool_rasds(server, virt, pool_type)
         if status != PASS:
             return status 
 
-        if len(net_pool_rasds) == 0:
-            logger.error("We can not get NetPoolRASDs")
+        if len(n_d_pool_rasds) == 0:
+            logger.error("Failed to get '%sRASD'", pool_type)
             return FAIL
         else:
-            for i in range(0, len(net_pool_rasds)):
-                if net_pool_rasds[i]['ForwardMode'] == mode_type:
-                    net_pool_rasds[i]['PoolID'] = "NetworkPool/%s" % test_pool
-                    for attr, val in pool_attr_list.iteritems():
-                        net_pool_rasds[i][attr] = val
-                    break
-          
-            pool_settings = inst_to_mof(net_pool_rasds[i])
+            for i in range(0, len(n_d_pool_rasds)):
+                pool_id = "%s/%s" %(pool_type, test_pool)
+                n_d_pool_rasds[i]['PoolID'] = pool_id 
+                if pool_type == "NetworkPool":
+                    key = 'ForwardMode'
+                elif  pool_type == "DiskPool": 
+                    key = 'Type'
+
+                if n_d_pool_rasds[i][key] == mode_type:
+                   for attr, val in pool_attr_list.iteritems():
+                       n_d_pool_rasds[i][attr] = val
+                   break
+ 
+            pool_settings = inst_to_mof(n_d_pool_rasds[i])
             
         try:
             rpcs_conn.CreateChildResourcePool(ElementName=test_pool, 
                                               Settings=[pool_settings])
         except Exception, details:
-            logger.error("Error in childpool creation")
-            logger.error(details)
+            logger.error("Exception in create_pool()")
+            logger.error("Exception details: %s", details)
             return FAIL
 
-        return status
+        return PASS
 
-
-def verify_pool(server, virt, pooltype, poolname, pool_attr_list, mode_type=0):
+def verify_pool(server, virt, poolname, pool_attr_list, mode_type=0,
+                pool_type="NetworkPool"):
     status = FAIL
-    pool_list = EnumInstances(server, pooltype)
+    pool_cn = get_typed_class(virt, pool_type) 
+    pool_list = EnumInstances(server, pool_cn)
     if len(pool_list) < 1:
-        logger.error("Return %i instances, expected at least one instance",
-                     len(pool_list))
+        logger.error("Got %i instances, expected at least one instance",
+                      len(pool_list))
         return FAIL
     
-    poolid = "NetworkPool/%s" % poolname
+    poolid = "%s/%s" % (pool_type, poolname)
     for i in range(0, len(pool_list)):
         ret_pool = pool_list[i].InstanceID
         if ret_pool != poolid:
             continue
 
-        net_xml = NetXML(server, virt=virt, networkname=poolname, 
-                         is_new_net=False)
+        if pool_type == "NetworkPool":
+            net_xml = NetXML(server, virt=virt, networkname=poolname, 
+                             is_new_net=False)
       
-        ret_mode = net_xml.xml_get_netpool_mode()
-        libvirt_version = virsh_version(server, virt)
+            ret_mode = net_xml.xml_get_netpool_mode()
+            libvirt_version = virsh_version(server, virt)
+            #Forward mode support was added in 0.4.2
+            if libvirt_version >= '0.4.2':
+                if mode_type == 1 and ret_mode != "nat":
+                    logger.error("Error when verifying 'nat' type network")
+                    return FAIL
+                elif mode_type == 2 and ret_mode != "route":
+                    logger.error("Error when verifying 'route' type network")
+                    return FAIL
+            ret_pool_attr_list = net_xml.xml_get_netpool_attr_list()
 
-        #Forward mode support was added in 0.4.2
-        if libvirt_version >= '0.4.2':
-            if mode_type == 1 and ret_mode != "nat":
-                logger.error("Got error when verify nat type")
-                return FAIL
-            elif mode_type == 2 and ret_mode != "route":
-                logger.error("Got error when verify route type")
-                return FAIL
-
-        ret_pool_attr_list = net_xml.xml_get_netpool_attr_list()
+        elif pool_type == "DiskPool":
+            disk_xml = PoolXML(server ,virt=virt, poolname=poolname,
+                               is_new_pool=False)
+            ret_pool_attr_list = disk_xml.xml_get_pool_attr_list()
         
         for i in range(0, len(ret_pool_attr_list)):
             if ret_pool_attr_list[i] not in pool_attr_list.itervalues():
-                logger.error("Got error when parsing %s", ret_pool_attr_list[i])
+                logger.error("Failed to verify '%s'", ret_pool_attr_list[i])
                 return FAIL
 
             status = PASS
