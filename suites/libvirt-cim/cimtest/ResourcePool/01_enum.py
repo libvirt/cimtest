@@ -30,9 +30,8 @@ from distutils.file_util import move_file
 from XenKvmLib.enumclass import EnumInstances
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib import vxml
-from CimTest import Globals
-from CimTest.Globals import logger
-from XenKvmLib.const import do_main, default_pool_name
+from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
+from XenKvmLib.const import do_main, default_pool_name, LXC_netns_support
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from XenKvmLib.xm_virt_util import net_list
 from XenKvmLib.vsms import RASD_TYPE_PROC, RASD_TYPE_MEM, RASD_TYPE_NET_ETHER, \
@@ -56,8 +55,8 @@ def init_list(server, virt):
         netxml = vxml.NetXML(server, bridgename, test_network, virt)
         ret = netxml.create_vnet()
         if not ret:
-            logger.error("Failed to create the Virtual Network '%s'", \
-                                                           test_network)
+            logger.error("Failed to create the Virtual Network '%s'",
+                          test_network)
             return SKIP, None
 
     disk_instid = '%s/%s' % (dp_cn, default_pool_name)
@@ -77,25 +76,30 @@ def print_error(fieldname="", ret_value="", exp_value=""):
     logger.error("Returned %s instead of %s", ret_value, exp_value)
 
 def verify_fields(pool_list, poolname, cn):
-    status = PASS
     if len(poolname) < 1:
         logger.error("%s return %i instances, expected atleast 1 instance",
                      cn, len(poolname))
         return FAIL
-    exp_value = pool_list[cn][0]
+
     for i in range(0, len(poolname)):
-        ret_value = poolname[i].InstanceID
-        if ret_value == exp_value:
-            break
-        elif ret_value != exp_value and i == len(poolname)-1:
-            print_error('InstanceID', ret_value, exp_value)
-            status = FAIL
-    ret_value = poolname[0].ResourceType
-    exp_value = pool_list[cn][1]
-    if ret_value != exp_value:
-        print_error('ResourceType', ret_value, exp_value)
-        status = FAIL
-    return status
+
+        rtype_ret_value = poolname[i].ResourceType
+        rtype_exp_value = pool_list[cn][1]
+        if rtype_ret_value != rtype_exp_value:
+            print_error('ResourceType', rtype_ret_value, rtype_exp_value)
+            return FAIL
+
+        inst_ret_value = poolname[i].InstanceID
+        inst_exp_value = pool_list[cn][0]
+        if "DiskPool/0" == inst_ret_value or "NetworkPool/0" == inst_ret_value:
+            if poolname[i].Primordial != True:
+                print_error('Primordial', poolname[i].Primordial, "True")
+                return FAIL
+        elif inst_ret_value != inst_exp_value and i == len(poolname)-1:
+            print_error('InstanceID', inst_ret_value, inst_exp_value)
+            return FAIL
+
+    return PASS
 
 
 @do_main(sup_types)
@@ -114,37 +118,24 @@ def main():
     mp = get_typed_class(virt, mp_cn)
     pp = get_typed_class(virt, pp_cn)
     dp = get_typed_class(virt, dp_cn)
-    np = get_typed_class(virt, np_cn)
+    cn_list = [ mp, pp, dp ]
 
-    try:
-        mempool = EnumInstances(ip, mp)
-    except Exception:
-        logger.error(Globals.CIM_ERROR_ENUMERATE, mp)
-        return FAIL
-    status = verify_fields(pool_list, mempool, mp)
-    
-    try:
-        propool = EnumInstances(ip, pp)
-    except Exception:
-        logger.error(Globals.CIM_ERROR_ENUMERATE, pp)
-        return FAIL
-    status = verify_fields(pool_list, propool, pp)
-   
-    if virt != 'LXC': 
+    if virt == 'LXC' and LXC_netns_support is False:
+        pass
+    else:
+        np = get_typed_class(virt, np_cn)
+        cn_list.append(np)
+
+    for cn in cn_list:
         try:
-            diskpool = EnumInstances(ip, dp)
-        except Exception:
-            logger.error(Globals.CIM_ERROR_ENUMERATE, dp)
+            pool = EnumInstances(ip, cn)
+        except Exception, details:
+            logger.error(CIM_ERROR_ENUMERATE, cn)
+            logger.error("Exception details: %s", details)
             return FAIL
-        status = verify_fields(pool_list, diskpool, dp)
-    
-    try:
-        netpool = EnumInstances(ip, np)
-    except Exception:
-        logger.error(Globals.CIM_ERROR_ENUMERATE, np)
-        return FAIL
-    status = verify_fields(pool_list, netpool, np)
-    
+        status = verify_fields(pool_list, pool, cn)
+        if status != PASS:
+            return status
     return status
 
 if __name__ == "__main__":
