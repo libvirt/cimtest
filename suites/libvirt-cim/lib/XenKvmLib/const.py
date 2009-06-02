@@ -148,11 +148,6 @@ def do_main(types=['Xen'], p=parser):
 
 
 def get_provider_version(virt, ip):
-    cmd = "cat /etc/issue | grep 'SUSE Linux Enterprise Server 11'"
-    rc, out = run_remote(ip, cmd)
-    if rc == 0:
-        return 0, sles11_changeset 
-
     conn = WBEMConnection('http://%s' % ip,
                           (os.getenv('CIM_USER'), os.getenv('CIM_PASS')),
                           os.getenv('CIM_NS'))
@@ -166,6 +161,18 @@ def get_provider_version(virt, ip):
 
     if revision is None or changeset is None:
         return 0, "Unknown" 
+
+    # This is a sloppy mechanism for detecting a distro defined revision value
+    distro = None
+
+    cmd = "cat /etc/issue | grep 'SUSE Linux Enterprise Server 11'"
+    rc, out = run_remote(ip, cmd)
+    if rc == 0:
+        distro = "sles11"      
+
+    if revision.find(".") == 0:
+        if distro == "sles11":
+            return 0, sles11_changeset 
 
     revision = revision.strip("+")
     if revision.isdigit():
