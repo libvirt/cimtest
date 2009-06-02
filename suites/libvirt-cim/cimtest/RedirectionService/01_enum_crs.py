@@ -40,6 +40,7 @@ SHAREMODE = 3
 REDIRECTION_SER_TYPE = 3
 CRS_MAX_SAP_REV = 724 
 libvirtcim_hr_crs_changes = 688
+schema_upgrade_change = 881
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 @do_main(sup_types)
@@ -88,8 +89,12 @@ def main():
                    'EnabledState'            : 2,
                    'EnabledDefault'          : 2,
                    'RequestedState'          : 12,
-                   'MaxConcurrentEnabledSAPs': max_sap_sessions
                 }
+
+    if curr_cim_rev  < schema_upgrade_change:
+        crs_list['MaxConcurrentEnabledSAPs'] = max_sap_sessions 
+    else:
+        crs_list['MaxCurrentEnabledSAPs'] = max_sap_sessions 
 
     try:
         crs = EnumInstances(server, classname)
