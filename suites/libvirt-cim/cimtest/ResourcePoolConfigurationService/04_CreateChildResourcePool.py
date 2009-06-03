@@ -98,6 +98,11 @@ def main():
             logger.error("Unable to destroy networkpool %s", test_pool)
             return status 
 
+        status = undefine_netpool(options.ip, options.virt, test_pool) 
+        if status != PASS:  
+            logger.error("Unable to undefine networkpool %s", test_pool)  
+            return status
+
         status = PASS
  
     return status
