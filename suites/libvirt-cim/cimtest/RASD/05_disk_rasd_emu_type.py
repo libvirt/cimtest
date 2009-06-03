@@ -81,11 +81,13 @@ def main():
 
             if found_rasd is None:
                 raise Exception("DiskRASD for defined dom was not found")
+
+            cxml.undefine(options.ip)
+
     except Exception, detail:
         logger.error("Exception: %s", detail)           
         status = FAIL
-
-    cxml.undefine(options.ip)
+        cxml.undefine(options.ip)
            
     return status
 
