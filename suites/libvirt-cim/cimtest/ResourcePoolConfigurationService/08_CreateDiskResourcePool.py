@@ -49,52 +49,102 @@
 
 import sys
 from CimTest.Globals import logger
-from CimTest.ReturnCodes import FAIL, PASS
+from XenKvmLib.xm_virt_util import virsh_version
+from CimTest.ReturnCodes import FAIL, PASS, SKIP
 from XenKvmLib.const import do_main, platform_sup
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.common_util import destroy_diskpool
+from XenKvmLib.common_util import destroy_diskpool, nfs_netfs_setup, \
+                                  netfs_cleanup
 from XenKvmLib.pool import create_pool, verify_pool, undefine_diskpool
+from XenKvmLib.const import get_provider_version
 
-test_pool = "diskpool"
-dp_types =  { "DISK_POOL_DIR" : 1 }
-               
+libvirt_disk_pool_support=837
+libvirt_netfs_pool_support=869
+    
+def get_pool_attr(server, pool_type, dp_types):
+    pool_attr = { "Path" : "/tmp" }
+    if pool_type == dp_types['DISK_POOL_NETFS']:
+        status , src_mnt_dir, dir_mnt_dir = nfs_netfs_setup(server)
+        if status != PASS:
+            logger.error("Failed to get pool_attr for NETFS diskpool type")
+            return FAIL, pool_attr
+
+        pool_attr['SourceDirectory'] = src_mnt_dir
+        pool_attr['Host'] = server
+        pool_attr['Path'] = dir_mnt_dir
+
+    return PASS, pool_attr
+
 
 @do_main(platform_sup)
 def main():
     options = main.options
     server = options.ip
     virt = options.virt
-    pool_attr = { "Path" : "/tmp" }
 
+    dp_types =  { }
+
+    libvirt_version = virsh_version(server, virt)
+    if libvirt_version < "0.4.1":
+        logger.info("Storage pool creation support is available in Libvirt "
+                    "version >= 0.4.1 , hence skipping the test....")
+        return SKIP
+    
+    curr_cim_rev, changeset = get_provider_version(virt, server)
+    if curr_cim_rev >= libvirt_disk_pool_support:
+        dp_types["DISK_POOL_DIR"] =  1
+    if curr_cim_rev >= libvirt_netfs_pool_support:
+         dp_types["DISK_POOL_NETFS"] = 3
+
+    if len(dp_types) == 0 :
+        logger.info("No disk pool types in list , hence skipping the test...")
+        return SKIP
+    
+    status = FAIL     
     # For now the test case support only the creation of 
-    # dir type disk pool, later change to fs and netfs etc 
+    # dir type disk pool, netfs later change to fs and disk pooltypes etc 
     for key, value in dp_types.iteritems():    
-        status = create_pool(server, virt, test_pool, pool_attr, 
-                             mode_type=value, pool_type= "DiskPool")
-        if status != PASS:
-            logger.error("Failed to create '%s' type diskpool '%s'", 
-                          key, test_pool)
-            return FAIL
+        try:
+            logger.info("Verifying '%s'.....", key)
+            test_pool = key
+            status, pool_attr = get_pool_attr(server, value, dp_types)
+            if status != PASS:
+                return FAIL
 
-        status = verify_pool(server, virt, test_pool, pool_attr, 
-                             mode_type=value, pool_type="DiskPool")
-        if status != PASS:
-            logger.error("Error in diskpool verification")
-            destroy_diskpool(server, virt, test_pool)
-            undefine_diskpool(server, virt, test_pool)
-            return FAIL
+            status = create_pool(server, virt, test_pool, pool_attr, 
+                                 mode_type=value, pool_type= "DiskPool")
 
-        status = destroy_diskpool(server, virt, test_pool)
-        if status != PASS:
-            logger.error("Unable to destroy diskpool '%s'", test_pool)
-            return FAIL
+            if status != PASS:
+                raise Exception("Failed to create '%s' type diskpool '%s'" \
+                                 % (key, test_pool))
 
-        status = undefine_diskpool(server, virt, test_pool)
-        if status != PASS:
-            logger.error("Unable to undefine diskpool '%s'", test_pool)
-            return FAIL
+            status = verify_pool(server, virt, test_pool, pool_attr, 
+                                 mode_type=value, pool_type="DiskPool")
+            if status != PASS:
+                destroy_diskpool(server, virt, test_pool)
+                undefine_diskpool(server, virt, test_pool)
+                raise Exception("Error in diskpool verification")
 
-        status = PASS
+            status = destroy_diskpool(server, virt, test_pool)
+            if status != PASS:
+                raise Exception("Unable to destroy diskpool '%s'" \
+                                % test_pool)
+
+            status = undefine_diskpool(server, virt, test_pool)
+            if status != PASS:
+                raise Exception("Unable to undefine diskpool '%s'" \
+                               % test_pool)
+
+            if key == 'DISK_POOL_NETFS':
+                netfs_cleanup(server, pool_attr)
+
+            status = PASS
+
+        except Exception, details:
+            logger.error("Exception details: %s", details)
+            if key == 'DISK_POOL_NETFS':
+                netfs_cleanup(server, pool_attr)
+            return FAIL
  
     return status
 
