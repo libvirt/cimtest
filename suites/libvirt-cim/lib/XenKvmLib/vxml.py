@@ -331,10 +331,15 @@ class PoolXML(Virsh, XMLClass):
         dpoolname = self.get_value_xpath('/pool/name')
         return dpoolname
 
-    def xml_get_pool_attr_list(self):
+    def xml_get_pool_attr_list(self, mode_type=1):
         pool_attr_list = []
         poolpath = self.get_value_xpath('/pool/target/path')
         pool_attr_list.append(poolpath)
+        if mode_type == 3: #Netfs
+           host = self.get_value_xpath('/pool/source/host/@name')
+           pool_attr_list.append(host)
+           src_dir = self.get_value_xpath('/pool/source/dir/@path')
+           pool_attr_list.append(src_dir)
 
         return pool_attr_list
 
