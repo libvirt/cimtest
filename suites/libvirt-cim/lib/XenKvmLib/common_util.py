@@ -24,6 +24,7 @@ import os
 import pywbem
 import random
 from time import sleep
+from tempfile import mkdtemp
 from distutils.file_util import move_file
 from XenKvmLib.test_xml import * 
 from XenKvmLib.test_doms import * 
@@ -34,7 +35,7 @@ from pywbem.cim_obj import CIMInstanceName
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, \
                             CIM_ERROR_GETINSTANCE
-from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
+from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC, SKIP
 from XenKvmLib.xm_virt_util import diskpool_list, virsh_version, net_list,\
                                    domain_list, virt2uri, net_destroy
 from XenKvmLib.vxml import PoolXML, NetXML
@@ -42,8 +43,9 @@ from VirtLib import utils
 from XenKvmLib.const import default_pool_name, default_network_name
 
 disk_file = '/etc/libvirt/diskpool.conf'
-
+exports_file = '/etc/exports'
 back_disk_file = disk_file + "." + "backup"
+back_exports_file = exports_file + "." + "backup"
 
 def print_field_error(fieldname, ret_value, exp_value):
     logger.error("%s Mismatch", fieldname)
@@ -435,3 +437,111 @@ def parse_instance_id(instid):
 
     return guest_name, devid, PASS
 
+
+def get_nfs_bin(server):
+    cmd = "cat /etc/issue | grep -v ^$ | egrep 'Red Hat|Fedora'"
+    rc, out = utils.run_remote(server, cmd)
+    if rc != 0:
+        #SLES
+        nfs_server_bin =  "/etc/init.d/nfsserver"
+    else:
+        nfs_server_bin =  "/etc/init.d/nfs"
+
+    return nfs_server_bin
+
+def nfs_config(server, nfs_server_bin):
+    cmd = "ps aux | grep -v -e nfsiod -e grep | grep nfsd"
+    rc, out = utils.run_remote(server, cmd)
+    # if NFS services is not found on the machine, start it.. 
+    if rc != PASS :
+        # Check if NFS server is installed ...
+        if not os.path.exists(nfs_server_bin):
+            logger.error("NFS server '%s' does not seem to be installed "\
+                         "on '%s'", nfs_server_bin, server)
+            return SKIP
+
+        # Start the nfs server ...
+        nfs_server_cmd = "%s start" % nfs_server_bin
+        rc, out = utils.run_remote(server, nfs_server_cmd)
+        if rc != PASS:
+            logger.error("Could not start the nfsserver on '%s'", server)
+            logger.error("NFS server seems to have problem on '%s'", server)
+            return FAIL 
+
+    return PASS
+
+def clean_temp_files(server, src_dir_for_mnt, dest_dir_to_mnt):
+    cmd =  "rm -rf %s %s" % (src_dir_for_mnt, dest_dir_to_mnt)
+    rc, out = utils.run_remote(server, cmd) 
+    if rc != PASS:
+        logger.error("Please delete %s %s if present on %s", 
+                      src_dir_for_mnt, dest_dir_to_mnt, server)
+
+
+def netfs_cleanup(server, pool_attr):
+    src_dir = os.path.basename(pool_attr['SourceDirectory'])
+    dst_dir = pool_attr['Path']
+
+    # Remove the temp dir created .
+    clean_temp_files(server, src_dir, dst_dir) 
+ 
+    # Restore the original exports file.
+    if os.path.exists(back_exports_file):
+        os.remove(exports_file)
+        move_file(back_exports_file, exports_file)
+
+    # restart the nfs server
+    nfs_server_bin = get_nfs_bin(server)
+    nfs_server_cmd = "%s restart" % nfs_server_bin
+    rc, out = utils.run_remote(server, nfs_server_cmd)
+    if rc != PASS:
+        logger.error("Could not restart NFS server on '%s'" % server)
+
+def netfs_config(server, nfs_server_bin):
+    src_dir_for_mnt = mkdtemp()
+    dest_dir_to_mnt = mkdtemp()
+    
+    try:
+        # Backup the original exports file.
+        if (os.path.exists(exports_file)):
+            move_file(exports_file, back_exports_file)
+        fd = open(exports_file, "w")
+        line = "\n %s %s(rw)" %(src_dir_for_mnt, server)
+        fd.write(line)
+        fd.close()
+
+        # Need to give suitable perm, otherwise netfs pool-create fails
+        cmd = "chmod go+rx %s %s" % (src_dir_for_mnt, dest_dir_to_mnt)
+        rc, out = utils.run_remote(server, cmd)
+        if rc != 0:
+            raise Exception("Failed to chmod on %s %s" \
+                            % (src_dir_for_mnt, dest_dir_to_mnt))
+
+        # Restart the nfs server....
+        nfs_server_cmd = "%s restart" % nfs_server_bin
+        rc, out = utils.run_remote(server, nfs_server_cmd)
+        if rc != PASS:
+            raise Exception("Could not restart NFS server on '%s'" % server)
+
+    except Exception, detail:
+        logger.error("Exception details : %s", detail)
+        clean_temp_files(server, src_dir_for_mnt, dest_dir_to_mnt)
+        return FAIL, None, None
+
+    return PASS, src_dir_for_mnt, dest_dir_to_mnt
+
+def nfs_netfs_setup(server):
+    nfs_server_bin = get_nfs_bin(server)
+   
+    # Before going ahead verify that nfs server is available on machine..
+    ret = nfs_config(server, nfs_server_bin)
+    if ret != PASS:
+        logger.error("Failed to configure NFS on '%s'", server)
+        return FAIL, None, None
+
+    ret, src_dir, destr_dir = netfs_config(server, nfs_server_bin)
+    if ret != PASS:
+        logger.error("Failed to configure netfs on '%s'", server)
+        return FAIL, None, None
+
+    return PASS, src_dir, destr_dir
