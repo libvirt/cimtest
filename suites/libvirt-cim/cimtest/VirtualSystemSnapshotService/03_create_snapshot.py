@@ -73,9 +73,11 @@ def get_vsssc_inst(virt, ip):
     
     #Override the additional instance values.  We only care about the key
     #values (eventhough CreateSnapshot takes a instance)
-    vsssc['SynchronousMethodsSupported'] = ""
-    vsssc['AynchronousMethodsSupported'] = ""
-    vsssc['SnapshotTypesSupported'] = ""
+    for p in vsssc.properties.values():
+        if p.name == "SynchronousMethodsSupported" or \
+           p.name == "AynchronousMethodsSupported" or \
+           p.name == "SnapshotTypesSupported":
+            p.value = None
 
     vsssc = inst_to_mof(vsssc)
 
