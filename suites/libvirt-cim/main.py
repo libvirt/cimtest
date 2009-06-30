@@ -39,7 +39,8 @@ from VirtLib import utils
 from XenKvmLib.xm_virt_util import virt2uri
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.common_util import create_netpool_conf, destroy_netpool, \
-                                  create_diskpool_conf, destroy_diskpool
+                                  create_diskpool_conf, destroy_diskpool, \
+                                  pre_check
 
 parser = OptionParser()
 parser.add_option("-i", "--ip", dest="ip", default="localhost",
@@ -92,40 +93,6 @@ def remove_old_logs(ogroup):
 
     print "Cleaned log files."
 
-def pre_check(ip, virt):
-    cmd = "virsh -c %s list --all" % virt2uri(virt)
-    ret, out = utils.run_remote(ip, cmd)
-    if ret != 0:
-        return "This libvirt install does not support %s"  % virt
-
-    cmd = "virsh -c %s version" % virt2uri(virt)
-    ret, out = utils.run_remote(ip, cmd)
-    if ret != 0:
-        # The above version cmd does not work for F10.
-        # Hence, this is a workaround to verify if qemu and qemu-kvm 
-        # are installed in case the above version cmd fails.
-        cmd = "qemu -help"
-        ret, out = utils.run_remote(ip, cmd)
-        if ret != 0: 
-            cmd = "qemu-kvm -help"
-            ret, out = utils.run_remote(ip, cmd)
-            if ret != 0: 
-                return "Encountered an error querying for qemu-kvm and qemu " 
-
-    cmd = "ps -ef | grep -v grep | grep cimserver"
-    rc, out = utils.run_remote(ip, cmd)
-    if rc != 0:
-        cmd = "ps -ef | grep -v grep | grep sfcbd"
-        rc, out = utils.run_remote(ip, cmd)
-        if rc != 0:
-            return "A supported CIMOM is not running" 
-
-    cmd = "ps -ef | grep -v grep | grep libvirtd"
-    rc, out = utils.run_remote(ip, cmd)
-    if rc != 0:
-        return "libvirtd is not running" 
-
-    return None
 
 def get_rcfile_vals():
     if not os.access(CIMTEST_RCFILE, os.R_OK):
