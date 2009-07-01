@@ -320,7 +320,7 @@ def get_exp_disk_rasd_len(virt, ip, rev, id):
     exp_len = exp_base_num 
 
     if id == "DiskPool/0":
-        pool_types = 5
+        pool_types = 7
         return exp_base_num * pool_types 
     
     if virt == 'Xen' or virt == 'XenFV':
@@ -333,10 +333,11 @@ def get_exp_disk_rasd_len(virt, ip, rev, id):
             exp_len = exp_base_num + exp_cdrom
 
         elif rev >= libvirt_rasd_dpool_changes and libvirt_ver >= '0.4.1':
-             volumes = enum_volumes(virt, ip)
-             exp_len = ((volumes * exp_base_num) + exp_cdrom) * xen_multi
+            volumes = enum_volumes(virt, ip)
+            exp_len = ((volumes * exp_base_num) + exp_cdrom) * xen_multi
 
-        exp_len = (exp_base_num + exp_cdrom) * xen_multi 
+        else:
+            exp_len = (exp_base_num + exp_cdrom) * xen_multi 
 
     elif virt == 'KVM':
         if rev >= libvirt_rasd_new_changes and \
@@ -363,8 +364,9 @@ def get_exp_net_rasd_len(virt, rev, id):
     
     if rev >= net_rasd_template_changes:
         dev_types = 2
+        net_types = 3
 
-        return exp_base_num * dev_types
+        return exp_base_num * dev_types * net_types
 
 def get_exp_template_rasd_len(virt, ip, id):
     curr_cim_rev, changeset = get_provider_version(virt, ip)
