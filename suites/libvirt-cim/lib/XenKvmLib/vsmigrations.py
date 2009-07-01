@@ -30,10 +30,11 @@ from CimTest.CimExt import CIMMethodClass, CIMClassMOF
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from XenKvmLib.enumclass import EnumInstances
 from XenKvmLib.classes import get_typed_class, virt_types
-from XenKvmLib.xm_virt_util import domain_list 
-from XenKvmLib.const import get_provider_version
+from XenKvmLib.xm_virt_util import domain_list, net_list
+from XenKvmLib.const import get_provider_version, default_network_name
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS, \
                             CIM_ERROR_ENUMERATE
+from XenKvmLib.common_util import destroy_netpool
 
 # Migration constants
 CIM_MIGRATE_OFFLINE=1
@@ -94,9 +95,14 @@ class KVM_VirtualSystemMigrationSettingData(CIM_VirtualSystemMigrationSettingDat
 def check_mig_support(virt, options):
     s_sysname = gethostbyaddr(options.ip)[0]
     t_sysname = gethostbyaddr(options.t_url)[0]
-    if virt == 'KVM' and (t_sysname == s_sysname or t_sysname in s_sysname):
-        logger.info("Libvirt does not support local migration for KVM")
-        return SKIP, s_sysname, t_sysname
+
+    if t_sysname == s_sysname or t_sysname in s_sysname:
+        if virt == 'KVM':
+            logger.info("Libvirt does not support local migration for KVM")
+            return SKIP, s_sysname, t_sysname
+
+        #localhost migration is supported by Xen
+        return  PASS, s_sysname, "localhost"
 
     return PASS, s_sysname, t_sysname
 
@@ -364,12 +370,15 @@ def local_remote_migrate(s_sysname, t_sysname, virt='KVM',
         logger.error("Guest to be migrated not specified.")
         return FAIL 
 
+    if t_sysname == "localhost":
+        remote_migrate = 0
+
     try:
         if remote_migrate == 1:
-            status, req_image, backup_image = remote_copy_guest_image(virt, 
-                                                                      s_sysname, 
-                                                                      t_sysname,
-                                                                      guest_name)
+            status, req_image, bkup_image = remote_copy_guest_image(virt, 
+                                                                   s_sysname, 
+                                                                   t_sysname,
+                                                                   guest_name)
             if status != PASS:
                 raise Exception("Failure from remote_copy_guest_image()")
 
@@ -397,7 +406,10 @@ def local_remote_migrate(s_sysname, t_sysname, virt='KVM',
         logger.info("Migrating '%s'.. this will take some time.",  guest_name)
 
         # Migrate the guest to t_sysname
-        status, ret = migrate_guest_to_host(vsmservice, guest_ref, t_sysname, msd)
+        status, ret = migrate_guest_to_host(vsmservice, 
+                                            guest_ref, 
+                                            t_sysname, 
+                                            msd)
         if status == FAIL:
             raise Exception("Failed to Migrate guest '%s' from '%s' to '%s'" \
                             % (guest_name, s_sysname, t_sysname))
@@ -413,5 +425,50 @@ def local_remote_migrate(s_sysname, t_sysname, virt='KVM',
         logger.error("Exception details %s", details)
         status = FAIL
 
-    cleanup_image(backup_image, req_image, t_sysname, remote_migrate=1)
+    if remote_migrate == 1:
+        cleanup_image(bkup_image, req_image, t_sysname, remote_migrate=1)
+
     return status
+
+def cleanup_guest_netpool(virt, cxml, test_dom, t_sysname, s_sysname):
+    # Clean the domain on target machine.
+    # This is req when migration is successful, also when migration is not
+    # completely successful VM might be created on the target machine 
+    # and hence need to clean.
+    target_list = domain_list(t_sysname, virt)
+    if target_list  != None and test_dom in target_list:
+        ret_value = cxml.cim_destroy(t_sysname)
+        if not ret_value:
+            logger.info("Failed to destroy the migrated domain '%s' on '%s'",
+                         test_dom, t_sysname)
+
+        ret_value = cxml.undefine(t_sysname)
+        if not ret_value:
+            logger.info("Failed to undefine the migrated domain '%s' on '%s'",
+                         test_dom, t_sysname)
+
+    # Done cleaning environment
+    if t_sysname == "localhost":
+        return
+
+    # Remote Migration not Successful, clean the domain on src machine
+    src_list = domain_list(s_sysname, virt)
+    if src_list != None and test_dom in src_list:
+        ret_value = cxml.cim_destroy(s_sysname)
+        if not ret_value:
+            logger.info("Failed to destroy the domain '%s' on the source '%s'",
+                         test_dom, s_sysname)
+
+        ret_value = cxml.undefine(s_sysname)
+        if not ret_value:
+            logger.info("Failed to undefine the domain '%s' on source '%s'",
+                         test_dom, s_sysname)
+
+    # clean the networkpool created on the remote machine
+    target_net_list = net_list(t_sysname, virt)
+    if target_net_list != None and default_network_name in target_net_list:
+        ret_value = destroy_netpool(t_sysname, virt, default_network_name)
+        if ret_value != PASS:
+            logger.info("Unable to destroy networkpool '%s' on '%s'",
+                         default_network_name, t_sysname)
+
