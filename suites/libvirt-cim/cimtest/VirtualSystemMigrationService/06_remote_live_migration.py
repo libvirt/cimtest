@@ -35,9 +35,9 @@ from CimTest.Globals import logger
 from XenKvmLib.const import do_main, default_network_name
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.vsmigrations import check_mig_support, local_remote_migrate
-from XenKvmLib.common_util import poll_for_state_change, create_netpool_conf,\
-                                  destroy_netpool
+from XenKvmLib.vsmigrations import check_mig_support, local_remote_migrate, \
+                                   cleanup_guest_netpool
+from XenKvmLib.common_util import poll_for_state_change, create_netpool_conf
 
 sup_types = ['KVM', 'Xen']
 
@@ -66,45 +66,6 @@ def setup_guest(test_dom, ip, virt):
         return FAIL, cxml
 
     return PASS, cxml
-
-def cleanup_guest_netpool(virt, cxml, test_dom, t_sysname, s_sysname):
-    # Clean the domain on target machine.
-    # This is req when migration is successful, also when migration is not
-    # completely successful VM might be created on the target machine 
-    # and hence need to clean.
-    target_list = domain_list(t_sysname, virt)
-    if target_list  != None and test_dom in target_list:
-        ret_value = cxml.destroy(t_sysname)
-        if not ret_value:
-            logger.info("Failed to destroy the migrated domain '%s' on '%s'",
-                         test_dom, t_sysname)
-
-        ret_value = cxml.undefine(t_sysname)
-        if not ret_value:
-            logger.info("Failed to undefine the migrated domain '%s' on '%s'",
-                         test_dom, t_sysname)
-
-    # clean the networkpool created on the remote machine
-    target_net_list = net_list(t_sysname, virt)
-    if target_net_list != None and default_network_name in target_net_list:
-        ret_value = destroy_netpool(t_sysname, virt, default_network_name)
-        if ret_value != PASS:
-            logger.info("Unable to destroy networkpool '%s' on '%s'",
-                         default_network_name, t_sysname)
-
-    # Remote Migration not Successful, clean the domain on src machine
-    src_list = domain_list(s_sysname, virt)
-    if src_list != None and test_dom in src_list:
-        ret_value = cxml.cim_destroy(s_sysname)
-        if not ret_value:
-            logger.info("Failed to destroy the domain '%s' on the source '%s'",
-                         test_dom, s_sysname)
-
-        ret_value = cxml.undefine(s_sysname)
-        if not ret_value:
-            logger.info("Failed to undefine the domain '%s' on source '%s'",
-                         test_dom, s_sysname)
-
 
 @do_main(sup_types)
 def main():
