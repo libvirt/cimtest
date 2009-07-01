@@ -30,7 +30,7 @@ from CimTest.CimExt import CIMMethodClass, CIMClassMOF
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from XenKvmLib.enumclass import EnumInstances
 from XenKvmLib.classes import get_typed_class, virt_types
-from XenKvmLib.xm_virt_util import domain_list, net_list
+from XenKvmLib.xm_virt_util import domain_list, net_list, active_domain_list
 from XenKvmLib.const import get_provider_version, default_network_name
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS, \
                             CIM_ERROR_ENUMERATE
@@ -435,13 +435,15 @@ def cleanup_guest_netpool(virt, cxml, test_dom, t_sysname, s_sysname):
     # This is req when migration is successful, also when migration is not
     # completely successful VM might be created on the target machine 
     # and hence need to clean.
-    target_list = domain_list(t_sysname, virt)
-    if target_list  != None and test_dom in target_list:
+    target_list = active_domain_list(t_sysname, virt)
+    if target_list != None and test_dom in target_list:
         ret_value = cxml.cim_destroy(t_sysname)
         if not ret_value:
             logger.info("Failed to destroy the migrated domain '%s' on '%s'",
                          test_dom, t_sysname)
 
+    target_list = domain_list(t_sysname, virt)
+    if target_list != None and test_dom in target_list:
         ret_value = cxml.undefine(t_sysname)
         if not ret_value:
             logger.info("Failed to undefine the migrated domain '%s' on '%s'",
