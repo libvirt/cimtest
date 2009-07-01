@@ -28,6 +28,7 @@
 
 import sys
 import os
+from time import sleep
 from  socket import gethostname
 from XenKvmLib import vxml
 from XenKvmLib.xm_virt_util import domain_list, net_list
@@ -35,9 +36,9 @@ from CimTest.Globals import logger
 from XenKvmLib.const import do_main, default_network_name
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.vsmigrations import check_mig_support, local_remote_migrate
-from XenKvmLib.common_util import poll_for_state_change, create_netpool_conf,\
-                                  destroy_netpool
+from XenKvmLib.vsmigrations import check_mig_support, local_remote_migrate, \
+                                   cleanup_guest_netpool
+from XenKvmLib.common_util import poll_for_state_change, create_netpool_conf
 
 sup_types = ['KVM', 'Xen']
 
@@ -125,6 +126,9 @@ def main():
     status_resume = status_restart = None
     cxml = None
 
+    status_restart = -1 
+    status_resume = -1 
+
     try:
 
         for mig_type in mig_types:
@@ -134,6 +138,10 @@ def main():
             if status != PASS:
                 logger.error("Error setting up the guest")
                 return status
+
+            # Generally, having a test sleep is a bad choice, but we need to
+            # give the guest some time to fully boot before we reboot it
+            sleep(15)
 
             # create the networkpool used in the domain to be migrated 
             # on the target machine.
@@ -168,18 +176,14 @@ def main():
         cleanup_guest(virt, cxml, test_dom, t_sysname, s_sysname)
         status = FAIL
 
-    # clean the networkpool created on the remote machine
-    target_net_list = net_list(t_sysname, virt)
-    if target_net_list != None and net_pool_name in target_net_list:
-        ret_value = destroy_netpool(t_sysname, virt, net_pool_name)
-        if ret_value != PASS:
-            logger.info("Unable to destroy networkpool '%s' on '%s'",
-                         net_pool_name, t_sysname)
+    cleanup_guest_netpool(virt, cxml, test_dom, t_sysname, s_sysname)
 
-    if status_restart != PASS or status_resume != PASS:
-        status = FAIL
-    else:
+    if status_restart == PASS and status_resume == PASS:
         status = PASS
+    else:
+        logger.error("Restart migration %d", status_restart)
+        logger.error("Resume migration %d", status_resume)
+        status = FAIL
 
     logger.info("Test case %s", str_status(status))
     return status
