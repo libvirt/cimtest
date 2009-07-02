@@ -87,7 +87,10 @@ def get_cimom_ver(ip):
 
 
 def get_env_data(ip, virt):
-    distro = get_cmd_val("cat /etc/issue | awk 'NR<=1'", ip)
+    distro = get_cmd_val("cat /etc/issue | sed '/^$/d' | awk 'NR<=1'", ip)
+    if 'SUSE' in distro:
+       distro =  (distro.split('-'))[0].split('to')[1]
+
     kernel_ver = get_cmd_val("uname -r", ip)
 
     libvirt_ver, hyp_ver = get_libvirt_ver(ip)
