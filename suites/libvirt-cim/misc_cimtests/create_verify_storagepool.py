@@ -26,9 +26,16 @@
 #
 # The test case is not run in the batch run and we need to run it using 
 # the following command:
-# python create_verify_storagepool.py -t 2  -d /dev/sda4 -m /tmp/mnt -n diskfs 
+# For Fs pool type:
+# ----------------
+# python create_verify_storagepool.py -t fs -d /dev/sda4 -m /tmp/mnt -n diskfs 
 #         -v Xen -u <username> -p <passwd>
 # 
+# For logical pool type:
+# ----------------------
+# python create_verify_storagepool.py -t logical -d /dev/VolGroup01
+# -n VolGroup01 -v Xen -u <username> -p  <passwd>  
+#
 # Where t can be :
 #       2 - FileSystem
 #       4 - Logical etc
@@ -45,25 +52,26 @@ from pywbem import WBEMConnection, cim_types, CIMInstanceName
 sys.path.append('../../../lib')
 from CimTest import Globals
 from CimTest.Globals import logger, log_param
-from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.ReturnCodes import PASS, FAIL, SKIP
 sys.path.append('../lib')
 from XenKvmLib.classes import inst_to_mof, get_typed_class
 from XenKvmLib.pool import get_pool_rasds
 from XenKvmLib.common_util import pre_check
 from XenKvmLib.enumclass import EnumInstances
+from XenKvmLib.const import get_provider_version
 
 TEST_LOG="cimtest.log"
+libvirt_cim_fs_changes = 857
+libvirt_cim_logical_changes = 906
+
 
 supp_types = [ 'Xen', 'KVM' , 'LXC' ]
-pool_types = { 'DISK_POOL_FS' : 2 }
+pool_types = { 'DISK_POOL_FS' : 2 , 'DISK_POOL_LOGICAL' : 6 }
 
-def verify_cmd_options(options):
+def verify_cmd_options(options, parser):
     try: 
         if options.part_dev == None:
             raise Exception("Free Partition to be mounted not specified")
-
-        if options.mnt_pt == None:
-            raise Exception("Mount points to be used not specified")
 
         if options.pool_name == None:
             raise Exception("Must specify the Pool Name to be created")
@@ -74,8 +82,11 @@ def verify_cmd_options(options):
         if options.pool_type == None:
             raise Exception("Must specify pool type to be tested")
 
+        if options.mnt_pt == None and options.pool_type != 'logical':
+            raise Exception("Mount points to be used not specified")
+
     except Exception, details:
-        print "FATAL: ", details
+        print "\nFATAL: ", details , "\n"
         print parser.print_help()
         return FAIL
 
@@ -101,13 +112,37 @@ def env_setup(sysname, virt, clean, debug):
 def get_pooltype(pooltype, virt):
     if pooltype == "fs":
        pool_type = pool_types['DISK_POOL_FS']
+    elif pooltype == "logical":
+       pool_type = pool_types['DISK_POOL_LOGICAL']
     else:
        logger.error("Invalid pool type ....")
        return None, None
     return PASS, pool_type
 
-def verify_inputs(part_dev, mount_pt):
+def verify_inputs(part_dev, mount_pt, pool_type, pool_name):
     del_dir = False   
+
+    if pool_type == pool_types['DISK_POOL_LOGICAL']:
+        if not os.path.exists("/sbin/lvm"):
+            logger.error("LVM support does not exist on the machine")
+            return FAIL, del_dir
+
+        cmd = "lvm vgs | sed '1 d' 2>>/dev/null"
+        status, output = getstatusoutput(cmd) 
+        if status != PASS:
+            logger.error("Failed to get lvm output")
+            return FAIL, del_dir
+
+        vgname_list =  []
+        for line in output.split('\n'):
+            vgname_list.append(line.split()[0])
+
+        if not pool_name in vgname_list:
+            logger.error("Please specify existing VolGroup for Poolname")
+            return FAIL, del_dir
+
+        return PASS, del_dir
+
     cmd = "mount"
     status, mount_info = getstatusoutput(cmd)
     if status != PASS:
@@ -165,10 +200,13 @@ def get_pool_settings(dp_rasds, pooltype, part_dev, mount_pt, pool_name):
     for dpool_rasd in dp_rasds:
         if dpool_rasd['Type'] == pooltype and \
             dpool_rasd['InstanceID'] == 'Default':
-            dpool_rasd['DevicePaths'] = [part_dev]
-            dpool_rasd['Path'] = mount_pt
             dp_pid = "%s/%s" % ("DiskPool", pool_name)
             dpool_rasd['PoolID'] = dpool_rasd['InstanceID'] = dp_pid
+            if pooltype == pool_types['DISK_POOL_FS']:
+                dpool_rasd['Path'] = mount_pt
+                dpool_rasd['DevicePaths'] = [part_dev]
+            elif pooltype == pool_types['DISK_POOL_LOGICAL']:
+                dpool_rasd['Path'] = part_dev
             break
 
     if not pool_name in dpool_rasd['InstanceID']:
@@ -234,13 +272,14 @@ def main():
     parser.add_option("-t", "--pool-type", dest="pool_type", default=None,
                       help="Pool type:[ fs | logical ]")
     parser.add_option("-d", "--part-dev", dest="part_dev", default=None,
-                      help="specify the free partition to be used")
+                      help="specify the free partition to be used for " \
+                           "fs pool type or the predefined Vol Group" \
+                           " for logical pool type")
     parser.add_option("-m", "--mnt_pt", dest="mnt_pt", default=None, 
                       help="Mount point to be used")
     parser.add_option("-n", "--pool-name", dest="pool_name", default=None, 
                       help="Pool to be created")
-    parser.add_option("-c", "--clean-log",  
-                      action="store_true", dest="clean",
+    parser.add_option("-c", "--clean-log",  action="store_true", dest="clean",
                       help="Will remove existing log files before test run")
     parser.add_option("-l", "--debug-output", action="store_true", dest="debug",
                       help="Duplicate the output to stderr")
@@ -248,7 +287,7 @@ def main():
     (options, args) = parser.parse_args()
 
     # Verify command line options
-    status = verify_cmd_options(options)
+    status = verify_cmd_options(options, parser)
     if status != PASS:
        return status
     
@@ -275,10 +314,28 @@ def main():
     status, pooltype = get_pooltype(options.pool_type, virt)
     if status != PASS:
        return FAIL
+
+    os.environ['CIM_NS'] = Globals.CIM_NS = options.ns
+    os.environ['CIM_USER'] = Globals.CIM_USER = options.username
+    os.environ['CIM_PASS'] = Globals.CIM_PASS = options.password
+
+    curr_cim_rev, changeset = get_provider_version(virt, sysname)
+    if curr_cim_rev < libvirt_cim_fs_changes and \
+       pooltype == pool_types['DISK_POOL_FS']:
+       logger.info("Test Skipped for %s pool type, Support for File System "\
+                    "Pool is available in revision %s",  options.pool_type, 
+                    libvirt_cim_fs_changes)
+       return SKIP
+    elif curr_cim_rev < libvirt_cim_logical_changes and \
+        pooltype == pool_types['DISK_POOL_LOGICAL']:
+       logger.info("Test Skipped for %s pool type, Support for Logical Pool" \
+                   " is available in revision %s",  options.pool_type, \
+                   libvirt_cim_logical_changes)
+       return SKIP
    
     pooltype = cim_types.Uint16(pooltype)
 
-    status, del_dir = verify_inputs(part_dev, mount_pt)
+    status, del_dir = verify_inputs(part_dev, mount_pt, pooltype, pool_name)
     if status != PASS:
         if del_dir == True:
             cmd ="rm -rf %s" % mount_pt
@@ -286,10 +343,6 @@ def main():
         logger.error("Input verification failed")
         return status
 
-   
-    os.environ['CIM_NS'] = Globals.CIM_NS = options.ns
-    os.environ['CIM_USER'] = Globals.CIM_USER = options.username
-    os.environ['CIM_PASS'] = Globals.CIM_PASS = options.password
     cn = "DiskPool"
     dp_cn = get_typed_class(virt, cn)
     dp_id = "%s/%s" % (cn, pool_name) 
@@ -299,6 +352,9 @@ def main():
     if status == PASS:
         logger.error("Pool --> '%s' already exist", pool_name)
         logger.error("Specify some other pool name")
+        if del_dir == True:
+            cmd ="rm -rf %s" % mount_pt
+            status, out = getstatusoutput(cmd)
         return status
 
     res = [FAIL]
