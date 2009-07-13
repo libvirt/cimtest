@@ -164,7 +164,10 @@ class CIM_NetResourceAllocationSettingData(CIMClassMOF):
         self.ResourceType = RASD_TYPE_NET_ETHER
 
         if virt_net != None :
-            self.PoolID = "NetworkPool/%s" % virt_net
+            if type == 'network':
+                self.PoolID = "NetworkPool/%s" % virt_net
+            elif type == 'bridge':
+                self.NetworkName = virt_net
         
         if mac != None:
             self.InstanceID = '%s/%s' % (name, mac)

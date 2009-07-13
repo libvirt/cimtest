@@ -40,7 +40,8 @@ from XenKvmLib.xm_virt_util import diskpool_list, virsh_version, net_list,\
                                    domain_list, virt2uri, net_destroy
 from XenKvmLib.vxml import PoolXML, NetXML
 from VirtLib import utils 
-from XenKvmLib.const import default_pool_name, default_network_name
+from XenKvmLib.const import default_pool_name, default_network_name,\
+                            default_bridge_name
 
 disk_file = '/etc/libvirt/diskpool.conf'
 exports_file = '/etc/exports'
@@ -381,7 +382,8 @@ def destroy_diskpool(server, virt, dpool):
     return PASS
 
 def create_netpool_conf(server, virt, use_existing=False,
-                        net_name=default_network_name):
+                        net_name=default_network_name,
+                        bridge_name=default_bridge_name):
     status = PASS
     test_network = None
     try:
@@ -400,7 +402,8 @@ def create_netpool_conf(server, virt, use_existing=False,
                               net_name)
                 return FAIL, "Unknown" 
                 
-            netxml = NetXML(server, virt=virt, networkname=net_name)
+            netxml = NetXML(server, virt=virt, networkname=net_name,
+                            bridgename=bridge_name)
             ret = netxml.create_vnet()
             if not ret:
                 logger.error("Failed to create Virtual Network '%s'",
