@@ -28,7 +28,7 @@ import sys
 from pywbem import cim_types
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL
-from XenKvmLib.const import do_main
+from XenKvmLib.const import do_main, get_provider_version
 from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class, inst_to_mof
 from XenKvmLib.enumclass import EnumNames, EnumInstances, GetInstance
@@ -40,6 +40,8 @@ sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 #        'suspended' state
 SNAPSHOT = cim_types.Uint16(32769)
 test_dom = "snapshot_vm"
+
+libvirt_cim_res_snap_rev = 876
 
 def get_cs_ref(virt, ip):
     cs_cn = get_typed_class(virt, "ComputerSystem")
@@ -130,7 +132,9 @@ def main():
         if output[1]['Job'] is None:
             raise Exception("CreateSnapshot failed to return a CIM job inst")
 
-        if output[1]['ResultingSnapshot'] is None:
+        rev, changeset = get_provider_version(options.virt, options.ip)
+        if rev >= libvirt_cim_res_snap_rev and \
+           output[1]['ResultingSnapshot'] is None:
             raise Exception("CreateSnapshot failed to return ResultingSnapshot")
 
     except Exception, detail:
