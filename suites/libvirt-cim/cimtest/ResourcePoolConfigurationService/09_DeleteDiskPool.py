@@ -92,7 +92,7 @@ def main():
                                  pool_type="DiskPool", mode_type=TYPE)
             if status != PASS:
                 logger.error("Failed to create diskpool '%s'", test_pool)
-                return FAIL
+                return status 
 
             status = verify_pool(server, virt, test_pool, 
                                  pool_attr, pool_type="DiskPool")
