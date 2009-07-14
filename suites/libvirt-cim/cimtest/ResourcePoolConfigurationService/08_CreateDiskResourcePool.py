@@ -61,9 +61,11 @@ from XenKvmLib.const import get_provider_version
 libvirt_disk_pool_support=837
 libvirt_netfs_pool_support=869
     
-def get_pool_attr(server, pool_type, dp_types):
+def get_pool_attr(server, pool_type, dp_types, rev):
     pool_attr = { "Path" : "/tmp" }
-    if pool_type == dp_types['DISK_POOL_NETFS']:
+
+    if rev >= libvirt_netfs_pool_support and \
+       pool_type == dp_types['DISK_POOL_NETFS']:
         status , src_mnt_dir, dir_mnt_dir = nfs_netfs_setup(server)
         if status != PASS:
             logger.error("Failed to get pool_attr for NETFS diskpool type")
@@ -107,7 +109,8 @@ def main():
         try:
             logger.info("Verifying '%s'.....", key)
             test_pool = key
-            status, pool_attr = get_pool_attr(server, value, dp_types)
+            status, pool_attr = get_pool_attr(server, value, dp_types, 
+                                              curr_cim_rev)
             if status != PASS:
                 return FAIL
 
@@ -144,7 +147,7 @@ def main():
             logger.error("Exception details: %s", details)
             if key == 'DISK_POOL_NETFS':
                 netfs_cleanup(server, pool_attr)
-            return FAIL
+            return status
  
     return status
 
