@@ -368,6 +368,8 @@ def get_exp_net_rasd_len(virt, rev, id):
 
         return exp_base_num * dev_types * net_types
 
+    return exp_base_num
+
 def get_exp_template_rasd_len(virt, ip, id):
     curr_cim_rev, changeset = get_provider_version(virt, ip)
 
