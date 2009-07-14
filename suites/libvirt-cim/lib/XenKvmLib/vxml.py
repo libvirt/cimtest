@@ -916,7 +916,7 @@ class XenFVXML(VirtXML, VirtCIM):
                        net_name=const.default_network_name,
                        emu_type=None, grstype="vnc", 
                        address="127.0.0.1", port_num='-1', keymap="en-us",
-                       irstype="mouse", btype="usb"):
+                       irstype="mouse", btype="ps2"):
         if not os.path.exists(disk_file_path):
             logger.error('Error: Disk image does not exist')
             sys.exit(1)

@@ -47,7 +47,7 @@ diskcn =  'LogicalDisk'
 dccn = 'DisplayController'
 pdcn = 'PointingDevice'
 
-def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem):
+def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem, server):
     """
         Creating the lists that will be used for comparisons.
     """
@@ -72,7 +72,9 @@ def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem):
         if virt == 'LXC':
            disk_path = '/tmp/lxc_files'
 
-        if virt == 'LXC' or virt == 'XenFV':
+        libvirt_version = virsh_version(server, virt)
+
+        if virt == 'LXC' or (virt == 'XenFV' and libvirt_version < "0.6.3"):
            point_device = "%s/%s" %(t_dom, "mouse:usb")
         elif virt == 'Xen':
            point_device = "%s/%s" %(t_dom, "mouse:xen")

@@ -165,10 +165,10 @@ def get_rasd_values_from_vssdc_assoc(vssd_values):
         status = FAIL 
     return status, vssdc_assoc_info
 
-def verify_rasd_values(rasd_values_info):
+def verify_rasd_values(rasd_values_info, server):
     status, rasd_values_list, in_list = rasd_init_list(vsxml, virt, test_disk,
                                                        test_dom, test_mac,
-                                                       test_mem)
+                                                       test_mem, server)
     if status != PASS:
         return status
 
@@ -229,12 +229,12 @@ def main():
     if status != PASS or len(vssd_values) == 0:
         return status
 
-    status, rasd_values = get_rasd_values_from_vssdc_assoc(vssd_values) 
+    status, rasd_values = get_rasd_values_from_vssdc_assoc(vssd_values)
     if status != PASS or len(rasd_values) == 0:
         vsxml.undefine(server)
         return status
 
-    status = verify_rasd_values(rasd_values)
+    status = verify_rasd_values(rasd_values, server)
     try: 
         vsxml.undefine(server)
     except Exception, detail:

@@ -147,7 +147,7 @@ def main():
     
     status, rasd_values_list, in_list = rasd_init_list(vsxml, virt, test_disk, 
                                                        test_dom, test_mac, 
-                                                       test_mem)
+                                                       test_mem, server)
     if status != PASS:
         return status
 

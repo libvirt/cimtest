@@ -149,7 +149,8 @@ def verify_RASD_values(server, sd_assoc_info, vsxml, virt="Xen"):
 
         status, rasd_values, in_list = rasd_init_list(vsxml, virt, 
                                                       test_disk, test_dom, 
-                                                      test_mac, test_mem)
+                                                      test_mac, test_mem, 
+                                                      server)
         if status != PASS:
             return status
 
