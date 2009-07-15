@@ -38,6 +38,13 @@ def xm_domname(ip, domid):
 
     return out
 
+def xm_destroy(ip, domid):
+
+    cmd = "xm destroy %s" % domid
+
+    rc, out = utils.run_remote(ip, cmd)
+    return rc 
+
 def list_guests_on_bridge(ip, bridge):
     """Returns a list of domU names that have vifs in the
     specified bridge.

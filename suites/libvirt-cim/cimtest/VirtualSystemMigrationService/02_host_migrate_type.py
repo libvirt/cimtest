@@ -34,6 +34,7 @@ from XenKvmLib import enumclass
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL
+from XenKvmLib.xm_virt_util import xm_destroy 
 
 sup_types = ['Xen', 'XenFV']
 
@@ -182,7 +183,11 @@ def main():
 
         if local_migrate == 0 and cxml is not None:
             cxml.destroy(options.ip)
-            cxml.undefine(options.ip)
+            rc = cxml.undefine(options.ip)
+            if rc == 1:
+                #Problem migrating guest locally, forcefully remove guest
+                xen_guest_name = "migrating-%s" % guest_name 
+                xm_destroy(options.ip, xen_guest_name)
 
     except Exception, details:
         logger.error("Exception details: %s", details)
