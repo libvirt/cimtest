@@ -31,14 +31,17 @@ from pywbem import CIM_ERR_FAILED
 from XenKvmLib import vxml
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import FAIL, PASS
-from XenKvmLib.const import default_network_name, do_main
+from XenKvmLib.const import default_network_name, do_main, get_provider_version
 from XenKvmLib.common_util import create_netpool_conf, destroy_netpool
+from XenKvmLib.xm_virt_util import virsh_version
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 default_dom = 'brgtest_domain'
 nmac = '99:aa:bb:cc:ee:ff'
 npool_name = default_network_name + str(random.randint(1, 100)) 
 brg_name = "br" + str(random.randint(1, 100)) 
+
+bridge_support_rev = 900
 
 exp_rc = CIM_ERR_FAILED
 
@@ -50,7 +53,11 @@ def verify_error(exp_rc, exp_desc,cxml):
 def main():
     options = main.options
 
-    nettypes = ['bridge','network']
+    nettypes = ['network']
+
+    rev, changeset = get_provider_version(options.virt, options.ip)
+    if rev >= bridge_support_rev: 
+        nettypes.append('bridge')
 
     expected_values = {
        "invalid" : {'bridge'  : 'internal error Failed to add tap interface',
@@ -60,6 +67,27 @@ def main():
        "none"    : {'bridge'  : 'No Network bridge name specified',
                     'network' : "Valid param "}
                       }
+
+    if options.virt == "Xen" or options.virt == "XenFV":
+        libvirt_version = virsh_version(options.ip, options.virt)
+        if libvirt_version <= "0.3.3":
+            inv_empty_network = "no network with matching name"
+
+            inv_br_str = "POST operation failed: (xend.err 'Device 0 (vif) " + \
+                         "could not be connected. Could not find bridge " + \
+                         "device invalid')"
+
+        else:
+            inv_empty_network = "Network not found"
+             
+            inv_br_str = "POST operation failed: xend_post: error from xen " + \
+                         "daemon: (xend.err 'Device 0 (vif) could not be " + \
+                         "connected. Could not find bridge device invalid')"
+
+        expected_values['invalid']['network'] = inv_empty_network 
+        expected_values['empty']['network'] = inv_empty_network 
+
+        expected_values['invalid']['bridge'] = inv_br_str
 
     tc_scen = {
                 'invalid' : 'invalid',
