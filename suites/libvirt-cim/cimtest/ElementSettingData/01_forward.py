@@ -127,7 +127,7 @@ def main():
     else:
         vdisk = "hda"
     
-    if options.virt == 'LXC' or options.virt == 'XenFV':
+    if options.virt == 'LXC':
         input_device = "%s/%s" %(test_dom, "mouse:usb")
     elif options.virt == 'Xen':
         input_device = "%s/%s" %(test_dom, "mouse:xen")
