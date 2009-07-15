@@ -86,7 +86,7 @@ def init_list(test_disk, test_mac, server, virt='Xen'):
                  rlist[3] : "%s/%s" % (test_dom, "proc")
                 }
 
-    if virt == 'LXC' or virt == 'XenFV':
+    if virt == 'LXC':
         input_device = "mouse:usb"
     elif virt == 'Xen':
         input_device = "mouse:xen"

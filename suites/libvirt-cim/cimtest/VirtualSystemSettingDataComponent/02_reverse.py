@@ -82,7 +82,7 @@ def assoc_values(ip, assoc_info, virt="Xen"):
         verified. 
     """
     status = PASS
-    if virt == 'LXC' or virt == 'XenFV':
+    if virt == 'LXC':
         input_device = "mouse:usb"
     elif virt == 'Xen':
         input_device = "mouse:xen"
