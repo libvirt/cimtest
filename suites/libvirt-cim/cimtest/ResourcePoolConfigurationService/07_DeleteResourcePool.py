@@ -86,7 +86,7 @@ def main():
                      "Netmask" : "255.255.255.0",
                      "IPRangeStart" : "192.168.0.9",
                      "IPRangeEnd"   : "192.168.0.15",
-                     "ForwardMode" : "nat"
+                     "ForwardMode" : pywbem.cim_types.Uint16(1)
                     }
 
         status = create_pool(options.ip, options.virt, test_pool, pool_attr)
