@@ -243,7 +243,7 @@ def get_masd_class(virt):
 
 class CIM_GraphicsResourceAllocationSettingData(CIMClassMOF):
     def __init__(self, name, res_sub_type="vnc", ip="127.0.0.1", 
-                 lport='-1', keymap="en-us"):
+                 lport='-1', keymap="en-us", vnc_passwd=None):
         self.InstanceID = '%s/graphics' %name
         self.ResourceType = RASD_TYPE_GRAPHICS
 
@@ -255,6 +255,9 @@ class CIM_GraphicsResourceAllocationSettingData(CIMClassMOF):
 
         if keymap != None:
            self.KeyMap = keymap
+        
+        if vnc_passwd != None:
+           self.Password = vnc_passwd
   
 
 class Xen_GraphicsResourceAllocationSettingData(CIM_GraphicsResourceAllocationSettingData):

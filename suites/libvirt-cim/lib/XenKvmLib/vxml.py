@@ -558,7 +558,7 @@ class VirtCIM:
     def __init__(self, virt, dom_name, disk_dev, disk_source,
                  net_type, net_name, net_mac, vcpus, mem,
                  mem_allocunits, emu_type, grstype, ip,
-                 port_num, kmap, irstype, btype):
+                 port_num, kmap, irstype, btype, vnc_passwd):
         self.virt = virt
         self.domain_name = dom_name
         self.err_rc = None
@@ -581,7 +581,8 @@ class VirtCIM:
                                               name=dom_name)
         self.gasd = vsms.get_gasd_class(virt)(name=dom_name, 
                                               res_sub_type=grstype, ip=ip,
-                                              lport=port_num, keymap=kmap)
+                                              lport=port_num, keymap=kmap, 
+                                              vnc_passwd=vnc_passwd)
         self.iasd = vsms.get_iasd_class(virt)(name=dom_name, 
                                               res_sub_type=irstype, 
                                               bus_type=btype)
@@ -796,7 +797,7 @@ class XenXML(VirtXML, VirtCIM):
                        net_name=const.default_network_name,
                        emu_type=None, grstype="vnc", address="127.0.0.1",
                        port_num='-1', keymap="en-us", irstype="mouse", 
-                       btype="xen"): 
+                       btype="xen", vnc_passwd=None): 
         if not (os.path.exists(const.Xen_kernel_path) \
                 and os.path.exists(const.Xen_init_path)):
             logger.error('ERROR: Either the kernel image '
@@ -809,7 +810,7 @@ class XenXML(VirtXML, VirtCIM):
         VirtCIM.__init__(self, 'Xen', test_dom, disk, disk_file_path, 
                          ntype, net_name, mac, vcpus, mem, mem_allocunits, 
                          emu_type, grstype, address, port_num, keymap, irstype,
-                         btype)
+                         btype, vnc_passwd)
 
     def _os(self, os_kernel, os_initrd):
         os = self.get_node('/domain/os')
@@ -861,7 +862,7 @@ class KVMXML(VirtXML, VirtCIM):
                        net_name=const.default_network_name,
                        emu_type=None, grstype="vnc", address="127.0.0.1",
                        port_num='-1', keymap="en-us", irstype="mouse", 
-                       btype="ps2"):
+                       btype="ps2", vnc_passwd=None):
         if not os.path.exists(disk_file_path):
             logger.error('Error: Disk image does not exist')
             sys.exit(1)
@@ -869,7 +870,7 @@ class KVMXML(VirtXML, VirtCIM):
         VirtCIM.__init__(self, 'KVM', test_dom, disk, disk_file_path,
                          ntype, net_name, mac, vcpus, mem, 
                          mem_allocunits, emu_type, grstype, address, 
-                         port_num, keymap, irstype, btype)
+                         port_num, keymap, irstype, btype, vnc_passwd)
         self._os()
         self._devices(const.KVM_default_emulator, ntype,
                       disk_file_path, disk, mac, net_name)
@@ -916,7 +917,7 @@ class XenFVXML(VirtXML, VirtCIM):
                        net_name=const.default_network_name,
                        emu_type=None, grstype="vnc", 
                        address="127.0.0.1", port_num='-1', keymap="en-us",
-                       irstype="mouse", btype="ps2"):
+                       irstype="mouse", btype="ps2", vnc_passwd=None):
         if not os.path.exists(disk_file_path):
             logger.error('Error: Disk image does not exist')
             sys.exit(1)
@@ -924,7 +925,7 @@ class XenFVXML(VirtXML, VirtCIM):
         VirtCIM.__init__(self, 'XenFV', test_dom, disk, disk_file_path,
                          ntype, net_name, mac, vcpus, mem, mem_allocunits, 
                          emu_type, grstype, address, port_num, keymap, 
-                         irstype, btype)
+                         irstype, btype, vnc_passwd)
         self._features()
         self._os(const.XenFV_default_loader)
         self._devices(const.XenFV_default_emulator,
@@ -973,12 +974,12 @@ class LXCXML(VirtXML, VirtCIM):
                        net_name=const.default_network_name,
                        tty=const.LXC_default_tty, grstype="vnc",
                        address="127.0.0.1", port_num='-1', keymap="en-us",
-                       irstype="mouse", btype="usb"):
+                       irstype="mouse", btype="usb", vnc_passwd=None):
         VirtXML.__init__(self, 'lxc', test_dom, set_uuid(), mem, vcpus)
         VirtCIM.__init__(self, 'LXC', test_dom, const.LXC_default_mp,
                          const.LXC_default_source, ntype, net_name, mac, vcpus,
                          mem, const.default_mallocunits, None, grstype, 
-                         address, port_num, keymap, irstype, btype)
+                         address, port_num, keymap, irstype, btype, vnc_passwd)
         self._os(const.LXC_init_path)
         self._devices(mac, ntype, net_name, const.LXC_default_tty)
         self.create_lxc_file(CIM_IP, const.LXC_init_path)
