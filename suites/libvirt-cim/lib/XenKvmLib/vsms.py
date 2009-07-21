@@ -159,9 +159,11 @@ def get_dasd_class(virt):
 
 class CIM_NetResourceAllocationSettingData(CIMClassMOF):
     def __init__(self, type, mac, name, virt_net=None): 
-        self.Address = mac
         self.NetworkType = type
         self.ResourceType = RASD_TYPE_NET_ETHER
+
+        if mac != None:
+            self.Address = mac
 
         if virt_net != None :
             if type == 'network':
