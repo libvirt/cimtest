@@ -40,6 +40,14 @@ cim_mname  = "CreateChildResourcePool"
 input_graphics_pool_rev = 757
 libvirt_cim_child_pool_rev = 837
 
+DIR_POOL = 1L
+FS_POOL = 2L
+NETFS_POOL = 3L
+DISK_POOL = 4L
+ISCSI_POOL = 5L
+LOGICAL_POOL = 6L
+SCSI_POOL = 7L
+
 def pool_cn_to_rasd_cn(pool_cn, virt):
     if pool_cn.find('ProcessorPool') >= 0:
         return get_typed_class(virt, "ProcResourceAllocationSettingData")

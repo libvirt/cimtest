@@ -37,7 +37,7 @@
 # -PoolID="DiskPool/0"
 # -Type=3               [ For Type 1 and 2 as well ]
 # -Path="/dev/null"
-# -DevicePath=
+# -DevicePaths=
 # -Host="host_sys.domain.com"
 # -SourceDirectory="/var/lib/images"
 # 
@@ -45,13 +45,55 @@
 
 import sys
 from sets import Set
+from copy import copy
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
-from XenKvmLib.pool import get_pool_rasds
+from XenKvmLib.pool import get_pool_rasds, DIR_POOL, FS_POOL, NETFS_POOL, \
+                           DISK_POOL, ISCSI_POOL, LOGICAL_POOL, SCSI_POOL
+                
 
 sup_types = ['KVM', 'Xen', 'XenFV']
-DISKPOOL_REC_LEN = 3
+DISKPOOL_REC_LEN = 7
+
+def init_list():
+    pval = "/dev/null"
+    dir_pool = { 'ResourceType' : 17,
+                 'PoolID'       : "DiskPool/0",
+                 'Type' : DIR_POOL,
+                 'DevicePaths': None, 
+                 'Host' : None, 'SourceDirectory': None, 
+                 'Path' : pval 
+               }
+
+    fs_pool = dir_pool.copy()
+    fs_pool['Type'] = FS_POOL
+    fs_pool['DevicePaths'] = [u'/dev/sda100']
+
+    netfs_pool = dir_pool.copy()
+    netfs_pool['Type'] = NETFS_POOL
+    netfs_pool['Host']  = u'host_sys.domain.com'
+    netfs_pool['SourceDirectory'] = u'/var/lib/images'
+    
+    disk_pool = dir_pool.copy()
+    disk_pool['Type'] = DISK_POOL
+    disk_pool['DevicePaths'] = [u'/dev/VolGroup00/LogVol100']
+    
+    iscsi_pool = dir_pool.copy()
+    iscsi_pool['Type'] = ISCSI_POOL
+    iscsi_pool['DevicePaths'] = [u'iscsi-target']
+    iscsi_pool['Host']  = u'host_sys.domain.com'
+
+    logical_pool = dir_pool.copy()
+    logical_pool['Type'] = LOGICAL_POOL
+
+    scsi_pool = dir_pool.copy()
+    scsi_pool['Type'] = SCSI_POOL
+    scsi_pool['Path'] = '/dev/disk/by-id'
+
+    exp_t_dp_h_sdir_path = [ dir_pool, fs_pool, netfs_pool, disk_pool, 
+                             iscsi_pool, logical_pool, scsi_pool ]
+    return exp_t_dp_h_sdir_path
 
 def get_rec(diskpool_rasd, inst_id='Default'):
     recs = []
@@ -59,6 +101,44 @@ def get_rec(diskpool_rasd, inst_id='Default'):
         if dp_rasd['InstanceID'] == inst_id :
            recs.append(dp_rasd)
     return recs
+
+def cmp_recs(item, rec):
+    try:
+        for key, val in item.iteritems():
+             exp_val = val
+             res_val = rec[key]
+             if type(val).__name__ == 'list':
+                 cmp_exp = (len(Set(res_val) - Set(exp_val)) != 0)
+             elif type(val).__name__ != 'NoneType':
+                 cmp_exp = (exp_val != res_val)
+             elif type(val).__name__ == 'NoneType':
+                 continue
+
+             if cmp_exp:
+                 raise Exception("Mismatching values, Got %s, "\
+                                 "Expected %s" % (res_val, exp_val))
+    except Exception, details:
+        logger.error("Exception details: %s", details)
+        return FAIL
+
+    return PASS
+
+def verify_records(exp_t_dp_h_sdir_path, rec):
+    try:
+        found = False
+        for item in exp_t_dp_h_sdir_path:
+            if rec['Type'] == item['Type']:
+                status =  cmp_recs(item, rec)
+                if status != PASS:
+                    raise Exception("Verification failed for '%s'" \
+                                     % rec['Type'])
+                found = True
+    except Exception, details:
+        logger.error("Exception details: %s", details)
+        return FAIL, found
+
+    return PASS, found
+
 
 @do_main(sup_types)
 def main():
@@ -70,16 +150,9 @@ def main():
     if status != PASS:
         return status
     inst_list = [ 'Default', 'Minimum', 'Maximum', 'Increment' ]
-    n_rec_val = { 'ResourceType' : 17,
-                  'PoolID'       : "DiskPool/0",
-                  'Path'         : "/dev/null",
-                }
-    exp_type_path_host_dir = [('1', 'None', 'None', 'None'),
-                              ('2', '/dev/sda100', 'None', 'None'), 
-                              ('3', 'None', 'host_sys.domain.com', 
-                               '/var/lib/images')]
-                    
-                  
+
+    exp_t_dp_h_sdir_path = init_list()
+
     for inst_type in inst_list:
         logger.info("Verifying '%s' records", inst_type)
 
@@ -89,23 +162,10 @@ def main():
                 raise Exception("Got %s recs instead of %s" %(len(n_rec), 
                                  DISKPOOL_REC_LEN))
 
-            res_type_path_host_dir = []
             for rec in n_rec:
-                l = (str(rec['Type']), str(rec['DevicePath']), 
-                         str(rec['Host']), str(rec['SourceDirectory']))
-                res_type_path_host_dir.append(l)
-
-            if len(Set(exp_type_path_host_dir) & Set(res_type_path_host_dir)) \
-               != DISKPOOL_REC_LEN :
-                raise Exception("Mismatching values, \nGot %s,\nExpected %s"\
-                                 %(exp_type_path_host_dir, 
-                                   res_type_path_host_dir))
-
-            for key in n_rec_val.keys():
-                for rec in n_rec:
-                    if n_rec_val[key] != rec[key]:
-                        raise Exception("'%s' Mismatch, Got %s, Expected %s" \
-                                        % (key, rec[key],  n_rec_val[key]))
+                status, found = verify_records(exp_t_dp_h_sdir_path, rec)
+                if status != PASS or found == False:
+                    return FAIL
 
         except Exception, details:
             logger.error("Exception details: %s", details)
