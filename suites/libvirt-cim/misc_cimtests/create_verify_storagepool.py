@@ -36,9 +36,15 @@
 # python create_verify_storagepool.py -t logical -d /dev/VolGroup01
 # -n VolGroup01 -v Xen -u <username> -p  <passwd>  
 #
+# For scsi pool type with HBA's:
+# ------------------------------
+# python create_verify_storagepool.py -t scsi -v KVM -u <username> -p <passwd>
+# -n myscsi_pool -a host2  
+#
 # Where t can be :
 #       2 - FileSystem
-#       4 - Logical etc
+#       6 - Logical 
+#       7 - scsi 
 # 
 # 
 #                                                         Date : 27.06.2009
@@ -63,16 +69,15 @@ from XenKvmLib.const import get_provider_version
 TEST_LOG="cimtest.log"
 libvirt_cim_fs_changes = 857
 libvirt_cim_logical_changes = 906
+libvirt_cim_scsi_changes = 921
 
 
 supp_types = [ 'Xen', 'KVM' , 'LXC' ]
-pool_types = { 'DISK_POOL_FS' : 2 , 'DISK_POOL_LOGICAL' : 6 }
+pool_types = { 'DISK_POOL_FS' : 2 , 'DISK_POOL_LOGICAL' : 6 , 
+               'DISK_POOL_SCSI' : 7 }
 
 def verify_cmd_options(options, parser):
     try: 
-        if options.part_dev == None:
-            raise Exception("Free Partition to be mounted not specified")
-
         if options.pool_name == None:
             raise Exception("Must specify the Pool Name to be created")
 
@@ -82,8 +87,14 @@ def verify_cmd_options(options, parser):
         if options.pool_type == None:
             raise Exception("Must specify pool type to be tested")
 
-        if options.mnt_pt == None and options.pool_type != 'logical':
+        if options.part_dev == None and options.pool_type != 'scsi':
+            raise Exception("Free Partition to be mounted not specified")
+
+        if options.mnt_pt == None and options.pool_type == 'fs':
             raise Exception("Mount points to be used not specified")
+
+        if options.adap_name == None and options.pool_type == 'scsi':
+            raise Exception("Adapter name used not specified")
 
     except Exception, details:
         print "\nFATAL: ", details , "\n"
@@ -110,19 +121,68 @@ def env_setup(sysname, virt, clean, debug):
     return PASS
 
 def get_pooltype(pooltype, virt):
+
     if pooltype == "fs":
        pool_type = pool_types['DISK_POOL_FS']
     elif pooltype == "logical":
        pool_type = pool_types['DISK_POOL_LOGICAL']
+    elif pooltype == "scsi":
+       pool_type = pool_types['DISK_POOL_SCSI']
     else:
        logger.error("Invalid pool type ....")
        return None, None
+
     return PASS, pool_type
 
-def verify_inputs(part_dev, mount_pt, pool_type, pool_name):
+def verify_inputs(part_dev, mount_pt, pool_type, pool_name, adap_name):
+
     del_dir = False   
 
-    if pool_type == pool_types['DISK_POOL_LOGICAL']:
+    if pool_type == pool_types['DISK_POOL_FS']:
+        cmd = "mount"
+        status, mount_info = getstatusoutput(cmd)
+        if status != PASS:
+            logger.error("Failed to get mount info.. ")
+            return FAIL, del_dir
+     
+        for line in mount_info.split('\n'):
+            try:
+                # Check if the specified partition is mounted before using it 
+                part_name = line.split()[0]
+                if part_dev == part_name:
+                    logger.error("[%s] already mounted", part_dev)
+                    raise Exception("Please specify free partition other than "\
+                                    "[%s]" % part_dev)
+
+                # Check if mount point is already used for mounting
+                mount_name = line.split()[2]
+                if mount_pt == mount_name:
+                    logger.error("[%s] already mounted", mount_pt)
+                    raise Exception("Please specify dir other than [%s]" \
+                                     % mount_pt)
+
+            except Exception, details:
+                logger.error("%s", details)
+                return FAIL, del_dir
+
+        # Check if the mount point specified already exist, if not create it..
+        if not os.path.exists(mount_pt):
+            os.mkdir(mount_pt)
+
+            # set del_dir=True so that we remove it before exiting from the tc.
+            del_dir = True 
+        else:
+            # Check if the mount point specified is a dir
+            if not os.path.isdir(mount_pt):
+                logger.error("The mount point [%s] should be a dir", mount_pt)
+                return FAIL, del_dir
+
+            files = os.listdir(mount_pt)
+            if len(files) != 0:
+                logger.info("The mount point [%s] given is not empty",
+                              mount_pt)
+
+    elif pool_type == pool_types['DISK_POOL_LOGICAL']:
         if not os.path.exists("/sbin/lvm"):
             logger.error("LVM support does not exist on the machine")
             return FAIL, del_dir
@@ -143,46 +203,13 @@ def verify_inputs(part_dev, mount_pt, pool_type, pool_name):
 
         return PASS, del_dir
 
-    cmd = "mount"
-    status, mount_info = getstatusoutput(cmd)
-    if status != PASS:
-        logger.error("Failed to get mount info.. ")
-        return FAIL, del_dir
-     
-    for line in mount_info.split('\n'):
-        try:
-            # Check if the specified partition is mounted before using it 
-            part_name = line.split()[0]
-            if part_dev == part_name:
-                logger.error("[%s] already mounted", part_dev)
-                raise Exception("Please specify free partition other than " \
-                                "[%s]" % part_dev)
-
-            # Check if mount point is already used for mounting
-            mount_name = line.split()[2]
-	    if mount_pt == mount_name:
-                logger.error("[%s] already mounted", mount_pt)
-                raise Exception("Please specify dir other than [%s]" %mount_pt)
-
-        except Exception, details:
-            logger.error("%s", details)
-            return FAIL, del_dir
-
-    # Check if the mount point specified already exist, if not then create it..
-    if not os.path.exists(mount_pt):
-        os.mkdir(mount_pt)
-
-        # set del_dir to True so that we remove it before exiting from the tc.
-        del_dir = True 
-    else:
-        # Check if the mount point specified is a dir
-        if not os.path.isdir(mount_pt):
-            logger.error("The mount point [%s] should be a dir", mount_pt)
-            return FAIL, del_dir
-
-        files = os.listdir(mount_pt)
-        if len(files) != 0:
-            logger.info("The mount point [%s] given is not empty", mount_pt)
+    elif pool_type == pool_types['DISK_POOL_SCSI']:
+        hba_path = "/sys/class/scsi_host/"
+        adap_path = "%s%s" % (hba_path, adap_name)
+        if not os.path.exists(adap_path):
+            logger.error("HBA '%s' does not exist on the machine, specify "\
+                         "one present in '%s' path", adap_path, hba_path)
+            return FAIL, del_dir 
 
     return PASS, del_dir
 
@@ -195,18 +222,28 @@ def get_uri(virt):
         vuri = 'lxc:///system'
     return vuri
 
-def get_pool_settings(dp_rasds, pooltype, part_dev, mount_pt, pool_name):
+def get_pool_settings(dp_rasds, pooltype, part_dev, mount_pt, 
+                      pool_name, adap_name):
     pool_settings = None
+
     for dpool_rasd in dp_rasds:
+
         if dpool_rasd['Type'] == pooltype and \
             dpool_rasd['InstanceID'] == 'Default':
+
             dp_pid = "%s/%s" % ("DiskPool", pool_name)
             dpool_rasd['PoolID'] = dpool_rasd['InstanceID'] = dp_pid
+
             if pooltype == pool_types['DISK_POOL_FS']:
                 dpool_rasd['Path'] = mount_pt
                 dpool_rasd['DevicePaths'] = [part_dev]
+
             elif pooltype == pool_types['DISK_POOL_LOGICAL']:
                 dpool_rasd['Path'] = part_dev
+
+            elif pooltype == pool_types['DISK_POOL_SCSI']:
+                dpool_rasd['AdapterName'] = adap_name
+                dpool_rasd['Path'] = "/dev/disk/by-id"
             break
 
     if not pool_name in dpool_rasd['InstanceID']:
@@ -270,7 +307,7 @@ def main():
     parser.add_option("-v", "--virt-type", dest="virt", default=None,
                       help="Virtualization type [ Xen | KVM ]")
     parser.add_option("-t", "--pool-type", dest="pool_type", default=None,
-                      help="Pool type:[ fs | logical ]")
+                      help="Pool type:[ fs | logical | scsi ]")
     parser.add_option("-d", "--part-dev", dest="part_dev", default=None,
                       help="specify the free partition to be used for " \
                            "fs pool type or the predefined Vol Group" \
@@ -279,6 +316,9 @@ def main():
                       help="Mount point to be used")
     parser.add_option("-n", "--pool-name", dest="pool_name", default=None, 
                       help="Pool to be created")
+    parser.add_option("-a", "--adap_name", dest="adap_name", default=None, 
+                      help="Adap name to be used Ex: specify one of the host" \
+                           "in /sys/class/scsi_host/ like host0")
     parser.add_option("-c", "--clean-log",  action="store_true", dest="clean",
                       help="Will remove existing log files before test run")
     parser.add_option("-l", "--debug-output", action="store_true", dest="debug",
@@ -294,6 +334,7 @@ def main():
     part_dev = options.part_dev
     mount_pt = options.mnt_pt
     pool_name = options.pool_name
+    adap_name = options.adap_name
     virt = options.virt
 
     if ":" in options.h_url:
@@ -301,7 +342,7 @@ def main():
     else:
         sysname = options.h_url
 
-    # Verify if the CIMOM is running, clean cimtest.log if requested
+    # Verify if the CIMOM is running, if requested clean cimtest.log.
     # Set Debug option if requested
     status = env_setup(sysname, virt, options.clean, options.debug)
     if status != PASS:
@@ -322,20 +363,29 @@ def main():
     curr_cim_rev, changeset = get_provider_version(virt, sysname)
     if curr_cim_rev < libvirt_cim_fs_changes and \
        pooltype == pool_types['DISK_POOL_FS']:
-       logger.info("Test Skipped for %s pool type, Support for File System "\
-                    "Pool is available in revision %s",  options.pool_type, 
+       logger.info("Test Skipped for '%s' pool type, Support for File System "
+                    "Pool is available in revision '%s'",  options.pool_type, 
                     libvirt_cim_fs_changes)
        return SKIP
+
     elif curr_cim_rev < libvirt_cim_logical_changes and \
         pooltype == pool_types['DISK_POOL_LOGICAL']:
-       logger.info("Test Skipped for %s pool type, Support for Logical Pool" \
-                   " is available in revision %s",  options.pool_type, \
+       logger.info("Test Skipped for '%s' pool type, Support for Logical Pool" 
+                   " is available in revision '%s'",  options.pool_type, 
                    libvirt_cim_logical_changes)
+       return SKIP
+
+    elif curr_cim_rev < libvirt_cim_scsi_changes and \
+        pooltype == pool_types['DISK_POOL_SCSI']:
+       logger.info("Test Skipped for '%s' pool type, Support for scsi Pool" 
+                   " is available in revision '%s'",  options.pool_type, 
+                   libvirt_cim_scsi_changes)
        return SKIP
    
     pooltype = cim_types.Uint16(pooltype)
 
-    status, del_dir = verify_inputs(part_dev, mount_pt, pooltype, pool_name)
+    status, del_dir = verify_inputs(part_dev, mount_pt, pooltype, pool_name, 
+                                    adap_name)
     if status != PASS:
         if del_dir == True:
             cmd ="rm -rf %s" % mount_pt
@@ -370,7 +420,7 @@ def main():
         # Get the DiskPoolRASD mof with appropriate values of diskpool 
         # to be created....
         pool_settings = get_pool_settings(dp_rasds, pooltype, part_dev, 
-                                          mount_pt, pool_name)
+                                          mount_pt, pool_name, adap_name)
         if pool_settings == None:
             raise Exception("Did not get the required pool settings ...")
 
