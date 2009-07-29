@@ -37,6 +37,8 @@ from XenKvmLib.vxml import get_class
 sup_types = ['Xen', 'XenFV', 'KVM']
 test_dom = 'rstest_domain'
 test_dom2 = 'rstest_domain2'
+mac1 = '99:aa:bb:cc:ee:ff'
+mac2 = '99:aa:bb:cc:ee:aa'
 
 REQUESTED_STATE = 2
 TIME = "00000000000000.000000:000"
@@ -117,8 +119,8 @@ def main():
     options = main.options
 
     virt_xml = get_class(options.virt)
-    cxml = virt_xml(test_dom)
-    cxml2 = virt_xml(test_dom2)
+    cxml = virt_xml(test_dom, mac=mac1)
+    cxml2 = virt_xml(test_dom2, mac=mac2)
 
     try:
         rc = cxml.cim_define(options.ip)
