@@ -28,7 +28,12 @@
 # the following command:
 # For Fs pool type:
 # ----------------
-# python create_verify_storagepool.py -t fs -d /dev/sda4 -m /tmp/mnt -n diskfs 
+# python create_verify_storagepool.py -t fs -d /dev/sda4 -m /tmp/mnt -n fs_pool
+#         -v Xen -u <username> -p <passwd>
+#
+# For disk pool type:
+# -------------------
+# python create_verify_storagepool.py -t fs -d /dev/sda -m /tmp/ -n disk_pool 
 #         -v Xen -u <username> -p <passwd>
 # 
 # For logical pool type:
@@ -39,11 +44,12 @@
 # For scsi pool type with HBA's:
 # ------------------------------
 # python create_verify_storagepool.py -t scsi -v KVM -u <username> -p <passwd>
-# -n myscsi_pool -a host2  
+# -n scsi_pool -a host2  
 #
 # Where t can be :
-#       2 - FileSystem
-#       6 - Logical 
+#       2 - fs [ FileSystem ]
+#       4 - disk [ Disk ]
+#       6 - logical [ Logical ]
 #       7 - scsi 
 # 
 # 
@@ -68,13 +74,14 @@ from XenKvmLib.const import get_provider_version
 
 TEST_LOG="cimtest.log"
 libvirt_cim_fs_changes = 857
+libvirt_cim_disk_changes = 872
 libvirt_cim_logical_changes = 906
 libvirt_cim_scsi_changes = 921
 
 
 supp_types = [ 'Xen', 'KVM' , 'LXC' ]
-pool_types = { 'DISK_POOL_FS' : 2 , 'DISK_POOL_LOGICAL' : 6 , 
-               'DISK_POOL_SCSI' : 7 }
+pool_types = { 'DISK_POOL_FS' : 2 , 'DISK_POOL_DISK' : 4, 
+               'DISK_POOL_LOGICAL' : 6 , 'DISK_POOL_SCSI' : 7 }
 
 def verify_cmd_options(options, parser):
     try: 
@@ -88,9 +95,10 @@ def verify_cmd_options(options, parser):
             raise Exception("Must specify pool type to be tested")
 
         if options.part_dev == None and options.pool_type != 'scsi':
-            raise Exception("Free Partition to be mounted not specified")
+            raise Exception("Free Partition/disk to be mounted not specified")
 
-        if options.mnt_pt == None and options.pool_type == 'fs':
+        if options.mnt_pt == None and (options.pool_type == 'fs' or \
+           options.pool_type == 'disk'):
             raise Exception("Mount points to be used not specified")
 
         if options.adap_name == None and options.pool_type == 'scsi':
@@ -124,6 +132,8 @@ def get_pooltype(pooltype, virt):
 
     if pooltype == "fs":
        pool_type = pool_types['DISK_POOL_FS']
+    elif pooltype == "disk":
+       pool_type = pool_types['DISK_POOL_DISK']
     elif pooltype == "logical":
        pool_type = pool_types['DISK_POOL_LOGICAL']
     elif pooltype == "scsi":
@@ -138,7 +148,17 @@ def verify_inputs(part_dev, mount_pt, pool_type, pool_name, adap_name):
 
     del_dir = False   
 
-    if pool_type == pool_types['DISK_POOL_FS']:
+    if pool_type == pool_types['DISK_POOL_FS'] or \
+       pool_type == pool_types['DISK_POOL_DISK']:
+
+        if pool_type == pool_types['DISK_POOL_DISK']:
+           # Make sure part_dev is a disk and not a partition
+           cmd = "fdisk -l | grep -w '%s'" % part_dev
+           status, disk_info = getstatusoutput(cmd)
+           if status != PASS:
+              logger.error("'%s' does not seem like a disk", part_dev)
+              return FAIL, del_dir
+
         cmd = "mount"
         status, mount_info = getstatusoutput(cmd)
         if status != PASS:
@@ -151,8 +171,8 @@ def verify_inputs(part_dev, mount_pt, pool_type, pool_name, adap_name):
                 part_name = line.split()[0]
                 if part_dev == part_name:
                     logger.error("[%s] already mounted", part_dev)
-                    raise Exception("Please specify free partition other than "\
-                                    "[%s]" % part_dev)
+                    raise Exception("Please specify free partition/disk other "
+                                    "than [%s]" % part_dev)
 
                 # Check if mount point is already used for mounting
                 mount_name = line.split()[2]
@@ -234,9 +254,10 @@ def get_pool_settings(dp_rasds, pooltype, part_dev, mount_pt,
             dp_pid = "%s/%s" % ("DiskPool", pool_name)
             dpool_rasd['PoolID'] = dpool_rasd['InstanceID'] = dp_pid
 
-            if pooltype == pool_types['DISK_POOL_FS']:
-                dpool_rasd['Path'] = mount_pt
+            if pooltype == pool_types['DISK_POOL_FS'] or \
+               pooltype == pool_types['DISK_POOL_DISK']:
                 dpool_rasd['DevicePaths'] = [part_dev]
+                dpool_rasd['Path'] = mount_pt
 
             elif pooltype == pool_types['DISK_POOL_LOGICAL']:
                 dpool_rasd['Path'] = part_dev
@@ -307,11 +328,12 @@ def main():
     parser.add_option("-v", "--virt-type", dest="virt", default=None,
                       help="Virtualization type [ Xen | KVM ]")
     parser.add_option("-t", "--pool-type", dest="pool_type", default=None,
-                      help="Pool type:[ fs | logical | scsi ]")
+                      help="Pool type:[ fs | logical | scsi | disk ]")
     parser.add_option("-d", "--part-dev", dest="part_dev", default=None,
                       help="specify the free partition to be used for " \
                            "fs pool type or the predefined Vol Group" \
-                           " for logical pool type")
+                           " for logical pool type or empty disk like" \
+                           " /dev/sda for disk type pools")
     parser.add_option("-m", "--mnt_pt", dest="mnt_pt", default=None, 
                       help="Mount point to be used")
     parser.add_option("-n", "--pool-name", dest="pool_name", default=None, 
@@ -366,6 +388,13 @@ def main():
        logger.info("Test Skipped for '%s' pool type, Support for File System "
                     "Pool is available in revision '%s'",  options.pool_type, 
                     libvirt_cim_fs_changes)
+       return SKIP
+
+    elif curr_cim_rev < libvirt_cim_disk_changes and \
+        pooltype == pool_types['DISK_POOL_DISK']:
+       logger.info("Test Skipped for '%s' pool type, Support for disk Pool" 
+                   " is available in revision '%s'",  options.pool_type, 
+                   libvirt_cim_disk_changes)
        return SKIP
 
     elif curr_cim_rev < libvirt_cim_logical_changes and \
