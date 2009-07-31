@@ -22,6 +22,7 @@
 #
 
 from signal import SIGKILL
+from time import sleep
 from CimTest.Globals import logger
 from XenKvmLib.indication_tester import CIMIndicationSubscription
 from XenKvmLib.vxml import set_default
