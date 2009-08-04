@@ -24,6 +24,7 @@
 
 import sys
 import pywbem
+from random import randint
 from pywbem.cim_obj import CIMInstanceName
 from VirtLib import utils
 from XenKvmLib.xm_virt_util import network_by_bridge
@@ -41,6 +42,8 @@ ntype = 'network'
 cpu = 2
 ncpu = 1
 nmem = 256 
+new_int = randint(10, 99)
+new_mac = "11:%s:22:%s:33:%s" % (new_int, new_int, new_int)
 
 def cleanup_env(ip, virt, cxml):
     cxml.destroy(ip)
@@ -104,6 +107,7 @@ def main():
         if status != PASS:
             break
 
+        nasd.Address = new_mac
         status = vsms_util.mod_net_res(options.ip, service, options.virt, cxml,
                                        nasd, ntype, default_network_name)
         if status != PASS:
