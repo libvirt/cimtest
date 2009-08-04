@@ -33,7 +33,7 @@
 import sys
 from XenKvmLib.common_util import get_cs_instance
 from CimTest.Globals import logger
-from XenKvmLib.const import do_main
+from XenKvmLib.const import do_main, get_provider_version
 from CimTest.ReturnCodes import FAIL, PASS
 from XenKvmLib.classes import get_typed_class, inst_to_mof
 from XenKvmLib.assoc import AssociatorNames
@@ -44,8 +44,8 @@ from XenKvmLib.rasd import get_default_rasds
 sup_types = ['Xen', 'XenFV', 'KVM']
 test_dom = 'rstest_domain'
 test_dom2 = 'rstest_domain2'
-
 mac = "aa:aa:aa:00:00:00"
+libvirt_mac_ref_changes = 935
 
 def setup_first_guest(ip, virt, cxml):
     ret = cxml.cim_define(ip)
@@ -153,10 +153,16 @@ def main():
             raise Exception("%s has %d macs, expected 2" % (test_dom2, 
                             len(dom2_mac_list)))
 
-        for item in dom2_mac_list:
-            if item != mac and item != dom1_mac_list[0]:
-                raise Exception("%s has unexpected mac value, exp: %s %s" % \
-                                (item, mac, dom1_mac_list[0]))
+        curr_cim_rev, changeset = get_provider_version(virt, ip)
+        if curr_cim_rev < libvirt_mac_ref_changes: 
+            for item in dom2_mac_list:
+                if item != mac and item != dom1_mac_list[0]:
+                    raise Exception("%s has unexpected mac value, exp: %s %s" \
+                                    % (item, mac, dom1_mac_list[0]))
+        elif curr_cim_rev >= libvirt_mac_ref_changes:
+            if not mac in dom2_mac_list:
+                raise Exception("Did not find the mac information given to "\
+                                "the domain '%s'" % test_dom2)
 
         status = PASS
       
