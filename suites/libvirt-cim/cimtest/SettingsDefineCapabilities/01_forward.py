@@ -59,11 +59,16 @@ from XenKvmLib import assoc
 from XenKvmLib import enumclass
 from XenKvmLib.xm_virt_util import virsh_version
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
-from CimTest.Globals import logger, CIM_ERROR_GETINSTANCE, CIM_ERROR_ASSOCIATORS
-from XenKvmLib.const import do_main, default_pool_name, default_network_name
+from CimTest.Globals import logger, CIM_ERROR_GETINSTANCE, \
+                            CIM_ERROR_ASSOCIATORS
+from XenKvmLib.const import do_main, default_pool_name, default_network_name, \
+                            get_provider_version
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.common_util import print_field_error
-from XenKvmLib.rasd import get_exp_template_rasd_len 
+from XenKvmLib.rasd import get_exp_template_rasd_len, dasd_cn, masd_cn, \
+                           nasd_cn, pasd_cn, svrasd_cn, \
+                           libvirt_rasd_storagepool_changes
+from XenKvmLib.vsms import RASD_TYPE_DISK,  RASD_TYPE_MEM,  RASD_TYPE_PROC, \
+                           RASD_TYPE_NET_ETHER,  RASD_TYPE_STOREVOL
 
 platform_sup = ['Xen', 'KVM', 'XenFV', 'LXC']
 
@@ -86,20 +91,17 @@ def get_or_bail(virt, ip, id, pool_class):
         sys.exit(FAIL)
     return instance 
 
-def init_list(virt, pool):
+def init_list(virt, server, pool):
     """
         Creating the lists that will be used for comparisons.
     """
     
-    memrasd = get_typed_class(virt, "MemResourceAllocationSettingData")
-    diskrasd = get_typed_class(virt, "DiskResourceAllocationSettingData")
-    netrasd = get_typed_class(virt, "NetResourceAllocationSettingData")
-    procrasd = get_typed_class(virt, "ProcResourceAllocationSettingData")
+    memrasd = get_typed_class(virt, masd_cn)
+
+    rtype = { memrasd  :  RASD_TYPE_MEM }
  
     if virt == 'LXC':
         instlist = [ pool[1].InstanceID ]
-        cllist = [ memrasd ]
-        rtype = { memrasd  :  4 }
     else:    
         instlist = [ 
                     pool[0].InstanceID,
@@ -107,20 +109,22 @@ def init_list(virt, pool):
                     pool[2].InstanceID, 
                     pool[3].InstanceID
                    ]
-        cllist = [ diskrasd, memrasd, netrasd, procrasd ] 
-        rtype = { 
-                  diskrasd : 17, 
-                  memrasd  :  4, 
-                  netrasd  : 10, 
-                  procrasd :  3
-                }
+
+        rtype[get_typed_class(virt, dasd_cn)] = RASD_TYPE_DISK
+        rtype[get_typed_class(virt, nasd_cn)] = RASD_TYPE_NET_ETHER
+        rtype[get_typed_class(virt, pasd_cn)] = RASD_TYPE_PROC
+
+        curr_cim_rev, changeset = get_provider_version(virt, server)
+        if curr_cim_rev >= libvirt_rasd_storagepool_changes:
+            rtype[get_typed_class(virt, svrasd_cn)] = RASD_TYPE_STOREVOL
+
     rangelist = {
                   "Default"   : 0, 
                   "Minimum"   : 1, 
                   "Maximum"   : 2, 
                   "Increment" : 3 
                 }
-    return instlist, cllist, rtype, rangelist
+    return instlist, rtype, rangelist
 
 def get_pool_info(virt, server, devid, poolname=""):
         pool_cname = get_typed_class(virt, poolname)
@@ -147,21 +151,21 @@ def get_pool_details(virt, server):
 
     return PASS, pool_set
 
-def verify_rasd_fields(loop, assoc_info, cllist, rtype, rangelist):
+def verify_rasd_fields(assoc_info, rtype, rangelist):
     for inst in assoc_info:
-        if inst.classname != cllist[loop]:
-            print_field_error("Classname", inst.classname, cllist[loop])
+        if not inst.classname in rtype.keys():
+            logger.error("Classname Mismatch, '%s' not in '%s'", 
+                          inst.classname, rtype.keys())
             return FAIL 
-        if inst['ResourceType'] != rtype[cllist[loop]]:
-            print_field_error("ResourceType", inst['ResourceType'], 
-                              rtype[cllist[loop]])
+        if inst['ResourceType'] != rtype[inst.classname]:
+            logger.error("ResourceType Mismatch, got '%s' expected '%s'", 
+                          inst['ResourceType'], rtype[inst.classname])
             return FAIL 
 
     return PASS
 
 def verify_sdc_with_ac(virt, server, pool):
-    loop = 0 
-    instlist, cllist, rtype, rangelist = init_list(virt, pool)
+    instlist, rtype, rangelist = init_list(virt, server, pool)
     assoc_cname = get_typed_class(virt, "SettingsDefineCapabilities")
     cn =  get_typed_class(virt, "AllocationCapabilities")
     for instid in sorted(instlist):
@@ -176,12 +180,9 @@ def verify_sdc_with_ac(virt, server, pool):
                              " of %i", assoc_cname, len(assoc_info), exp_len)
                 status = FAIL
                 break
-            status = verify_rasd_fields(loop, assoc_info, cllist, rtype, 
-                                        rangelist)
+            status = verify_rasd_fields(assoc_info, rtype, rangelist)
             if status != PASS:
                 break
-            else:
-                loop = loop + 1 
 
         except Exception, detail:
             logger.error(CIM_ERROR_ASSOCIATORS, assoc_cname)
