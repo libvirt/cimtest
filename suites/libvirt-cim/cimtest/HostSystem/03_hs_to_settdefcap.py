@@ -45,14 +45,16 @@ import sys
 from VirtLib.live import full_hostname 
 from XenKvmLib.common_util import get_host_info
 from XenKvmLib.assoc import Associators
-from XenKvmLib.vxml import XenXML, KVMXML, get_class
+from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORNAMES
-from XenKvmLib.const import do_main
+from XenKvmLib.const import do_main, get_provider_version
 from CimTest.ReturnCodes import PASS, FAIL
-from XenKvmLib.test_xml import testxml
-from XenKvmLib.test_doms import destroy_and_undefine_all
-from XenKvmLib.rasd import get_exp_template_rasd_len
+from XenKvmLib.rasd import get_exp_template_rasd_len, dasd_cn, masd_cn,\
+                           pasd_cn, nasd_cn, dpasd_cn, npasd_cn, svrasd_cn ,\
+                           libvirt_rasd_storagepool_changes
+from XenKvmLib.vsms import RASD_TYPE_DISK, RASD_TYPE_MEM, RASD_TYPE_NET_ETHER, \
+                           RASD_TYPE_PROC, RASD_TYPE_STOREVOL
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 test_dom = "domgst_test"
@@ -60,7 +62,6 @@ test_vcpus = 1
 
 def setup_env(server, virt="Xen"):
     status = PASS
-    destroy_and_undefine_all(server)
     if virt == 'LXC':
         vsxml = get_class(virt)(test_dom)
     else:
@@ -156,12 +157,12 @@ def get_alloccap(server, devpool, virt="Xen"):
     filter =  {"key" : "ResourceType"}
 
     if virt == 'LXC':
-        ccnlist = { '%s_MemoryPool' % virt : 4 }
+        ccnlist = { '%s_MemoryPool' % virt : RASD_TYPE_MEM }
     else:
-        ccnlist = { '%s_ProcessorPool' % virt: 3,
-                    '%s_MemoryPool' % virt : 4, 
-                    '%s_DiskPool' % virt : 17 ,
-                    '%s_NetworkPool' % virt : 10 }
+        ccnlist = { '%s_ProcessorPool' % virt: RASD_TYPE_PROC,
+                    '%s_MemoryPool' % virt : RASD_TYPE_MEM, 
+                    '%s_DiskPool' % virt : RASD_TYPE_DISK ,
+                    '%s_NetworkPool' % virt : RASD_TYPE_NET_ETHER }
    
     for inst in devpool:
         try:
@@ -198,18 +199,20 @@ def get_rasddetails(server, alloccap, virt="Xen"):
     status = PASS
     ccn = get_typed_class(virt, 'AllocationCapabilities')
     an = get_typed_class(virt, 'SettingsDefineCapabilities')
-   
-    if virt == 'LXC':
-        rtype = { "%s_MemResourceAllocationSettingData" % virt :  4 }
-    else:
-        rtype = {
-                  "%s_DiskResourceAllocationSettingData" % virt : 17, \
-                  "%s_DiskPoolResourceAllocationSettingData" % virt : 17, \
-                  "%s_MemResourceAllocationSettingData" % virt :  4, \
-                  "%s_NetResourceAllocationSettingData" % virt : 10, \
-                  "%s_NetPoolResourceAllocationSettingData" % virt : 10, \
-                  "%s_ProcResourceAllocationSettingData" % virt :  3
-                 }
+    mrasd_cn = get_typed_class(virt, masd_cn) 
+    rtype = { mrasd_cn :  RASD_TYPE_MEM }
+    if virt != 'LXC':
+        rtype[get_typed_class(virt, pasd_cn)]  = RASD_TYPE_PROC
+        rtype[get_typed_class(virt, dasd_cn)]  = RASD_TYPE_DISK
+        rtype[get_typed_class(virt, dpasd_cn)] = RASD_TYPE_DISK
+        rtype[get_typed_class(virt, nasd_cn)]  = RASD_TYPE_NET_ETHER 
+        rtype[get_typed_class(virt, npasd_cn)] = RASD_TYPE_NET_ETHER
+
+        curr_cim_rev, changeset = get_provider_version(virt, server)
+        if curr_cim_rev >= libvirt_rasd_storagepool_changes:
+            storagevol_rasd_cn = get_typed_class(virt, svrasd_cn)
+            rtype[storagevol_rasd_cn] = RASD_TYPE_STOREVOL
+
     try:
         for ap in alloccap:
             assoc_info = Associators(server,
@@ -244,7 +247,8 @@ def get_rasddetails(server, alloccap, virt="Xen"):
 def check_rasd_vals(inst, rt):
     try:
         if inst['ResourceType'] != rt:
-            logger.error("In ResourceType for %s ", rt)
+            logger.error("ResourceType Mismatch, Got '%s' Expected '%s' ", 
+                          inst['ResourceType'], rt)
             return FAIL
     except Exception, detail:
         logger.error("Error checking RASD attribute values %s", detail)
