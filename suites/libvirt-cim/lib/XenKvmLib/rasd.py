@@ -40,12 +40,19 @@ dasd_cn = 'DiskResourceAllocationSettingData'
 masd_cn = 'MemResourceAllocationSettingData'
 dcrasd_cn = 'GraphicsResourceAllocationSettingData'
 irasd_cn = 'InputResourceAllocationSettingData'
+dpasd_cn = 'DiskPoolResourceAllocationSettingData'
+npasd_cn = 'NetPoolResourceAllocationSettingData'
+svrasd_cn = 'StorageVolumeResourceAllocationSettingData'
+
+
 proccn =  'Processor'
 memcn  =  'Memory'
 netcn  =  'NetworkPort'
 diskcn =  'LogicalDisk'
 dccn = 'DisplayController'
 pdcn = 'PointingDevice'
+
+libvirt_rasd_storagepool_changes = 934
 
 def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem, server):
     """
@@ -319,6 +326,8 @@ def get_exp_disk_rasd_len(virt, ip, rev, id):
     exp_base_num = 4
     exp_cdrom = 4
 
+    # StoragePoolRASD record 1 for each of Min, Max, Default, and Incr
+    exp_storagevol_rasd = 4
     exp_len = exp_base_num 
 
     if id == "DiskPool/0":
@@ -350,6 +359,9 @@ def get_exp_disk_rasd_len(virt, ip, rev, id):
             id = parse_instance_id(id)
             volumes = enum_volumes(virt, ip, id[1])
             exp_len = (volumes * exp_base_num) + exp_cdrom
+
+    if rev >= libvirt_rasd_storagepool_changes and virt != 'LXC':
+        exp_len += exp_storagevol_rasd
 
     return exp_len
 
