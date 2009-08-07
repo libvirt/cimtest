@@ -91,7 +91,7 @@ def enumerate_instances(server, virt='Xen'):
 
 # classes to define VSSD parameters
 class CIM_VirtualSystemSettingData(CIMClassMOF):
-    def __init__(self, name, virt, bldr=None, emulator=None):
+    def __init__(self, name, virt, uuid=None, bldr=None, emulator=None):
         type = get_class_type(self.__class__.__name__)
         self.InstanceID = '%s:%s' % (type, name)
         self.Caption = self.Description = 'Virtual System'
@@ -116,6 +116,9 @@ class CIM_VirtualSystemSettingData(CIMClassMOF):
         if bldr is not None:
             self.Bootloader = bldr
  
+        if uuid is not None:
+            self.UUID = uuid
+
 class Xen_VirtualSystemSettingData(CIM_VirtualSystemSettingData):
     pass
 

@@ -555,7 +555,7 @@ class VirtXML(Virsh, XMLClass):
 
 
 class VirtCIM:
-    def __init__(self, virt, dom_name, disk_dev, disk_source,
+    def __init__(self, virt, dom_name, uuid, disk_dev, disk_source,
                  net_type, net_name, net_mac, vcpus, mem,
                  mem_allocunits, emu_type, grstype, ip,
                  port_num, kmap, irstype, btype, vnc_passwd):
@@ -563,7 +563,7 @@ class VirtCIM:
         self.domain_name = dom_name
         self.err_rc = None
         self.err_desc = None
-        self.vssd = vsms.get_vssd_mof(virt, dom_name)
+        self.vssd = vsms.get_vssd_mof(virt, dom_name, uuid)
         self.nasd = vsms.get_nasd_class(virt)(type=net_type, 
                                               mac=net_mac,
                                               name=dom_name,
@@ -787,6 +787,7 @@ class XenXML(VirtXML, VirtCIM):
     secondary_disk_path = const.Xen_secondary_disk_path
     
     def __init__(self, test_dom=const.default_domname,
+                       uuid=None,
                        mem=const.default_memory,
                        mem_allocunits=const.default_mallocunits,
                        vcpus=const.default_vcpus,
@@ -807,7 +808,7 @@ class XenXML(VirtXML, VirtCIM):
         self._os(const.Xen_kernel_path, const.Xen_init_path)
         self._devices(disk_file_path, disk, ntype, mac, net_name)
 
-        VirtCIM.__init__(self, 'Xen', test_dom, disk, disk_file_path, 
+        VirtCIM.__init__(self, 'Xen', test_dom, uuid, disk, disk_file_path, 
                          ntype, net_name, mac, vcpus, mem, mem_allocunits, 
                          emu_type, grstype, address, port_num, keymap, irstype,
                          btype, vnc_passwd)
@@ -852,6 +853,7 @@ class KVMXML(VirtXML, VirtCIM):
     secondary_disk_path = const.KVM_secondary_disk_path
     
     def __init__(self, test_dom=const.default_domname,
+                       uuid=None,
                        mem=const.default_memory,
                        mem_allocunits=const.default_mallocunits,
                        vcpus=const.default_vcpus,
@@ -867,7 +869,7 @@ class KVMXML(VirtXML, VirtCIM):
             logger.error('Error: Disk image does not exist')
             sys.exit(1)
         VirtXML.__init__(self, 'kvm', test_dom, set_uuid(), mem, vcpus)
-        VirtCIM.__init__(self, 'KVM', test_dom, disk, disk_file_path,
+        VirtCIM.__init__(self, 'KVM', test_dom, uuid, disk, disk_file_path,
                          ntype, net_name, mac, vcpus, mem, 
                          mem_allocunits, emu_type, grstype, address, 
                          port_num, keymap, irstype, btype, vnc_passwd)
@@ -907,6 +909,7 @@ class XenFVXML(VirtXML, VirtCIM):
     secondary_disk_path = const.XenFV_secondary_disk_path
 
     def __init__(self, test_dom=const.default_domname,
+                       uuid=None,              
                        mem=const.default_memory,
                        mem_allocunits=const.default_mallocunits,
                        vcpus=const.default_vcpus,
@@ -922,7 +925,7 @@ class XenFVXML(VirtXML, VirtCIM):
             logger.error('Error: Disk image does not exist')
             sys.exit(1)
         VirtXML.__init__(self, 'xenfv', test_dom, set_uuid(), mem, vcpus)
-        VirtCIM.__init__(self, 'XenFV', test_dom, disk, disk_file_path,
+        VirtCIM.__init__(self, 'XenFV', test_dom, disk, uuid, disk_file_path,
                          ntype, net_name, mac, vcpus, mem, mem_allocunits, 
                          emu_type, grstype, address, port_num, keymap, 
                          irstype, btype, vnc_passwd)
@@ -967,6 +970,7 @@ class XenFVXML(VirtXML, VirtCIM):
 class LXCXML(VirtXML, VirtCIM):
 
     def __init__(self, test_dom=const.default_domname,
+                       uuid=None,
                        mem=const.default_memory,
                        vcpus=const.default_vcpus,
                        mac=const.LXC_default_mac,
@@ -976,7 +980,7 @@ class LXCXML(VirtXML, VirtCIM):
                        address="127.0.0.1", port_num='-1', keymap="en-us",
                        irstype="mouse", btype="usb", vnc_passwd=None):
         VirtXML.__init__(self, 'lxc', test_dom, set_uuid(), mem, vcpus)
-        VirtCIM.__init__(self, 'LXC', test_dom, const.LXC_default_mp,
+        VirtCIM.__init__(self, 'LXC', test_dom, uuid, const.LXC_default_mp,
                          const.LXC_default_source, ntype, net_name, mac, vcpus,
                          mem, const.default_mallocunits, None, grstype, 
                          address, port_num, keymap, irstype, btype, vnc_passwd)
