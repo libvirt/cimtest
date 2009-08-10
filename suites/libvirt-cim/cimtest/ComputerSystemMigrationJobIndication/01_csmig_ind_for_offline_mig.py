@@ -78,13 +78,14 @@ def cleanup_guest_netpool(virt, cxml, test_dom, t_sysname,
     if clean_net != True:
         return 
 
-    # clean the networkpool created on the remote machine
-    target_net_list = net_list(t_sysname, virt)
-    if target_net_list != None and default_network_name in target_net_list:
-        ret_value = destroy_netpool(t_sysname, virt, default_network_name)
-        if ret_value != PASS:
-            logger.info("Unable to destroy networkpool '%s' on '%s'",
-                         default_network_name, t_sysname)
+    if t_sysname != "localhost" and t_sysname not in s_sysname:
+        # clean the networkpool created on the remote machine
+        target_net_list = net_list(t_sysname, virt)
+        if target_net_list != None and default_network_name in target_net_list:
+            ret_value = destroy_netpool(t_sysname, virt, default_network_name)
+            if ret_value != PASS:
+                logger.info("Unable to destroy networkpool '%s' on '%s'",
+                             default_network_name, t_sysname)
 
     # Remote Migration not Successful, clean the domain on src machine
     src_list = domain_list(s_sysname, virt)
