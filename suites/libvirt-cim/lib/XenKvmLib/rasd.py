@@ -360,7 +360,8 @@ def get_exp_disk_rasd_len(virt, ip, rev, id):
             volumes = enum_volumes(virt, ip, id[1])
             exp_len = (volumes * exp_base_num) + exp_cdrom
 
-    if rev >= libvirt_rasd_storagepool_changes and virt != 'LXC':
+    if rev >= libvirt_rasd_storagepool_changes and libvirt_ver >= '0.4.1' \
+       and virt != 'LXC':
         exp_len += exp_storagevol_rasd
 
     return exp_len
