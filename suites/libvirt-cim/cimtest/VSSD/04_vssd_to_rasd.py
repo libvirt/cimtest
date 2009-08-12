@@ -73,11 +73,6 @@ def setup_env(virt):
     else:
         vsxml_info = virt_xml(test_dom,  mem=test_mem, vcpus = test_vcpus,
                               mac = test_mac, disk = test_disk)
-        try:
-            bridge = vsxml_info.set_vbridge(server, default_network_name)
-        except Exception, details:
-            logger.error("Exception : %s", details)
-            return FAIL, vsxml_info
 
     try:
         ret = vsxml_info.cim_define(server)
