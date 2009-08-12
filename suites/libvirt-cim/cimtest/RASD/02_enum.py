@@ -129,7 +129,6 @@ def main():
     else:
         vsxml = virtxml(test_dom, mem=test_mem, vcpus = test_vcpus,
                         mac = test_mac, disk = test_disk)
-        vsxml.set_vbridge(server, default_network_name)
         class_list = [ get_typed_class(virt, rasd.dasd_cn),
                        get_typed_class(virt, rasd.masd_cn),
                        get_typed_class(virt, rasd.pasd_cn),
