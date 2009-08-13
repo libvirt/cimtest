@@ -770,11 +770,12 @@ class VirtCIM:
             rc = int(self.err_rc)
 
             if rc != exp_rc:
-                raise Exception("Got rc: %d, exp %d." % (rc, exp_rc))
+                raise Exception("Error code Mismatch, Got rc: %d, exp %d." \
+                                % (rc, exp_rc))
 
-            if self.err_desc.find(exp_desc) < 0:
-                raise Exception("Got desc: '%s', exp '%s'" % (self.err_desc,
-                                exp_desc))
+            if not exp_desc in self.err_desc:
+                raise Exception("Desc Mismatch, Got desc: '%s', exp '%s'" \
+                               % (self.err_desc, exp_desc))
 
         except Exception, details:
             logger.error(details)

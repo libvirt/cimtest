@@ -68,8 +68,9 @@ def main():
                     'network' : "Valid param "}
                       }
 
+    libvirt_version = virsh_version(options.ip, options.virt)
+    inv_empty_network = "Network not found"
     if options.virt == "Xen" or options.virt == "XenFV":
-        libvirt_version = virsh_version(options.ip, options.virt)
         if libvirt_version <= "0.3.3":
             inv_empty_network = "no network with matching name"
 
@@ -78,7 +79,6 @@ def main():
                          "device invalid')"
 
         else:
-            inv_empty_network = "Network not found"
              
             inv_br_str = "POST operation failed: xend_post: error from xen " + \
                          "daemon: (xend.err 'Device 0 (vif) could not be " + \
@@ -88,6 +88,11 @@ def main():
         expected_values['empty']['network'] = inv_empty_network 
 
         expected_values['invalid']['bridge'] = inv_br_str
+    else:
+        if libvirt_version >= "0.7.0":
+            expected_values['empty']['network'] = inv_empty_network
+            expected_values['invalid']['network'] = inv_empty_network
+
 
     tc_scen = {
                 'invalid' : 'invalid',
@@ -107,6 +112,7 @@ def main():
     status = PASS
     for nettype in nettypes:
         for  tc, field in tc_scen.iteritems():
+            logger.error("DEBUG nettype is %s, field is %s, tc is %s", nettype, field, tc)
             cxml = vxml.get_class(options.virt)(default_dom, mac=nmac,
                                                 ntype=nettype,
                                                 net_name=field)
