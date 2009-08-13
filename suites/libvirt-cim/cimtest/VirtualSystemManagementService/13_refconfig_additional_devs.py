@@ -27,7 +27,8 @@ from XenKvmLib.common_util import call_request_state_change, \
 from XenKvmLib import vsms
 from VirtLib import utils 
 from CimTest.Globals import logger
-from XenKvmLib.const import do_main
+from XenKvmLib.const import do_main, KVM_secondary_disk_path, \
+                            Xen_secondary_disk_path
 from CimTest.ReturnCodes import FAIL, PASS
 from XenKvmLib.test_doms import destroy_and_undefine_domain 
 from XenKvmLib.classes import get_typed_class
@@ -120,7 +121,15 @@ def main():
 
     virt_xml = get_class(options.virt)
     cxml = virt_xml(test_dom, mac=mac1)
-    cxml2 = virt_xml(test_dom2, mac=mac2)
+    if options.virt == 'Xen':
+        test_disk = 'xvdb'
+        disk_path = Xen_secondary_disk_path
+    else:
+        test_disk = 'hdb'
+        disk_path = KVM_secondary_disk_path
+
+    cxml2 = virt_xml(test_dom2, mac=mac2, 
+                     disk=test_disk, disk_file_path=disk_path)
 
     try:
         rc = cxml.cim_define(options.ip)
