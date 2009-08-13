@@ -128,9 +128,9 @@ class KVM_VirtualSystemSettingData(CIM_VirtualSystemSettingData):
 class LXC_VirtualSystemSettingData(CIM_VirtualSystemSettingData):
     pass
 
-def get_vssd_mof(virt, dom_name, bldr=None):
+def get_vssd_mof(virt, dom_name, uuid=None, bldr=None):
     vssd_cn = eval(get_typed_class(virt, "VirtualSystemSettingData"))
-    vssd = vssd_cn(dom_name, virt, bldr)
+    vssd = vssd_cn(dom_name, virt, uuid=uuid, bldr=bldr)
     return vssd.mof()
 
 # classes to define RASD parameters

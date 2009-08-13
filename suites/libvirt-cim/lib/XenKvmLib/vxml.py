@@ -563,7 +563,7 @@ class VirtCIM:
         self.domain_name = dom_name
         self.err_rc = None
         self.err_desc = None
-        self.vssd = vsms.get_vssd_mof(virt, dom_name, uuid)
+        self.vssd = vsms.get_vssd_mof(virt, dom_name, uuid=uuid)
         self.nasd = vsms.get_nasd_class(virt)(type=net_type, 
                                               mac=net_mac,
                                               name=dom_name,
@@ -837,7 +837,7 @@ class XenXML(VirtXML, VirtCIM):
     def set_bootloader(self, ip, gtype=0):
         bldr = bootloader(ip, gtype)
         self.add_sub_node('/domain', 'bootloader', bldr)
-        self.vssd = vsms.get_vssd_mof(self.virt, self.domain_name, bldr)
+        self.vssd = vsms.get_vssd_mof(self.virt, self.domain_name, bldr=bldr)
         return bldr
 
     def set_bridge(self, ip):
