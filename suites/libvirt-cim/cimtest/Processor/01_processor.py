@@ -27,7 +27,6 @@ import pywbem
 from VirtLib import utils
 from XenKvmLib.xm_virt_util import active_domain_list
 from XenKvmLib.enumclass import GetInstance
-from XenKvmLib.test_xml import testxml
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.vxml import XenXML, KVMXML, get_class
 from CimTest.Globals import logger

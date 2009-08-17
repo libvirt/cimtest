@@ -38,7 +38,6 @@
 
 import sys
 from pywbem.cim_obj import CIMInstanceName
-from XenKvmLib.test_xml import testxml
 from VirtLib import utils
 from CimTest import Globals
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, CIM_ERROR_ASSOCIATORS
