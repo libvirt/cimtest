@@ -55,30 +55,11 @@ def set_expr_values(host_ccn):
         exp_d2 = "No such instance (CreationClassName)" 
 
     expr_values = {
-                    "INVALID_KeyName"     : { 'rc' : exp_rc, 'desc' : exp_d1 },
                     "INVALID_NameValue"   : { 'rc' : exp_rc, 'desc' : exp_d1 },
-                    "INVALID_CCNKeyName"  : { 'rc' : exp_rc, 'desc' : exp_d2 },
                     "INVALID_CCNameValue" : { 'rc' : exp_rc, 'desc' : exp_d2 }
                   }
 
     return expr_values 
-
-def verify_err_fields(cxml, server, conn, keys, classname, 
-                      assoc_classname, msg, field, expr_values):
-    try:
-        ret = try_assoc(conn, classname, assoc_classname, keys, 
-                        field_name=field, expr_values=expr_values[field], 
-                        bug_no="")
-        if ret != PASS:
-            logger.error("--- FAILED: %s---", msg)
-            cxml.cim_destroy(server)
-            cxml.cim_undefine(server)
-    except Exception, details:
-        logger.error("Exception: %s", details)
-        cxml.cim_destroy(server)
-        cxml.cim_undefine(server)
-        return FAIL
-    return ret
 
 @do_main(sup_types)
 def main():
@@ -103,55 +84,45 @@ def main():
         logger.error("Failed to start the dom: %s", test_dom)
         return FAIL
 
-    conn = assoc.myWBEMConnection('http://%s' % server,
-                                  (CIM_USER, CIM_PASS), CIM_NS)
+    status = FAIL
 
-    acn = get_typed_class(virt, 'HostedDependency')
-    status, host_inst = get_host_info(server, virt)
-    if status:
-        logger.error("Unable to get host info")
-        cxml.cim_destroy(server)
-        cxml.undefine(server)
-        return status
+    try: 
+        conn = assoc.myWBEMConnection('http://%s' % server,
+                                      (CIM_USER, CIM_PASS), CIM_NS)
 
-    classname = host_inst.CreationClassName 
-    host_name = host_inst.Name
+        acn = get_typed_class(virt, 'HostedDependency')
+        status, host_inst = get_host_info(server, virt)
+        if status:
+            raise Exception("Unable to get host info")
 
-    expr_values = set_expr_values(classname)
+        classname = host_inst.CreationClassName 
+        host_name = host_inst.Name
 
-    msg = 'Invalid Name Key Name'
-    field = 'INVALID_KeyName'
-    keys = { 'CreationClassName' : classname, field : host_name }
-    ret_value = verify_err_fields(cxml, server, conn, keys, classname, 
-                                  acn, msg, field, expr_values) 
-    if ret_value != PASS: 
-        return ret_value
-      
-    msg = 'Invalid Name Key Value'
-    field='INVALID_NameValue'
-    keys = { 'CreationClassName' : classname, 'Name'   : field }
-    ret_value = verify_err_fields(cxml, server, conn, keys, classname, 
-                                  acn, msg, field, expr_values) 
-    if ret_value != PASS: 
-        return ret_value
+        expr_values = set_expr_values(classname)
 
-    msg = 'Invalid CreationClassName Key Name'
-    field='INVALID_CCNKeyName'
-    keys = {  field : classname, 'Name' : host_name }
-    ret_value = verify_err_fields(cxml, server, conn, keys, classname, 
-                                  acn, msg, field, expr_values)
-    if ret_value != PASS: 
-        return ret_value
+        msg = 'Invalid Name Key Value'
+        field='INVALID_NameValue'
+        keys = { 'CreationClassName' : classname, 'Name'   : field }
 
-    msg = 'Invalid CreationClassName Key Value'
-    field='INVALID_CCNameValue'
-    keys = { 'CreationClassName'  : field, 'Name'  : host_name }
-    ret_value = verify_err_fields(cxml, server, conn, keys, classname, 
-                                  acn, msg, field, expr_values)
-    if ret_value == PASS:
-        cxml.cim_destroy(server)
-        cxml.undefine(server)
-    return ret_value 
+        status = try_assoc(conn, classname, acn, keys, field_name=field,  
+                           expr_values=expr_values[field], bug_no="")
+        if status != PASS: 
+            raise Exception("Test is %s failed" % field)
+
+        msg = 'Invalid CreationClassName Key Value'
+        field='INVALID_CCNameValue'
+        keys = { 'CreationClassName'  : field, 'Name'  : host_name }
+
+        status = try_assoc(conn, classname, acn, keys, field_name=field,  
+                           expr_values=expr_values[field], bug_no="")
+
+    except Exception, details:
+        logger.error(details)
+
+    cxml.cim_destroy(server)
+    cxml.undefine(server)
+
+    return status 
 if __name__ == "__main__":
     sys.exit(main())
 
