@@ -43,7 +43,9 @@ cpu = 2
 ncpu = 1
 nmem = 256 
 new_int = randint(10, 99)
-new_mac = "11:%s:22:%s:33:%s" % (new_int, new_int, new_int)
+new_mac1 = "11:%s:22:%s:33:%s" % (new_int, new_int, new_int)
+new_int += 1
+new_mac2 = "11:%s:22:%s:33:%s" % (new_int, new_int, new_int)
 
 def cleanup_env(ip, virt, cxml):
     cxml.destroy(ip)
@@ -54,7 +56,7 @@ def main():
     options = main.options 
 
     service = vsms.get_vsms_class(options.virt)(options.ip)
-    cxml = vxml.get_class(options.virt)(default_dom, vcpus=cpu)
+    cxml = vxml.get_class(options.virt)(default_dom, vcpus=cpu, mac=new_mac1)
     ndpath = cxml.secondary_disk_path
     dasd = vsms.get_dasd_class(options.virt)(dev=cxml.xml_get_disk_dev(),
                                              source=ndpath, 
@@ -77,7 +79,6 @@ def main():
     for case in test_cases:
         #Each time through, define guest using a default XML
         cxml.undefine(options.ip)
-        cxml = vxml.get_class(options.virt)(default_dom, vcpus=cpu)
         ret = cxml.cim_define(options.ip)
         if not ret:
             logger.error("Failed to define the dom: %s", default_dom)
@@ -107,7 +108,7 @@ def main():
         if status != PASS:
             break
 
-        nasd.Address = new_mac
+        nasd.Address = new_mac2
         status = vsms_util.mod_net_res(options.ip, service, options.virt, cxml,
                                        nasd, ntype, default_network_name)
         if status != PASS:
