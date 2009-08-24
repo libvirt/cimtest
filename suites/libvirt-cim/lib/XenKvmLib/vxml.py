@@ -151,7 +151,7 @@ class Virsh:
         elif vir_type == 'kvm':
             self.vuri = 'qemu:///system'
         elif vir_type == 'lxc':
-            self.vuri = 'lxc:///system'
+            self.vuri = 'lxc:///'
 
     def run(self, ip, vcmd, param):
         file_arg_cmds = ['define', 'create', 'net-create', 'pool-create']
@@ -572,17 +572,18 @@ class VirtCIM:
             self.pasd = vsms.get_pasd_class(virt)(name=dom_name)
             self.dasd = vsms.get_dasd_class(virt)(disk_dev, disk_source,
                                                   dom_name)
+            self.gasd = None 
         else:
             self.pasd = vsms.get_pasd_class(virt)(vcpu=vcpus, name=dom_name)
             self.dasd = vsms.get_dasd_class(virt)(disk_dev, disk_source,
                                                   dom_name, emu_type)
+            self.gasd = vsms.get_gasd_class(virt)(name=dom_name, 
+                                                  res_sub_type=grstype, ip=ip,
+                                                  lport=port_num, keymap=kmap, 
+                                                  vnc_passwd=vnc_passwd)
         self.masd = vsms.get_masd_class(virt)(megabytes=mem, 
                                               mallocunits=mem_allocunits,
                                               name=dom_name)
-        self.gasd = vsms.get_gasd_class(virt)(name=dom_name, 
-                                              res_sub_type=grstype, ip=ip,
-                                              lport=port_num, keymap=kmap, 
-                                              vnc_passwd=vnc_passwd)
         self.iasd = vsms.get_iasd_class(virt)(name=dom_name, 
                                               res_sub_type=irstype, 
                                               bus_type=btype)

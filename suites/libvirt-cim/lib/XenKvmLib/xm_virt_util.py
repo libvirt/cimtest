@@ -313,7 +313,7 @@ def virt2uri(virt):
     if virt == "KVM":
         return "qemu:///system"
     if virt == "LXC":
-        return "lxc:///system"
+        return "lxc:///"
     return ""
 
 def run_remote_guest(ip, domain, command):
