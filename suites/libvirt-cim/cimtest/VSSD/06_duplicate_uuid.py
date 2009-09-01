@@ -51,7 +51,7 @@ def get_vssd(ip, virt, dom):
         if virt == "XenFV": 
             virt = "Xen"
 
-        key_list = {"InstanceID" : "%s:%s" % (virt, default_dom) }
+        key_list = {"InstanceID" : "%s:%s" % (virt, dom) }
 
         inst = GetInstance(ip, cn, key_list, True)
 
