@@ -45,14 +45,9 @@ test_dom = "hd_domain1"
 test_mac = "00:11:22:33:44:55"
 
 def set_expr_values(host_ccn):
-    if (host_ccn == "Linux_ComputerSystem"):
-        exp_rc =  pywbem.CIM_ERR_INVALID_PARAMETER
-        exp_d1 = "INVALID"
-        exp_d2 = "INVALID"
-    else:
-        exp_rc =  pywbem.CIM_ERR_NOT_FOUND
-        exp_d1 = "No such instance (Name)"
-        exp_d2 = "No such instance (CreationClassName)" 
+    exp_rc =  pywbem.CIM_ERR_NOT_FOUND
+    exp_d1 = "No such instance (Name)"
+    exp_d2 = "No such instance (CreationClassName)" 
 
     expr_values = {
                     "INVALID_NameValue"   : { 'rc' : exp_rc, 'desc' : exp_d1 },
