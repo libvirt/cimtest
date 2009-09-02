@@ -26,7 +26,7 @@ import pywbem
 from XenKvmLib import assoc
 from XenKvmLib import enumclass
 from XenKvmLib.common_util import get_host_info
-from XenKvmLib.common_util import try_assoc
+from XenKvmLib.common_util import try_assoc, check_cimom
 from CimTest import Globals
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL
@@ -55,8 +55,13 @@ def main():
                                                        Globals.CIM_NS)
     host_cn = host_inst.CreationClassName
     host_sys = host_inst.Name
+    
+    rc, out = check_cimom(options.ip)
+    if rc != PASS:
+        logger.error("Failed to get the cimom information")
+        return FAIL
 
-    if (host_cn == "Linux_ComputerSystem"):
+    if (host_cn == "Linux_ComputerSystem") and "cimserver" in out:
         sblim_rc = pywbem.CIM_ERR_INVALID_PARAMETER
         expr_values['invalid_ccname'] = {"rc" : sblim_rc, "desc" : "wrong"}
         expr_values['invalid_name'] = {"rc" : sblim_rc, "desc" : "wrong"}
