@@ -230,6 +230,19 @@ def profile_init_list():
         profiles[key]['InstanceID'] = 'CIM:' + key
     return profiles 
 
+def check_cimom(ip):
+    cmd = "ps -ef | grep -v grep | grep cimserver"
+    rc, out = utils.run_remote(ip, cmd)
+    if rc != 0:
+        cmd = "ps -ef | grep -v grep | grep sfcbd"
+        rc, out = utils.run_remote(ip, cmd)
+
+    if rc == 0 :
+        cmd = "%s | awk '{ print \$8 }' | uniq" % cmd
+        rc, out = utils.run_remote(ip, cmd)
+
+    return rc, out
+
 def pre_check(ip, virt):
     cmd = "virsh -c %s list --all" % virt2uri(virt)
     ret, out = utils.run_remote(ip, cmd)
@@ -250,13 +263,9 @@ def pre_check(ip, virt):
             if ret != 0: 
                 return "Encountered an error querying for qemu-kvm and qemu " 
 
-    cmd = "ps -ef | grep -v grep | grep cimserver"
-    rc, out = utils.run_remote(ip, cmd)
+    rc, out = check_cimom(ip)
     if rc != 0:
-        cmd = "ps -ef | grep -v grep | grep sfcbd"
-        rc, out = utils.run_remote(ip, cmd)
-        if rc != 0:
-            return "A supported CIMOM is not running" 
+        return "A supported CIMOM is not running" 
 
     cmd = "ps -ef | grep -v grep | grep libvirtd"
     rc, out = utils.run_remote(ip, cmd)
