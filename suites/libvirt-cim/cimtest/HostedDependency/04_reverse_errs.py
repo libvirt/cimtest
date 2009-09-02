@@ -36,7 +36,7 @@ from XenKvmLib import vxml
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from XenKvmLib.const import do_main
 from XenKvmLib.classes import get_typed_class
-from XenKvmLib.common_util import get_host_info, try_assoc
+from XenKvmLib.common_util import get_host_info, try_assoc, check_cimom
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
@@ -44,10 +44,19 @@ sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 test_dom = "hd_domain1"
 test_mac = "00:11:22:33:44:55"
 
-def set_expr_values(host_ccn):
-    exp_rc =  pywbem.CIM_ERR_NOT_FOUND
-    exp_d1 = "No such instance (Name)"
-    exp_d2 = "No such instance (CreationClassName)" 
+def set_expr_values(host_ccn, server):
+    rc, out = check_cimom(server)
+    if rc != PASS:
+        return None
+
+    if (host_ccn == "Linux_ComputerSystem") and "cimserver" in out:
+        exp_rc =  pywbem.CIM_ERR_INVALID_PARAMETER
+        exp_d1 = "INVALID"
+        exp_d2 = "INVALID"
+    else:
+       exp_rc =  pywbem.CIM_ERR_NOT_FOUND
+       exp_d1 = "No such instance (Name)"
+       exp_d2 = "No such instance (CreationClassName)" 
 
     expr_values = {
                     "INVALID_NameValue"   : { 'rc' : exp_rc, 'desc' : exp_d1 },
@@ -93,7 +102,9 @@ def main():
         classname = host_inst.CreationClassName 
         host_name = host_inst.Name
 
-        expr_values = set_expr_values(classname)
+        expr_values = set_expr_values(classname, server)
+        if expr_values == None:
+            raise Exception("Failed to initialise the error values")
 
         msg = 'Invalid Name Key Value'
         field='INVALID_NameValue'
@@ -113,6 +124,7 @@ def main():
 
     except Exception, details:
         logger.error(details)
+        status=FAIL
 
     cxml.cim_destroy(server)
     cxml.undefine(server)
