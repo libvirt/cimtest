@@ -26,11 +26,12 @@ from XenKvmLib import vsms
 from XenKvmLib import vxml
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
-from XenKvmLib.const import do_main, default_network_name
+from XenKvmLib.const import do_main, CIM_DISABLE
 from XenKvmLib.classes import get_typed_class, inst_to_mof
 from XenKvmLib.enumclass import GetInstance 
 from XenKvmLib.common_util import poll_for_state_change 
 from XenKvmLib.const import get_provider_version
+from XenKvmLib.xm_virt_util import domain_list, active_domain_list
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 default_dom = 'rstest_domain'
@@ -41,10 +42,6 @@ bug = "00008"
 f9_bug = "00010"
 libvirt_f9_revision=613
 libvirt_modify_setting_changes = 694
-
-def cleanup_env(ip, cxml):
-    cxml.cim_destroy(ip)
-    cxml.undefine(ip)
 
 def get_vssd(ip, virt, get_cim_inst):
     cn = get_typed_class(virt, "VirtualSystemSettingData") 
@@ -74,72 +71,75 @@ def main():
     cxml = vxml.get_class(options.virt)(default_dom, vcpus=cpu)
     service = vsms.get_vsms_class(options.virt)(options.ip)
 
-    for case in test_cases:
-        #Each time through, define guest using a default XML
-        cxml.undefine(options.ip)
-        cxml = vxml.get_class(options.virt)(default_dom, vcpus=cpu)
-        ret = cxml.cim_define(options.ip)
-        if not ret:
-            logger.error("Failed to define the dom: %s", default_dom)
-            cleanup_env(options.ip, cxml)
-            return FAIL
+    try:
 
-        if case == "start":
-            ret = cxml.start(options.ip)
+        for case in test_cases:
+            #Each time through, define guest using a default XML
+            cxml.undefine(options.ip)
+            cxml = vxml.get_class(options.virt)(default_dom, vcpus=cpu)
+            ret = cxml.cim_define(options.ip)
             if not ret:
-                logger.error("Failed to start %s", default_dom)
-                cleanup_env(options.ip, cxml)
-                return FAIL
+                raise Exception("Failed to define the dom: %s" % default_dom)
 
-        status, inst = get_vssd(options.ip, options.virt, True)
-        if status != PASS:
-            logger.error("Failed to get the VSSD instance for %s", default_dom)
-            cleanup_env(options.ip, cxml)
-            return FAIL
+            if case == "start":
+                ret = cxml.cim_start(options.ip)
+                if ret:
+                    raise Exception("Failed to start %s" % default_dom)
 
-        inst['AutomaticRecoveryAction'] = pywbem.cim_types.Uint16(RECOVERY_VAL)
-        vssd = inst_to_mof(inst)
-
-        ret = service.ModifySystemSettings(SystemSettings=vssd) 
-        curr_cim_rev, changeset = get_provider_version(options.virt, options.ip)
-        if curr_cim_rev >= libvirt_modify_setting_changes:
-            if ret[0] != 0:
-                logger.error("Failed to modify dom: %s", default_dom)
-                cleanup_env(options.ip, cxml)
-                return FAIL
-
-        if case == "start":
-            #This should be replaced with a RSC to shutdownt he guest
-            cxml.destroy(options.ip)
-            status, cs = poll_for_state_change(options.ip, options.virt, 
-                                               default_dom, DEFINED_STATE)
+            status, inst = get_vssd(options.ip, options.virt, True)
             if status != PASS:
-                logger.error("Failed to destroy %s", default_dom)
-                cleanup_env(options.ip, cxml)
-                return FAIL
+                raise Expcetion("Failed to get the VSSD instance for %s" % \
+                                default_dom)
 
-        status, inst = get_vssd(options.ip, options.virt, False)
-        if status != PASS:
-            logger.error("Failed to get the VSSD instance for %s", default_dom)
-            cleanup_env(options.ip, cxml)
-            return FAIL
+            val = pywbem.cim_types.Uint16(RECOVERY_VAL)
+            inst['AutomaticRecoveryAction'] = val
+            vssd = inst_to_mof(inst)
 
-        if inst.AutomaticRecoveryAction != RECOVERY_VAL:
-            logger.error("%s not updated properly.", default_dom)
-            logger.error("Exp AutomaticRecoveryAction=%d, got %d", RECOVERY_VAL,
-                         inst.AutomaticRecoveryAction)
-            cleanup_env(options.ip, cxml)
-            curr_cim_rev, changeset = get_provider_version(options.virt, options.ip)
-            if curr_cim_rev <= libvirt_f9_revision and options.virt == "KVM":
-                return XFAIL_RC(f9_bug)
+            ret = service.ModifySystemSettings(SystemSettings=vssd) 
+            curr_cim_rev, changeset = get_provider_version(options.virt, 
+                                                           options.ip)
+            if curr_cim_rev >= libvirt_modify_setting_changes:
+                if ret[0] != 0:
+                    raise Exception("Failed to modify dom: %s" % default_dom)
 
-            if options.virt == "LXC":
-                return XFAIL_RC(bug)
-            return FAIL 
+            if case == "start":
+                status = cxml.cim_disable(options.ip)
+                if status != PASS:
+                    raise Exception("Failed to disable %s" % default_dom)
 
-    cleanup_env(options.ip, cxml)
+                status, cs = poll_for_state_change(options.ip, options.virt, 
+                                                   default_dom, CIM_DISABLE)
+                if status != PASS:
+                    raise Exception("Failed to destroy %s" % default_dom)
 
-    return PASS 
+            status, inst = get_vssd(options.ip, options.virt, False)
+            if status != PASS:
+                raise Exception("Failed to get the VSSD instance for %s" % \
+                                default_dom)
+
+            if inst.AutomaticRecoveryAction != RECOVERY_VAL:
+                logger.error("Exp AutomaticRecoveryAction=%d, got %d", 
+                             RECOVERY_VAL, inst.AutomaticRecoveryAction)
+                raise Exception("%s not updated properly" % default_dom)
+
+            status = PASS
+
+    except Exception, details:
+        logger.error(details)
+        status = FAIL
+
+    defined_domains = domain_list(options.ip, options.virt)
+    if default_dom in defined_domains:
+            cxml.cim_destroy(options.ip)
+
+    curr_cim_rev, changeset = get_provider_version(options.virt, options.ip)
+    if curr_cim_rev <= libvirt_f9_revision and options.virt == "KVM":
+        return XFAIL_RC(f9_bug)
+
+    if options.virt == "LXC":
+        return XFAIL_RC(bug)
+
+    return status 
 
 if __name__ == "__main__":
     sys.exit(main())
