@@ -33,19 +33,16 @@
 import sys
 from XenKvmLib.common_util import get_cs_instance
 from CimTest.Globals import logger
-from XenKvmLib.const import do_main, get_provider_version
+from XenKvmLib.const import do_main, KVM_secondary_disk_path 
 from CimTest.ReturnCodes import FAIL, PASS
 from XenKvmLib.classes import get_typed_class, inst_to_mof
 from XenKvmLib.assoc import AssociatorNames
-from XenKvmLib.test_xml import dumpxml
 from XenKvmLib.vxml import get_class
 from XenKvmLib.rasd import get_default_rasds
 
 sup_types = ['Xen', 'XenFV', 'KVM']
 test_dom = 'rstest_domain'
 test_dom2 = 'rstest_domain2'
-mac = "aa:aa:aa:00:00:00"
-libvirt_mac_ref_changes = 935
 
 def setup_first_guest(ip, virt, cxml):
     ret = cxml.cim_define(ip)
@@ -76,22 +73,23 @@ def get_vssd_ref(ip, virt):
     return vssd[0]
 
 def setup_second_guest(ip, virt, cxml2, ref):
-    nrasd_cn = get_typed_class(virt, "NetResourceAllocationSettingData")
+    drasd_cn = get_typed_class(virt, "DiskResourceAllocationSettingData")
 
     rasds = get_default_rasds(ip, virt)
 
     rasd_list = {}
 
     for rasd in rasds:
-        if rasd.classname == nrasd_cn:
-            rasd['Address'] = mac
-            rasd['NetworkType'] = "network" 
-            rasd_list[nrasd_cn] = inst_to_mof(rasd)
+        if rasd.classname == drasd_cn:
+            rasd['Address'] = KVM_secondary_disk_path 
+            rasd['VirtualDevice '] = "hdb" 
+            rasd_list[drasd_cn] = inst_to_mof(rasd)
+            break
         else:
             rasd_list[rasd.classname] = None
 
-    if rasd_list[nrasd_cn] is None:
-        logger.error("Unable to get template NetRASD")
+    if rasd_list[drasd_cn] is None:
+        logger.error("Unable to get template DiskRASD")
         return FAIL
 
     cxml2.set_res_settings(rasd_list)
@@ -103,20 +101,21 @@ def setup_second_guest(ip, virt, cxml2, ref):
 
     return PASS, "define"
 
-def get_dom_macs(server, dom, virt):
-    mac_list = []
+def get_dom_disk_src(xml, ip):
+    disk_list = []
 
-    myxml = dumpxml(dom, server, virt=virt)
+    xml.dumpxml(ip)
+    myxml = xml.get_formatted_xml()
 
     lines = myxml.splitlines()
     for l in lines:
-        if l.find("mac address=") != -1:
-            mac = l.split('=')[1]
-            mac = mac.lstrip('\'')
-            mac = mac.rstrip('\'/>')
-            mac_list.append(mac)
+        if l.find("source file=") != -1:
+            disk = l.split('=')[1]
+            disk = disk.lstrip('\'')
+            disk = disk.rstrip('\'/>')
+            disk_list.append(disk)
    
-    return mac_list 
+    return disk_list 
 
 @do_main(sup_types)
 def main():
@@ -143,26 +142,23 @@ def main():
         if status != PASS:
             raise Exception("Unable to define %s" % test_dom2)
 
-        dom1_mac_list = get_dom_macs(ip, test_dom, virt)
-        if len(dom1_mac_list) != 1:
-            raise Exception("%s has %d macs, expected 1" % (test_dom, 
-                            len(dom1_mac_list)))
+        g1_disk_list = get_dom_disk_src(cxml, ip)
+        if len(g1_disk_list) != 1:
+            raise Exception("%s has %d disks, expected 1" % (test_dom, 
+                            len(g1_disk_list)))
 
-        dom2_mac_list = get_dom_macs(ip, test_dom2, virt)
-        if len(dom2_mac_list) != 2:
-            raise Exception("%s has %d macs, expected 2" % (test_dom2, 
-                            len(dom2_mac_list)))
+        g2_disk_list = get_dom_disk_src(cxml2, ip)
+        if len(g2_disk_list) != 2:
+            raise Exception("%s has %d disks, expected 2" % (test_dom2, 
+                            len(g2_disk_list)))
 
-        curr_cim_rev, changeset = get_provider_version(virt, ip)
-        if curr_cim_rev < libvirt_mac_ref_changes: 
-            for item in dom2_mac_list:
-                if item != mac and item != dom1_mac_list[0]:
-                    raise Exception("%s has unexpected mac value, exp: %s %s" \
-                                    % (item, mac, dom1_mac_list[0]))
-        elif curr_cim_rev >= libvirt_mac_ref_changes:
-            if not mac in dom2_mac_list:
-                raise Exception("Did not find the mac information given to "\
-                                "the domain '%s'" % test_dom2)
+        if g2_disk_list[0] != g1_disk_list[0]:
+            raise Exception("%s has unexpected disk source, exp: %s, got %s" \
+                            % (test_dom2, g2_disk_list[0], g1_disk_list[0]))
+
+        if g2_disk_list[1] == g1_disk_list[0]:
+            raise Exception("%s has unexpected disk source, exp: %s, got %s" \
+                            % (test_dom2, g2_disk_list[1], g1_disk_list[0]))
 
         status = PASS
       
