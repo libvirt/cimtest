@@ -25,6 +25,8 @@ import pywbem
 import random
 from time import sleep
 from tempfile import mkdtemp
+from commands import getstatusoutput
+from socket import gethostbyaddr
 from distutils.file_util import move_file
 from XenKvmLib.test_xml import * 
 from XenKvmLib.test_doms import * 
@@ -517,20 +519,50 @@ def nfs_config(server, nfs_server_bin):
 
     return PASS
 
-def clean_temp_files(server, src_dir_for_mnt, dest_dir_to_mnt):
-    cmd =  "rm -rf %s %s" % (src_dir_for_mnt, dest_dir_to_mnt)
+def check_existing_nfs():
+    host_addr = src_dir = None
+    s, o = getstatusoutput("mount")
+    lines  = o.splitlines()
+    for line in lines:
+        if "nfs" == line.split()[-2]:
+            addr, src_dir = line.split()[0].split(":")
+            host_addr  = gethostbyaddr(addr)[0] 
+
+    return host_addr, src_dir
+
+def clean_temp_files(server, src_dir_for_mnt, dest_dir_to_mnt, cmd):
     rc, out = utils.run_remote(server, cmd) 
     if rc != PASS:
         logger.error("Please delete %s %s if present on %s", 
                       src_dir_for_mnt, dest_dir_to_mnt, server)
 
+def check_haddr_is_localhost(server, host_addr):
+    # This function is required to determine if setup a new nfs
+    # setup or using an old one.
+    new_nfs_server_setup = False
+    local_addr = gethostbyaddr(server)
+    if host_addr in local_addr:
+        new_nfs_server_setup = True
+
+    return new_nfs_server_setup
 
 def netfs_cleanup(server, pool_attr):
-    src_dir = os.path.basename(pool_attr['SourceDirectory'])
+    src_dir = pool_attr['SourceDirectory']
     dst_dir = pool_attr['Path']
+    host_addr = pool_attr['Host']
+
+    # Determine if we are using existing nfs setup or configured a new one
+    new_nfs_server_setup = check_haddr_is_localhost(server, host_addr)
+    if new_nfs_server_setup == False:
+        cmd =  "rm -rf %s " % (dst_dir)
+    else:
+        cmd =  "rm -rf %s %s" % (src_dir, dst_dir)
 
     # Remove the temp dir created .
-    clean_temp_files(server, src_dir, dst_dir) 
+    clean_temp_files(server, src_dir, dst_dir, cmd)
+
+    if new_nfs_server_setup == False:
+        return 
  
     # Restore the original exports file.
     if os.path.exists(back_exports_file):
@@ -544,9 +576,8 @@ def netfs_cleanup(server, pool_attr):
     if rc != PASS:
         logger.error("Could not restart NFS server on '%s'" % server)
 
-def netfs_config(server, nfs_server_bin):
+def netfs_config(server, nfs_server_bin, dest_dir_to_mnt):
     src_dir_for_mnt = mkdtemp()
-    dest_dir_to_mnt = mkdtemp()
     
     try:
         # Backup the original exports file.
@@ -572,23 +603,32 @@ def netfs_config(server, nfs_server_bin):
 
     except Exception, detail:
         logger.error("Exception details : %s", detail)
-        clean_temp_files(server, src_dir_for_mnt, dest_dir_to_mnt)
-        return FAIL, None, None
+        cmd = "rm -rf %s %s " % (src_dir_for_mnt,dest_dir_to_mnt)
+        clean_temp_files(server, src_dir_for_mnt, dest_dir_to_mnt, cmd)
+        return SKIP, None
 
-    return PASS, src_dir_for_mnt, dest_dir_to_mnt
+    return PASS, src_dir_for_mnt
 
 def nfs_netfs_setup(server):
     nfs_server_bin = get_nfs_bin(server)
    
+    dest_dir = mkdtemp()
+
     # Before going ahead verify that nfs server is available on machine..
     ret = nfs_config(server, nfs_server_bin)
     if ret != PASS:
         logger.error("Failed to configure NFS on '%s'", server)
-        return FAIL, None, None
-
-    ret, src_dir, destr_dir = netfs_config(server, nfs_server_bin)
-    if ret != PASS:
-        logger.error("Failed to configure netfs on '%s'", server)
-        return FAIL, None, None
-
-    return PASS, src_dir, destr_dir
+        logger.info("Trying to look for nfs mounted dir on '%s'...", server)
+        server, src_dir = check_existing_nfs()
+        if server == None or src_dir == None:
+            logger.error("No nfs mount information on '%s' ", server)
+            return SKIP, None, None, None
+        else:
+            return PASS, server, src_dir, dest_dir
+    else:
+        ret, src_dir = netfs_config(server, nfs_server_bin, dest_dir)
+        if ret != PASS:
+            logger.error("Failed to configure netfs on '%s'", server)
+            return ret, None, None, None
+    
+    return PASS, server, src_dir, dest_dir

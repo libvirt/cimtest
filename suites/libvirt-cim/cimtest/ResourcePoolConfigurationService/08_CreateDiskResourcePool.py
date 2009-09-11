@@ -66,13 +66,13 @@ def get_pool_attr(server, pool_type, dp_types, rev):
 
     if rev >= libvirt_netfs_pool_support and \
        pool_type == dp_types['DISK_POOL_NETFS']:
-        status , src_mnt_dir, dir_mnt_dir = nfs_netfs_setup(server)
+        status , host_addr, src_mnt_dir, dir_mnt_dir = nfs_netfs_setup(server)
         if status != PASS:
             logger.error("Failed to get pool_attr for NETFS diskpool type")
-            return FAIL, pool_attr
+            return status, pool_attr
 
+        pool_attr['Host'] = host_addr
         pool_attr['SourceDirectory'] = src_mnt_dir
-        pool_attr['Host'] = server
         pool_attr['Path'] = dir_mnt_dir
 
     return PASS, pool_attr
@@ -103,6 +103,7 @@ def main():
         return SKIP
     
     status = FAIL     
+    pool_attr = None
     # For now the test case support only the creation of 
     # dir type disk pool, netfs later change to fs and disk pooltypes etc 
     for key, value in dp_types.iteritems():    
@@ -147,7 +148,7 @@ def main():
             logger.error("Exception details: %s", details)
             if key == 'DISK_POOL_NETFS':
                 netfs_cleanup(server, pool_attr)
-            return status
+            return FAIL
  
     return status
 
