@@ -5,6 +5,7 @@
 # Authors:
 #    Guolian Yun <yunguol@cn.ibm.com>
 #    Zhengang Li <lizg@cn.ibm.com>
+#    Deepti B. Kalakeri <deeptik@linux.vnet.ibm.com>
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public
@@ -20,13 +21,13 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 #
+# Test case to verify DestroySystem() of VSMS provider.
+#
+#
 
 import sys
-import pywbem
-from pywbem.cim_obj import CIMInstanceName
-from VirtLib import utils
 from XenKvmLib.xm_virt_util import domain_list, active_domain_list
-from XenKvmLib import vsms, vxml
+from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.const import do_main
 from CimTest.Globals import logger
@@ -43,47 +44,48 @@ def cleanup_env(ip, cxml):
 def main():
     options = main.options
     
-    service = vsms.get_vsms_class(options.virt)(options.ip)
     cxml = vxml.get_class(options.virt)(default_dom)
-    ret = cxml.cim_define(options.ip)
-    if not ret:
-        logger.error("Failed to define the dom: %s", default_dom)
-        return FAIL
-    ret = cxml.start(options.ip)
-    if not ret:
-        logger.error("Failed to start the dom: %s", default_dom)
-        cleanup_env(options.ip, cxml)
-        return FAIL
 
-    classname = get_typed_class(options.virt, 'ComputerSystem')
-    cs_ref = CIMInstanceName(classname, keybindings = {
-                                        'Name':default_dom,
-                                        'CreationClassName':classname})
-    list_before = domain_list(options.ip, options.virt)
-    if default_dom not in list_before:
-        logger.error("Domain not in domain list")
-        cleanup_env(options.ip, cxml)
-        return FAIL
-    
     try:
-        service.DestroySystem(AffectedSystem=cs_ref)
+        ret = cxml.cim_define(options.ip)
+        if not ret:
+            logger.error("Failed to define the domain '%s'", default_dom)
+            return FAIL
+
+        defined_domains = domain_list(options.ip, options.virt)
+        if default_dom not in defined_domains:
+            logger.error("Failed to find defined domain '%s'", default_dom)
+            return FAIL
+
+        ret = cxml.cim_start(options.ip)
+        if ret:
+            logger.error("Failed to start the domain '%s'", default_dom)
+            cxml.undefine(options.ip)
+            return FAIL
+
+        list_before = active_domain_list(options.ip, options.virt)
+        if default_dom not in list_before:
+            raise Exception("Domain '%s' is not in active domain list" \
+                             % default_dom)
+
+        ret = cxml.cim_destroy(options.ip)
+        if not ret:
+            raise Exception("Failed to destroy domain '%s'" % default_dom)
+
+        list_after = domain_list(options.ip, options.virt)
+        if default_dom in list_after:
+            raise Exception("DestroySystem() failed to destroy domain '%s'.." \
+                            "Provider did not return any error" % default_dom)
+        else:
+            logger.info("DestroySystem() successfully destroyed and undefined"\
+                        " domain '%s'", default_dom)
+
     except Exception, details:
-        logger.error('Unknow exception happened')
-        logger.error(details)
+        logger.error("Exception details: %s", details)
         cleanup_env(options.ip, cxml)
         return FAIL
 
-    list_after = domain_list(options.ip, options.virt)
-
-    if default_dom in list_after:
-        logger.error("Domain %s not destroyed: provider didn't return error",
-                     default_dom)
-        cleanup_env(options.ip, cxml)
-        status = FAIL
-    else:
-        status = PASS
-
-    return status
+    return PASS
      
 
 if __name__ == "__main__":
