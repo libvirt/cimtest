@@ -38,7 +38,7 @@ from XenKvmLib.rasd import libvirt_rasd_storagepool_changes
 from XenKvmLib import rpcs_service
 from XenKvmLib.assoc import Associators
 from XenKvmLib.enumclass import GetInstance, EnumNames
-from XenKvmLib.xm_virt_util import virsh_version, vol_list
+from XenKvmLib.xm_virt_util import virsh_version, vol_list, vol_delete
 from XenKvmLib.classes import get_typed_class, inst_to_mof
 from XenKvmLib.common_util import destroy_diskpool
 from XenKvmLib.pool import create_pool, undefine_diskpool, DIR_POOL
@@ -129,9 +129,22 @@ def verify_sto_vol_rasd(virt, server, dp_inst_id, exp_vol_path):
     return PASS
 
 
-def cleanup_pool_vol(server, virt, pool_name, clean_vol, exp_vol_path):
+def cleanup_pool_vol(server, virt, pool_name, clean_pool, vol_path):
+    status = res = FAIL
+    ret = None
     try:
-        if clean_vol == True:
+        ret = vol_delete(server, virt, vol_name, pool_name)
+        if ret == None:
+            logger.error("Failed to delete the volume '%s'", vol_name)
+
+        if os.path.exists(vol_path):
+            cmd = "rm -rf %s" % vol_path
+            res, out = utils.run_remote(server, cmd)
+            if res != 0:
+                logger.error("'%s' was not removed, please remove it "
+                             "manually", vol_path)
+
+        if clean_pool == True:
             status = destroy_diskpool(server, virt, pool_name)
             if status != PASS:
                 raise Exception("Unable to destroy diskpool '%s'" % pool_name)
@@ -140,16 +153,16 @@ def cleanup_pool_vol(server, virt, pool_name, clean_vol, exp_vol_path):
                 if status != PASS:
                     raise Exception("Unable to undefine diskpool '%s'" \
                                      % pool_name)
+
+
     except Exception, details:
         logger.error("Exception details: %s", details)
-        return FAIL
+        status = FAIL
 
-    if os.path.exists(exp_vol_path):
-        cmd = "rm -rf %s" % exp_vol_path
-        ret, out = utils.run_remote(server, cmd)
-        if ret != 0:
-            logger.info("'%s' was not removed, please remove it manually", 
-                        exp_vol_path)
+    if (ret == None and res != PASS) or (clean_pool == True and status != PASS):
+        logger.error("Failed to clean the env.....")
+        return FAIL
+  
     return PASS
 
 @do_main(platform_sup)
@@ -211,18 +224,19 @@ def main():
             found = verify_vol(server, virt, pool_name, exp_vol_path, found)
             stovol_status = verify_sto_vol_rasd(virt, server, dp_inst_id, 
                                                 exp_vol_path)
+
+            ret = cleanup_pool_vol(server, virt, pool_name, 
+                                   clean_pool, exp_vol_path)
+            if res[0] == PASS and found == 1 and \
+               ret == PASS and stovol_status == PASS:
+                status = PASS
+            else:
+                return FAIL
         
         except Exception, details:
             logger.error("Exception details: %s", details)
             status = FAIL
 
-        ret = cleanup_pool_vol(server, virt, pool_name, 
-                               clean_pool, exp_vol_path)
-        if res[0] == PASS and found == 1 and \
-           ret == PASS and stovol_status == PASS:
-            status = PASS
-        else:
-            return FAIL
         
     return status
 if __name__ == "__main__":

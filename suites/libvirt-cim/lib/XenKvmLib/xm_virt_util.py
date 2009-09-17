@@ -238,15 +238,27 @@ def diskpool_list(server, virt="KVM"):
     return names
 
 def vol_list(server, virt="KVM", pool_name=None):
-    """ Function to list the volumes part of a pool"""
+    """ Function to list the volumes of a pool"""
 
-    cmd = " virsh -c %s vol-list %s | sed -e '1,2 d' -e '$ d'" \
+    cmd = "virsh -c %s vol-list %s | sed -e '1,2 d' -e '$ d'" \
             % (virt2uri(virt), pool_name)
     ret, out = utils.run_remote(server, cmd)
     if ret != 0:
         return None
 
     return out 
+
+def vol_delete(server, virt="KVM", vol_name=None, pool_name=None):
+    """ Function to delete the volume of a pool"""
+
+    cmd = "virsh -c %s vol-delete %s --pool %s"\
+            % (virt2uri(virt), vol_name, pool_name)
+    ret, out = utils.run_remote(server, cmd)
+    if ret != 0:
+        return None
+
+    return out 
+
 
 def virsh_vcpuinfo(server, dom, virt="Xen"):
     cmd = "virsh -c %s vcpuinfo %s | grep VCPU | wc -l" % (virt2uri(virt),
