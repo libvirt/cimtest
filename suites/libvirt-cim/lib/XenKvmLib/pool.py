@@ -21,24 +21,29 @@
 #
 
 import sys
+import os
+from VirtLib import utils
 from CimTest.Globals import logger, CIM_NS
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from XenKvmLib.classes import get_typed_class, inst_to_mof
 from XenKvmLib.const import get_provider_version, default_pool_name 
-from XenKvmLib.enumclass import EnumInstances, GetInstance
+from XenKvmLib.enumclass import EnumInstances, GetInstance, EnumNames
 from XenKvmLib.assoc import Associators
 from VirtLib.utils import run_remote
-from XenKvmLib.xm_virt_util import virt2uri, net_list
+from XenKvmLib.xm_virt_util import virt2uri, net_list, vol_delete
 from XenKvmLib import rpcs_service
 import pywbem
 from CimTest.CimExt import CIMClassMOF
 from XenKvmLib.vxml import NetXML, PoolXML
 from XenKvmLib.xm_virt_util import virsh_version
+from XenKvmLib.vsms import RASD_TYPE_STOREVOL
+from XenKvmLib.common_util import destroy_diskpool
 
 cim_errno  = pywbem.CIM_ERR_NOT_SUPPORTED
 cim_mname  = "CreateChildResourcePool"
 input_graphics_pool_rev = 757
 libvirt_cim_child_pool_rev = 837
+libvirt_rasd_spool_del_changes = 971
 
 DIR_POOL = 1L
 FS_POOL = 2L
@@ -47,6 +52,9 @@ DISK_POOL = 4L
 ISCSI_POOL = 5L
 LOGICAL_POOL = 6L
 SCSI_POOL = 7L
+
+#Volume types
+RAW_VOL_TYPE = 1
 
 def pool_cn_to_rasd_cn(pool_cn, virt):
     if pool_cn.find('ProcessorPool') >= 0:
@@ -297,3 +305,116 @@ def verify_pool(server, virt, poolname, pool_attr_list, mode_type=0,
             status = PASS
 
     return status
+
+def get_stovol_rasd_from_sdc(virt, server, dp_inst_id):
+    rasd = None
+    ac_cn = get_typed_class(virt, "AllocationCapabilities")
+    an_cn = get_typed_class(virt, "SettingsDefineCapabilities")
+    key_list = {"InstanceID" : dp_inst_id} 
+    
+    try:
+        inst = GetInstance(server, ac_cn, key_list)
+        if inst == None:
+            raise Exception("Failed to GetInstance for %s" % dp_inst_id)
+
+        rasd = Associators(server, an_cn, ac_cn, InstanceID=inst.InstanceID)
+        if len(rasd) < 4:
+            raise Exception("Failed to get default StorageVolRASD , "\
+                            "Expected atleast 4, Got '%s'" % len(rasd))
+
+    except Exception, detail:
+        logger.error("Exception: %s", detail)
+        return FAIL, None
+
+    return PASS, rasd
+
+def get_stovol_default_settings(virt, server, dp_cn,
+                                pool_name, path, vol_name):
+
+    dp_inst_id = "%s/%s" % (dp_cn, pool_name)
+    status, dp_rasds = get_stovol_rasd_from_sdc(virt, server, dp_inst_id) 
+    if status != PASS:
+        logger.error("Failed to get the StorageVol RASD's")
+        return None
+
+    for dpool_rasd in dp_rasds:
+        if dpool_rasd['ResourceType'] == RASD_TYPE_STOREVOL and \
+            'Default' in dpool_rasd['InstanceID']:
+
+            dpool_rasd['PoolID'] =  dp_inst_id
+            dpool_rasd['Path'] = path 
+            dpool_rasd['VolumeName'] = vol_name
+            break
+
+    if not pool_name in dpool_rasd['PoolID']:
+        return None
+
+    return dpool_rasd
+
+def get_diskpool(server, virt, dp_cn, pool_name):
+    dp_inst = None
+    dpool_cn = get_typed_class(virt, dp_cn)
+    pools = EnumNames(server, dpool_cn)
+
+    dp_inst_id = "%s/%s" % (dp_cn, pool_name)
+    for pool in pools:
+        if pool['InstanceID'] == dp_inst_id:
+            dp_inst = pool
+            break
+
+    return dp_inst
+
+def get_sto_vol_rasd_for_pool(virt, server, dp_cn, pool_name, exp_vol_path):
+    dv_rasds = None 
+    dp_inst_id = "%s/%s" % (dp_cn, pool_name)
+    status, rasds = get_stovol_rasd_from_sdc(virt, server, dp_inst_id)
+    if status != PASS:     
+        logger.error("Failed to get the StorageVol for '%s' vol", exp_vol_path)
+        return FAIL
+
+    for item in rasds:
+        if item['Address'] == exp_vol_path and item['PoolID'] == dp_inst_id:
+           dv_rasds = item
+           break 
+    
+    return dv_rasds
+
+def cleanup_pool_vol(server, virt, pool_name, vol_name, 
+                     vol_path, clean_pool=False, clean_vol=False):
+    status = res = FAIL
+    ret = None
+    try:
+
+        if clean_vol == True:
+            ret = vol_delete(server, virt, vol_name, pool_name)
+            if ret == None:
+                logger.error("Failed to delete the volume '%s'", vol_name)
+
+        if os.path.exists(vol_path):
+            cmd = "rm -rf %s" % vol_path
+            res, out = utils.run_remote(server, cmd)
+            if res != 0:
+                logger.error("'%s' was not removed, please remove it "
+                             "manually", vol_path)
+
+        if clean_pool == True:
+            status = destroy_diskpool(server, virt, pool_name)
+            if status != PASS:
+                raise Exception("Unable to destroy diskpool '%s'" % pool_name)
+            else:    
+                status = undefine_diskpool(server, virt, pool_name)
+                if status != PASS:
+                    raise Exception("Unable to undefine diskpool '%s'" \
+                                     % pool_name)
+
+
+    except Exception, details:
+        logger.error("Exception details: %s", details)
+        status = FAIL
+
+    if (clean_vol == True and ret == None) or \
+       (clean_pool == True and status != PASS):
+        logger.error("Failed to clean the env.....")
+        return FAIL
+  
+    return PASS

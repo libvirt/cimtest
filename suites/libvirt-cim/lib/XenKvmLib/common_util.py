@@ -582,6 +582,8 @@ def netfs_config(server, nfs_server_bin, dest_dir_to_mnt):
     try:
         # Backup the original exports file.
         if (os.path.exists(exports_file)):
+            if os.path.exists(back_exports_file):
+                os.remove(back_exports_file)
             move_file(exports_file, back_exports_file)
         fd = open(exports_file, "w")
         line = "\n %s %s(rw)" %(src_dir_for_mnt, server)
