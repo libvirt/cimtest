@@ -27,14 +27,15 @@ from XenKvmLib.test_doms import set_uuid
 from XenKvmLib import vsms
 from XenKvmLib import vxml
 from CimTest.Globals import logger
-from CimTest.ReturnCodes import PASS, FAIL
-from XenKvmLib.const import do_main
+from CimTest.ReturnCodes import PASS, FAIL, SKIP
+from XenKvmLib.const import do_main, get_provider_version
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.enumclass import GetInstance 
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 default_dom = 'uuid_domain'
 uuid = set_uuid()
+uuid_changes = 873
 
 def get_vssd(ip, virt, get_cim_inst):
     cn = get_typed_class(virt, "VirtualSystemSettingData") 
@@ -59,6 +60,12 @@ def get_vssd(ip, virt, get_cim_inst):
 @do_main(sup_types)
 def main():
     options = main.options 
+
+    cim_rev, changeset = get_provider_version(options.virt, options.ip)
+    if cim_rev < uuid_changes:
+        logger.info("UUID attribute added VSSD in libvirt-cim version '%s'",
+                    uuid_changes)
+        return SKIP
 
     service = vsms.get_vsms_class(options.virt)(options.ip)
 
