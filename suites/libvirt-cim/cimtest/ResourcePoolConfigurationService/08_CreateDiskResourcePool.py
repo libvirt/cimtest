@@ -145,10 +145,12 @@ def main():
             status = PASS
 
         except Exception, details:
+            if status == PASS:
+                status = FAIL
+
             logger.error("Exception details: %s", details)
             if key == 'DISK_POOL_NETFS':
                 netfs_cleanup(server, pool_attr)
-            return FAIL
  
     return status
 

@@ -125,7 +125,7 @@ def main():
 
     libvirt_ver = virsh_version(server, virt)
     cim_rev, changeset = get_provider_version(virt, server)
-    if libvirt_ver < "0.4.1" and cim_rev < libvirt_rasd_storagepool_changes:
+    if libvirt_ver < "0.4.1" or cim_rev < libvirt_rasd_storagepool_changes:
         logger.info("Storage Volume creation support is available with Libvirt" 
                     "version >= 0.4.1 and Libvirt-CIM rev '%s'", 
                     libvirt_rasd_storagepool_changes)
