@@ -125,7 +125,9 @@ def parse_run_output(log_file):
 
     fd = open(log_file, "r")
 
+    exec_time = "Total test execution: Unknown\n"
     run_output = ""
+
     for line in fd.xreadlines():
         for type, val in rvals.iteritems():
             if type in line:
@@ -133,11 +135,15 @@ def parse_run_output(log_file):
                     continue
                 rvals[type] += 1
                 tstr[type] += "%s" % line
-        run_output += line
+
+        if line.find("Total test execution") >= 0:
+            exec_time = line 
+        else:
+            run_output += line
 
     fd.close()
 
-    return rvals, tstr, run_output
+    return rvals, tstr, run_output, exec_time
 
 def build_report_body(rvals, tstr, div):
     results = ""
@@ -168,13 +174,13 @@ def gen_report(virt, ip, log_file):
 
     divider = "=================================================\n"
 
-    rvals, tstr, run_output = parse_run_output(log_file)
+    rvals, tstr, run_output, exec_time = parse_run_output(log_file)
 
     res, res_total, test_block = build_report_body(rvals, tstr, divider)
 
-    report = divider + heading + "\n" + divider + sys_env + divider + res \
-             + res_total + divider + test_block + "Full report:\n" \
-             + run_output
+    report = divider + heading + "\n" + divider + sys_env + exec_time \
+             + divider + res + res_total + divider + test_block \
+             + "Full report:\n" + run_output
 
     fd = open(log_file, "w")
     rc = fd.write(report)

@@ -22,6 +22,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 #
 
+from time import time
 from optparse import OptionParser
 import os
 import sys
@@ -64,6 +65,9 @@ parser.add_option("-d", "--debug-output", action="store_true", dest="debug",
                   help="Duplicate the output to stderr")
 parser.add_option("--report", dest="report",
                   help="Send report using mail info: --report=<recipient addr>")
+parser.add_option("--print-exec-time", action="store_true", 
+                  dest="print_exec_time",
+                  help="Print execution time of each test")
 
 TEST_SUITE = 'cimtest'
 CIMTEST_RCFILE = '%s/.cimtestrc' % os.environ['HOME']
@@ -146,6 +150,30 @@ def cleanup_env(ip, virt):
 
     return PASS
 
+def print_exec_time(testsuite, exec_time, prefix=None):
+
+    #Convert run time from seconds to hours
+    tmp = exec_time / (60 * 60)
+    h = int(tmp)
+
+    #Subtract out hours and convert remainder to minutes
+    tmp = (tmp - h) * 60 
+    m = int(tmp)
+
+    #Subtract out minutes and convert remainder to seconds
+    tmp = (tmp - m) * 60 
+    s = int(tmp)
+
+    #Subtract out seconds and convert remainder to milliseconds
+    tmp = (tmp - s) * 1000
+    msec = int(tmp)
+
+    if prefix is None:
+        prefix = " "
+
+    testsuite.debug("%s %sh | %smin | %ssec | %smsec" %
+                    (prefix, h, m, s, msec)) 
+
 def main():
     (options, args) = parser.parse_args()
     to_addr = None
@@ -213,6 +241,8 @@ def main():
 
     print "\nTesting " + options.virt + " hypervisor"
 
+    test_run_time_total = 0
+
     for test in test_list: 
         testsuite.debug(div) 
         t_path = os.path.join(TEST_SUITE, test['group'])
@@ -222,13 +252,26 @@ def main():
                                                   options.virt, dbg,
                                                   options.t_url)
         cmd = cdto + ' && ' + ' ' + run
+        start_time = time()
         status, output = commands.getstatusoutput(cmd)
+        end_time = time()
 
         os_status = os.WEXITSTATUS(status)
 
         testsuite.print_results(test['group'], test['test'], os_status, output)
 
+        exec_time = end_time - start_time
+        test_run_time_total = test_run_time_total + exec_time
+
+        if options.print_exec_time:
+            print_exec_time(testsuite, exec_time, "  Test execution time:")
+
     testsuite.debug("%s\n" % div) 
+
+    if options.print_exec_time:
+        print_exec_time(testsuite, test_run_time_total, "Total test execution:")
+        testsuite.debug("\n") 
+
     testsuite.finish()
 
     status = cleanup_env(options.ip, options.virt)
