@@ -130,7 +130,7 @@ def main():
 
     defined_domains = domain_list(options.ip, options.virt)
     if default_dom in defined_domains:
-            cxml.cim_destroy(options.ip)
+        cxml.cim_destroy(options.ip)
 
     curr_cim_rev, changeset = get_provider_version(options.virt, options.ip)
     if curr_cim_rev <= libvirt_f9_revision and options.virt == "KVM":
