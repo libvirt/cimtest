@@ -19,13 +19,15 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 #
-DEFAULT_KERNEL = /tmp/default-xen-kernel
-DEFAULT_INITRD = /tmp/default-xen-initrd
-DEFAULT_DIMAGE = /tmp/default-xen-dimage
-DEFAULT_KVMIMG = /tmp/default-kvm-dimage
+DEFAULT_IMG_LOC = /var/lib/libvirt/images
 
-DEFAULT_LXCINIT = /tmp/cimtest_lxc_init
-DEFAULT_LXC_MNT_DIR = /tmp/lxc_files
+DEFAULT_KERNEL = $(DEFAULT_IMG_LOC)/default-xen-kernel
+DEFAULT_INITRD = $(DEFAULT_IMG_LOC)/default-xen-initrd
+DEFAULT_DIMAGE = $(DEFAULT_IMG_LOC)/default-xen-dimage
+DEFAULT_KVMIMG = $(DEFAULT_IMG_LOC)/default-kvm-dimage
+
+DEFAULT_LXCINIT = $(DEFAULT_IMG_LOC)/cimtest_lxc_init
+DEFAULT_LXC_MNT_DIR = $(DEFAULT_IMG_LOC)/lxc_files
 
 SECONDARY_DIMAGE = $(DEFAULT_DIMAGE).2ND
 SECONDARY_KVMIMG = $(DEFAULT_KVMIMG).2ND
@@ -72,7 +74,7 @@ $(DEFAULT_LXCINIT):
 	chmod 755 $(DEFAULT_LXCINIT)
 
 $(DEFAULT_LXC_MNT_DIR):
-	mkdir /tmp/lxc_files
+	mkdir $(DEFAULT_IMG_LOC)/lxc_files
 
 clean:
 	rm -f $(DEFAULT_KERNEL) $(DEFAULT_INITRD) $(DEFAULT_DIMAGE) $(SECONDARY_DIMAGE) 
