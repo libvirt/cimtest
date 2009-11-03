@@ -316,7 +316,7 @@ class PoolXML(Virsh, XMLClass):
         pool = self.add_sub_node(self.xdoc, 'pool', type='dir')
         self.add_sub_node(pool, 'name', self.pool_name)
         target = self.add_sub_node(pool, 'target')
-        self.add_sub_node(target, 'path', '/tmp')
+        self.add_sub_node(target, 'path', const._image_dir)
 
     def create_vpool(self):
         return self.run(self.server, 'pool-create', self.xml_string)

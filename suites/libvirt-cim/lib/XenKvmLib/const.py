@@ -72,7 +72,7 @@ default_vcpus = 1
 default_mallocunits="MegaBytes"
 
 
-_image_dir = '/tmp'
+_image_dir = '/var/lib/libvirt/images'
 
 # vxml.XenXML
 Xen_kernel_path = os.path.join(_image_dir, 'default-xen-kernel')
