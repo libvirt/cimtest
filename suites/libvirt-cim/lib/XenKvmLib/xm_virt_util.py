@@ -92,6 +92,17 @@ def max_free_mem(server):
 
     return int(mfm)
 
+def destroy_domain(server, dom, virt="Xen"):
+    """Function to destroy given domain"""
+    if virt == "XenFV":
+       virt = "Xen"
+
+    cmd = "virsh -c %s destroy %s" %  (virt2uri(virt), dom)
+    ret, out = utils.run_remote(server, cmd)
+    print cmd, ret, out
+
+    return ret 
+
 def domain_list(server, virt="Xen"):
     """Function to list all domains"""
     if virt == "XenFV":

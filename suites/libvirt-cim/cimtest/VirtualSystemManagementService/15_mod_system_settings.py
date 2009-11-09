@@ -31,7 +31,8 @@ from XenKvmLib.classes import get_typed_class, inst_to_mof
 from XenKvmLib.enumclass import GetInstance 
 from XenKvmLib.common_util import poll_for_state_change 
 from XenKvmLib.const import get_provider_version
-from XenKvmLib.xm_virt_util import domain_list, active_domain_list
+from XenKvmLib.xm_virt_util import domain_list, active_domain_list, \
+                                   destroy_domain
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 default_dom = 'rstest_domain'
@@ -42,6 +43,7 @@ bug = "00008"
 f9_bug = "00010"
 libvirt_f9_revision=613
 libvirt_modify_setting_changes = 694
+disable_change_rev = 945
 
 def get_vssd(ip, virt, get_cim_inst):
     cn = get_typed_class(virt, "VirtualSystemSettingData") 
@@ -62,6 +64,26 @@ def get_vssd(ip, virt, get_cim_inst):
         return FAIL, inst
 
     return PASS, inst
+
+def power_down_guest(ip, virt, dom):
+    rev, changeset = get_provider_version(virt, ip)
+
+    if rev < disable_change_rev and virt == "KVM":
+        rc = destroy_domain(ip, dom, virt)
+        if rc != 0:
+            return FAIL
+    else:
+        status = cxml.cim_disable(ip)
+        if status != PASS:
+            logger.error("Failed to disable %s", dom)
+            return FAIL
+
+    status, cs = poll_for_state_change(ip, virt, dom, CIM_DISABLE)
+    if status != PASS:
+        logger.error("Failed to destroy %s", dom)
+        return FAIL
+
+    return PASS
 
 @do_main(sup_types)
 def main():
@@ -103,14 +125,9 @@ def main():
                     raise Exception("Failed to modify dom: %s" % default_dom)
 
             if case == "start":
-                status = cxml.cim_disable(options.ip)
+                status = power_down_guest(options.ip, options.virt, default_dom)
                 if status != PASS:
-                    raise Exception("Failed to disable %s" % default_dom)
-
-                status, cs = poll_for_state_change(options.ip, options.virt, 
-                                                   default_dom, CIM_DISABLE)
-                if status != PASS:
-                    raise Exception("Failed to destroy %s" % default_dom)
+                        raise Exception("Unable to disable %s" % default_dom)
 
             status, inst = get_vssd(options.ip, options.virt, False)
             if status != PASS:
