@@ -29,11 +29,12 @@ from XenKvmLib.vsms_util import add_net_res
 from XenKvmLib.vsms import get_vsms_class, get_nasd_class
 from XenKvmLib.vxml import get_class
 from CimTest.Globals import logger
-from CimTest.ReturnCodes import FAIL, PASS
+from CimTest.ReturnCodes import FAIL, PASS, SKIP
 from XenKvmLib.const import default_network_name, do_main 
 from XenKvmLib.common_util import create_netpool_conf, destroy_netpool
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.enumclass import GetInstance, EnumNames
+from XenKvmLib.const import get_provider_version
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 default_dom = 'net_domain1'
@@ -44,6 +45,7 @@ npool_name = default_network_name + str(randint(1, 100))
 exp_rc = CIM_ERR_FAILED 
 exp_desc = "Conflicting MAC Addresses"
 
+dup_mac_rev = 929
 
 def cleanup_env(ip, virt, npool_name, cxml):
     cxml.cim_destroy(ip)
@@ -71,6 +73,11 @@ def start_dom(cxml,ip,dom):
 @do_main(sup_types)
 def main():
     options = main.options
+
+    rev, changeset = get_provider_version(options.virt, options.ip)
+    if rev < dup_mac_rev:
+        logger.error("Test only valid with provider version > %d", dup_mac_rev)
+        return SKIP
 
     status, net_name = create_netpool_conf(options.ip, options.virt,
                                            use_existing=False,
