@@ -37,7 +37,7 @@ import sys
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main, CIM_ENABLE, CIM_DISABLE, \
                             get_provider_version
-from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from XenKvmLib.vxml import get_class
 
 sup_types = ['Xen', 'XenFV', 'KVM', 'LXC']
@@ -54,6 +54,15 @@ def main():
     virt   = options.virt
 
     try:
+        rev, changeset = get_provider_version(virt, server)
+        if rev >= disable_change_rev: 
+            exp_state = CIM_DISABLE
+        else:
+            if options.virt == "KVM":
+                logger.info("cimtest's KVM guest imagedoesn't support reboot")
+                return SKIP
+            exp_state = CIM_ENABLE
+
         cxml = get_class(virt)(default_dom)
         ret = cxml.cim_define(server)
         if not ret:
@@ -66,12 +75,6 @@ def main():
         status = cxml.cim_disable(server)
         if status != PASS:
             raise Exception("Unable disable dom '%s'" % default_dom)
-
-        rev, changeset = get_provider_version(virt, server)
-        if rev >= disable_change_rev: 
-            exp_state = CIM_DISABLE
-        else:
-            exp_state = CIM_ENABLE
 
         status = cxml.check_guest_state(server, exp_state)
         if status != PASS:
