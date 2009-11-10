@@ -35,7 +35,7 @@ from pywbem import CIM_ERR_FAILED, CIM_ERR_INVALID_PARAMETER, CIMError
 from CimTest.ReturnCodes import FAIL, PASS, SKIP
 from XenKvmLib.xm_virt_util import virsh_version
 from XenKvmLib.const import do_main, platform_sup, get_provider_version,\
-                            default_pool_name
+                            default_pool_name, _image_dir
 from XenKvmLib import rpcs_service
 from XenKvmLib.classes import get_typed_class, inst_to_mof
 from XenKvmLib.pool import create_pool, DIR_POOL, \
@@ -43,7 +43,7 @@ from XenKvmLib.pool import create_pool, DIR_POOL, \
                            get_stovol_default_settings, cleanup_pool_vol, \
                            get_sto_vol_rasd_for_pool
 
-pool_attr = { 'Path' : "/tmp" }
+pool_attr = { 'Path' : _image_dir }
 vol_name = "cimtest-vol.img"
 invalid_scen = { "INVALID_ADDRESS"  :  { 'val' : 'Junkvol_path',
                                          'msg' : 'no storage vol with '\

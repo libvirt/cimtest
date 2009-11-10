@@ -32,7 +32,7 @@ from VirtLib import utils
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import FAIL, PASS, SKIP
 from XenKvmLib.const import do_main, platform_sup, default_pool_name, \
-                            get_provider_version
+                            get_provider_version, _image_dir
 from XenKvmLib.vsms import RASD_TYPE_STOREVOL
 from XenKvmLib.rasd import libvirt_rasd_storagepool_changes
 from XenKvmLib import rpcs_service
@@ -43,7 +43,7 @@ from XenKvmLib.classes import get_typed_class, inst_to_mof
 from XenKvmLib.common_util import destroy_diskpool
 from XenKvmLib.pool import create_pool, undefine_diskpool, DIR_POOL
 
-pool_attr = { 'Path' : "/tmp" }
+pool_attr = { 'Path' : _image_dir }
 vol_name = "cimtest-vol.img"
 
 def get_stovol_rasd_from_sdc(virt, server, dp_inst_id):
