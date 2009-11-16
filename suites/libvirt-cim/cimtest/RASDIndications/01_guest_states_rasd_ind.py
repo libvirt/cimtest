@@ -135,6 +135,9 @@ def main():
                         raise Exception("Unable to generate indication") 
 
                     status = poll_for_ind(pid, ind_name)
+                    if status != PASS:
+                        raise Exception("Poll for indication Failed")
+
                 except Exception, details:
                     kill(pid, SIGKILL)
                     raise Exception(details)
