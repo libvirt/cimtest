@@ -37,7 +37,18 @@ def list_groups(test_suite):
         if os.path.isdir(group_p):
             ret.append(filename)
 
-    ret.sort()
+    #sort() doesn't handle upper and lower case comparisons properly.
+    #The following manipulation will ensure the list is in the same
+    #order 'ls' returns on a directory
+    tmp = []
+    for i, group in enumerate(ret):
+        tmp.append([group.lower(), group])
+
+    tmp.sort()
+    ret = []
+    for key, group in tmp:
+        ret.append(group)
+
     return ret
 
 def list_tests_in_group(test_suite, group_name):
@@ -93,3 +104,46 @@ def get_one_test(test_suite, group, test):
             ret.append({ 'group': group, 'test': test})
             
     return ret
+
+def get_subset_test_list(test_suite, test_subset):
+    """Return a list of dictionaries for a specific set of groups.
+       It will contain the group and test filename
+    """
+    ret = []
+  
+    str = test_subset.strip('[]')
+
+    if test_subset.find(",") >= 0:
+        groups = str.split(',')
+
+    elif test_subset.find(":") >= 0:
+        groups = str.split(':')
+        if len(groups) != 2:
+            return ret
+
+        all_groups = list_groups(test_suite)
+        index_start = all_groups.index(groups[0])
+        index_end = all_groups.index(groups[1])
+
+        if index_start < 0:
+            print "Group %s (%d) was not found" % (groups[0], index_start)
+            return ret
+        elif index_end < 0:
+            print "Group %s (%d) was not found" % (groups[1], index_end)
+            return ret
+        elif index_end < index_start:
+            print "Group %s's index (%d) is < Group %s's index (%d)" % \
+                   (groups[1], index_end, groups[0], index_start)
+            return ret
+
+        groups = all_groups[index_start:index_end + 1]
+
+    else:
+        return ret
+
+    for group in groups:
+        tmp = get_group_test_list(test_suite, group)
+        ret = ret + tmp
+
+    return ret
+
