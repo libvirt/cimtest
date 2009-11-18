@@ -68,6 +68,8 @@ parser.add_option("--report", dest="report",
 parser.add_option("--print-exec-time", action="store_true", 
                   dest="print_exec_time",
                   help="Print execution time of each test")
+parser.add_option("--test_subset", dest="test_subset",
+                  help="Only run specified dirs [dir,dir,...] or [dir:dir]")
 
 TEST_SUITE = 'cimtest'
 CIMTEST_RCFILE = '%s/.cimtestrc' % os.environ['HOME']
@@ -185,6 +187,11 @@ def main():
         parser.print_help()
         return 1
 
+    if options.group and options.test_subset:
+        print "\nPlease specify either a test group or a subset of tests.\n"
+        parser.print_help()
+        return 1
+
     env_ready = pre_check(options.ip, options.virt)
     if env_ready != None: 
         print "\n%s.  Please check your environment.\n" % env_ready
@@ -214,16 +221,26 @@ def main():
    
     set_python_path()
 
-    if options.group and options.test:
-        test_list = groups.get_one_test(TEST_SUITE, options.group, options.test)
-    elif options.group and not options.test:
-        test_list = groups.get_group_test_list(TEST_SUITE, options.group)
+    if options.group:
+        if options.test:
+            test_list = groups.get_one_test(TEST_SUITE, options.group, 
+                                            options.test)
+        else:
+            test_list = groups.get_group_test_list(TEST_SUITE, options.group)
+
+        if not test_list:
+            print "Test %s:%s not found" % (options.group, options.test)
+            return 1
+
+    elif options.test_subset:
+        test_list = groups.get_subset_test_list(TEST_SUITE, options.test_subset)
+
+        if not test_list:
+            print "Test subset not found: %s" % (options.test_subset)
+            return 1
+
     else:
         test_list = groups.list_all_tests(TEST_SUITE)
-
-    if not test_list:
-        print "Test %s:%s not found" % (options.group, options.test)
-        return 1
 
     if options.clean:
         remove_old_logs(options.group)
