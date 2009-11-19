@@ -104,6 +104,7 @@ XenFV_default_mac = '00:16:3e:5d:c7:9e'
 
 #vxml.LXCXML
 LXC_init_path = os.path.join(_image_dir, 'cimtest_lxc_init')
+LXC_default_emulator = '/usr/libexec/libvirt_lxc'
 LXC_default_tty = '/dev/ptmx'
 LXC_default_mp = '/tmp'
 LXC_default_source = '/var/lib/libvirt/images/lxc_files'

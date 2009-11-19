@@ -987,7 +987,7 @@ class LXCXML(VirtXML, VirtCIM):
                          mem, const.default_mallocunits, None, grstype, 
                          address, port_num, keymap, irstype, btype, vnc_passwd)
         self._os(const.LXC_init_path)
-        self._devices(mac, ntype, net_name, const.LXC_default_tty)
+        self._devices(const.LXC_default_emulator, mac, ntype, net_name, const.LXC_default_tty)
         self.create_lxc_file(CIM_IP, const.LXC_init_path)
 
     def _os(self, os_init):
@@ -995,14 +995,19 @@ class LXCXML(VirtXML, VirtCIM):
         self.add_sub_node(os, 'init', os_init)
         self.add_sub_node(os, 'type', 'exe')
 
-    def _devices(self, net_mac, net_type, net_name, tty_set):
+    def _devices(self, emu, net_mac, net_type, net_name, tty_set):
         devices = self.get_node('/domain/devices')
-      
+    
+        self.add_sub_node(devices, 'emulator', emu) 
+  
         if const.LXC_netns_support is True:
             self.set_interface_details(devices, net_mac, net_type, 
                                        net_name, 'LXC')
 
         self.add_sub_node(devices, 'console', tty = tty_set)
+
+    def set_emulator(self, emu):
+        return self._set_emulator(emu)
 
     def create_lxc_file(self, ip, lxc_file):
         try:
