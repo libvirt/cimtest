@@ -92,6 +92,8 @@ def main():
         if libvirt_version >= "0.7.0":
             expected_values['empty']['network'] = inv_empty_network
             expected_values['invalid']['network'] = inv_empty_network
+            expected_values['invalid']['bridge'] = " Failed to add tap "\
+                                                   "interface to bridge"
 
 
     tc_scen = {
