@@ -341,10 +341,9 @@ def create_diskpool(server, virt='KVM', dpool=default_pool_name,
                 dpoolname=dpool_list[0]
 
         if dpoolname == None:
-            cmd = "virsh -c %s pool-list --all | grep %s" % \
-                  (virt2uri(virt), dpool)
+            cmd = "virsh -c %s pool-info %s" % (virt2uri(virt), dpool)
             ret, out = utils.run_remote(server, cmd)
-            if out != "":
+            if ret == 0:
                 logger.error("Disk pool with name '%s' already exists", dpool)
                 return FAIL, "Unknown"
 
