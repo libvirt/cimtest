@@ -31,9 +31,28 @@ def print_mod_err_msg(func_str, details):
         logger.error('Error invoking ModifyRS: %s', func_str)
         logger.error(details)
 
+def call_modify_res(service, rasd):
+    try:
+        output = service.ModifyResourceSettings(ResourceSettings = [str(rasd)])
+        if len(output) == 0:
+            raise Exception("ModifyResourceSettings failed to return output")
+
+        out_param = "ResultingResourceSettings"
+        if output[1][out_param] is None:
+            raise Exception("ModifyResourceSettings failed to return %s" % \
+                            out_param)
+    except Exception, details:
+        logger.error(details)
+        return FAIL, None
+
+    return PASS, output[1][out_param] 
+
 def mod_disk_res(server, service, cxml, dasd, ndpath):
     try:
-        service.ModifyResourceSettings(ResourceSettings = [str(dasd)])
+        status, output = call_modify_res(service, dasd)
+        if status != PASS:
+            raise Exception("ModifyResourceSettings call failed")
+
         cxml.dumpxml(server)
         dpath = cxml.xml_get_disk_source()
         if dpath != ndpath:
@@ -48,7 +67,10 @@ def mod_disk_res(server, service, cxml, dasd, ndpath):
 
 def mod_net_res(server, service, virt, cxml, nasd, ntype, net_name):
     try:
-        service.ModifyResourceSettings(ResourceSettings = [str(nasd)])
+        status, output = call_modify_res(service, nasd)
+        if status != PASS:
+            raise Exception("ModifyResourceSettings call failed")
+
         cxml.dumpxml(server)
         type = cxml.xml_get_net_type()
 
@@ -73,7 +95,10 @@ def mod_net_res(server, service, virt, cxml, nasd, ntype, net_name):
 
 def mod_mem_res(server, service, cxml, masd, nmem):
     try:
-        service.ModifyResourceSettings(ResourceSettings=[str(masd)])
+        status, output = call_modify_res(service, masd)
+        if status != PASS:
+            raise Exception("ModifyResourceSettings call failed")
+
         cxml.dumpxml(server)
         mem = cxml.xml_get_mem()
         if int(mem) != int(nmem) * 1024:
@@ -88,7 +113,10 @@ def mod_mem_res(server, service, cxml, masd, nmem):
 
 def mod_vcpu_res(server, service, cxml, pasd, ncpu, virt):
     try:
-        service.ModifyResourceSettings(ResourceSettings = [str(pasd)])
+        status, output = call_modify_res(service, pasd)
+        if status != PASS:
+            raise Exception("ModifyResourceSettings call failed")
+
         cxml.dumpxml(server)
         dom = cxml.xml_get_dom_name()
         cpu = virsh_vcpuinfo(server, dom, virt)
@@ -109,10 +137,29 @@ def print_add_err_msg(func_str, details):
         logger.error('Error invoking AddRS: %s', func_str)
         logger.error(details)
 
+def call_add_res(service, rasd, vssd_ref):
+    try:
+        output = service.AddResourceSettings(AffectedConfiguration=vssd_ref,
+                                             ResourceSettings=[str(rasd)])
+        if len(output) == 0:
+            raise Exception("AddResourceSettings failed to return output")
+
+        out_param = "ResultingResourceSettings"
+        if output[1][out_param] is None:
+            raise Exception("AddResourceSettings failed to return %s" % \
+                            out_param)
+    except Exception, details:
+        logger.error(details)
+        return FAIL
+
+    return PASS
+
 def add_disk_res(server, service, cxml, vssd_ref, dasd, attr):
     try:
-        service.AddResourceSettings(AffectedConfiguration=vssd_ref,
-                                    ResourceSettings=[str(dasd)])
+        status = call_add_res(service, dasd, vssd_ref)
+        if status != PASS:
+            raise Exception("AddResourceSettings call failed")
+
         cxml.dumpxml(server)
         disk_dev = cxml.get_value_xpath(
                    '/domain/devices/disk/target/@dev[. = "%s"]' % attr['nddev'])
@@ -131,8 +178,10 @@ def add_disk_res(server, service, cxml, vssd_ref, dasd, attr):
 
 def add_net_res(server, service, virt, cxml, vssd_ref, nasd, attr):
     try:
-        service.AddResourceSettings(AffectedConfiguration=vssd_ref,
-                                    ResourceSettings=[str(nasd)])
+        status = call_add_res(service, nasd, vssd_ref)
+        if status != PASS:
+            raise Exception("AddResourceSettings call failed")
+
         cxml.dumpxml(server)
     
         mac = cxml.get_value_xpath(
