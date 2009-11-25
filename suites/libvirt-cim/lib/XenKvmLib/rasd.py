@@ -77,7 +77,7 @@ def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem, server):
 
         disk_path = vsxml.xml_get_disk_source()
         if virt == 'LXC':
-           disk_path = '/tmp/lxc_files'
+           disk_path = '/var/lib/libvirt/images/lxc_files'
 
         libvirt_version = virsh_version(server, virt)
 
