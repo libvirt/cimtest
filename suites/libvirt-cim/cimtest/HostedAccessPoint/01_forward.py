@@ -110,6 +110,9 @@ def main():
                     "skipping the tc ....")
         return SKIP
 
+    if options.virt == 'LXC':
+        logger.info("VNC is not supported by LXC, hence skipping the tc ....")
+        return SKIP
 
     status, cxml = setup_env(options.ip, options.virt)
     if status != PASS:

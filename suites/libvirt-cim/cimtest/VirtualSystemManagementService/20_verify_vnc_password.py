@@ -76,6 +76,10 @@ def main():
         logger.info("VNC Password support not available, feature available in"\
                     " '%s' revision..", libvirtcim_vnc_passwd_changes)
         return SKIP
+        
+    if virt == 'LXC':
+        logger.info("VNC is not supported by LXC, hence skipping the tc ....")
+        return SKIP
 
     cxml = vxml.get_class(virt)(default_dom, vnc_passwd=passwd)
 

@@ -76,6 +76,10 @@ def main():
                    "hence skipping the test ....")
         return SKIP
 
+    if options.virt == 'LXC':
+        logger.info("VNC is not supported by LXC, hence skipping the tc ....")
+        return SKIP
+
     # Getting the VS list and deleting the test_dom if it already exists.
     cxml = vxml.get_class(options.virt)(test_dom, vcpus=test_vcpus)
     ret = cxml.cim_define(options.ip)

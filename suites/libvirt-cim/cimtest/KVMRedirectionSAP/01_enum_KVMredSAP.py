@@ -100,6 +100,10 @@ def main():
                     classname)
         return SKIP 
 
+    if virt == 'LXC':
+        logger.info("VNC is not supported by LXC, hence skipping the tc ....")
+        return SKIP
+
     vsxml = None
     action_start = False
 
