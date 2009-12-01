@@ -89,7 +89,11 @@ def filter_reg_name_from_slp(slp_attrs):
         lines = line.split("RegisteredProfilesSupported")
         dmtf_profiles = lines[1].split("DMTF")
         for profile in dmtf_profiles:
-            temp_reg_ele =  profile.rsplit(":", 1)[1].rstrip(",")
+            tmp_prof =  profile.rsplit(":", 1)
+            if len(tmp_prof) < 2:
+                return []
+
+            temp_reg_ele =  tmp_prof[1].rstrip(",")
             reg_prof_name = temp_reg_ele.rstrip(")")
             slp_profile_list.append(reg_prof_name)
 
@@ -146,6 +150,10 @@ def main():
         return status
 
     slp_profile_list = filter_reg_name_from_slp(slp_attrs)
+
+    if len(slp_profile_list) < 1:
+        logger.error("Failed to get profile list on %s", server)
+        return status
 
     status, libvirt_cim_reg_list = get_libvirt_cim_profile_info(server, virt)
     if status != PASS:
