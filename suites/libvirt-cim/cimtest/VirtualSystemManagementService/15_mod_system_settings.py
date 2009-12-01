@@ -65,7 +65,7 @@ def get_vssd(ip, virt, get_cim_inst):
 
     return PASS, inst
 
-def power_down_guest(ip, virt, dom):
+def power_down_guest(ip, virt, dom, cxml):
     rev, changeset = get_provider_version(virt, ip)
 
     if rev < disable_change_rev and virt == "KVM":
@@ -125,7 +125,8 @@ def main():
                     raise Exception("Failed to modify dom: %s" % default_dom)
 
             if case == "start":
-                status = power_down_guest(options.ip, options.virt, default_dom)
+                status = power_down_guest(options.ip, options.virt, default_dom,
+                                          cxml)
                 if status != PASS:
                         raise Exception("Unable to disable %s" % default_dom)
 
