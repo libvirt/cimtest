@@ -1,4 +1,3 @@
-#
 # Copyright 2008 IBM Corp.
 #
 # Authors:
@@ -473,6 +472,18 @@ class VirtXML(Virsh, XMLClass):
     def xml_get_vcpu(self):
         pass
 
+    @_x2str('/domain/features/pae')
+    def xml_get_pae(self):
+        pass
+
+    @_x2str('/domain/features/acpi')
+    def xml_get_acpi(self):
+        pass
+
+    @_x2str('/domain/features/apic')
+    def xml_get_apic(self):
+        pass
+
     @_x2str('/domain/devices/disk/@type')
     def xml_get_disk_type(self):
         pass
@@ -555,15 +566,16 @@ class VirtXML(Virsh, XMLClass):
 
 
 class VirtCIM:
-    def __init__(self, virt, dom_name, uuid, disk_dev, disk_source,
-                 net_type, net_name, net_mac, vcpus, mem,
+    def __init__(self, virt, dom_name, uuid, pae, acpi, apic, disk_dev, 
+                 disk_source, net_type, net_name, net_mac, vcpus, mem,
                  mem_allocunits, emu_type, grstype, ip,
                  port_num, kmap, irstype, btype, vnc_passwd):
         self.virt = virt
         self.domain_name = dom_name
         self.err_rc = None
         self.err_desc = None
-        self.vssd = vsms.get_vssd_mof(virt, dom_name, uuid=uuid)
+        self.vssd = vsms.get_vssd_mof(virt, dom_name, uuid=uuid, pae=pae, 
+                                      acpi=acpi, apic=apic)
         self.nasd = vsms.get_nasd_class(virt)(type=net_type, 
                                               mac=net_mac,
                                               name=dom_name,
@@ -790,6 +802,9 @@ class XenXML(VirtXML, VirtCIM):
     
     def __init__(self, test_dom=const.default_domname,
                        uuid=None,
+                       pae=False,
+                       acpi=False,
+                       apic=False,
                        mem=const.default_memory,
                        mem_allocunits=const.default_mallocunits,
                        vcpus=const.default_vcpus,
@@ -810,10 +825,10 @@ class XenXML(VirtXML, VirtCIM):
         self._os(const.Xen_kernel_path, const.Xen_init_path)
         self._devices(disk_file_path, disk, ntype, mac, net_name)
 
-        VirtCIM.__init__(self, 'Xen', test_dom, uuid, disk, disk_file_path, 
-                         ntype, net_name, mac, vcpus, mem, mem_allocunits, 
-                         emu_type, grstype, address, port_num, keymap, irstype,
-                         btype, vnc_passwd)
+        VirtCIM.__init__(self, 'Xen', test_dom, uuid, pae, acpi, apic, disk, 
+                         disk_file_path, ntype, net_name, mac, vcpus, mem, 
+                         mem_allocunits, emu_type, grstype, address, 
+                         port_num, keymap, irstype, btype, vnc_passwd)
 
     def _os(self, os_kernel, os_initrd):
         os = self.get_node('/domain/os')
@@ -856,6 +871,9 @@ class KVMXML(VirtXML, VirtCIM):
     
     def __init__(self, test_dom=const.default_domname,
                        uuid=None,
+                       pae=False,
+                       acpi=False,
+                       apic=False,
                        mem=const.default_memory,
                        mem_allocunits=const.default_mallocunits,
                        vcpus=const.default_vcpus,
@@ -871,8 +889,8 @@ class KVMXML(VirtXML, VirtCIM):
             logger.error('Error: Disk image does not exist')
             sys.exit(1)
         VirtXML.__init__(self, 'kvm', test_dom, set_uuid(), mem, vcpus)
-        VirtCIM.__init__(self, 'KVM', test_dom, uuid, disk, disk_file_path,
-                         ntype, net_name, mac, vcpus, mem, 
+        VirtCIM.__init__(self, 'KVM', test_dom, uuid, pae, acpi, apic, disk, 
+                         disk_file_path, ntype, net_name, mac, vcpus, mem, 
                          mem_allocunits, emu_type, grstype, address, 
                          port_num, keymap, irstype, btype, vnc_passwd)
         self._os()
@@ -912,6 +930,9 @@ class XenFVXML(VirtXML, VirtCIM):
 
     def __init__(self, test_dom=const.default_domname,
                        uuid=None,              
+                       pae=True,
+                       acpi=True,
+                       apic=True,
                        mem=const.default_memory,
                        mem_allocunits=const.default_mallocunits,
                        vcpus=const.default_vcpus,
@@ -927,20 +948,13 @@ class XenFVXML(VirtXML, VirtCIM):
             logger.error('Error: Disk image does not exist')
             sys.exit(1)
         VirtXML.__init__(self, 'xenfv', test_dom, set_uuid(), mem, vcpus)
-        VirtCIM.__init__(self, 'XenFV', test_dom, disk, uuid, disk_file_path,
-                         ntype, net_name, mac, vcpus, mem, mem_allocunits, 
-                         emu_type, grstype, address, port_num, keymap, 
-                         irstype, btype, vnc_passwd)
-        self._features()
+        VirtCIM.__init__(self, 'XenFV', test_dom, disk, uuid, pae, acpi, apic,
+                         disk_file_path, ntype, net_name, mac, vcpus, mem, 
+                         mem_allocunits, emu_type, grstype, address, port_num, 
+                         keymap, irstype, btype, vnc_passwd)
         self._os(const.XenFV_default_loader)
         self._devices(const.XenFV_default_emulator,
                       ntype, mac, net_name, disk_file_path, disk) 
-
-    def _features(self):
-        features = self.get_node('/domain/features')
-        self.add_sub_node(features, 'pae')
-        self.add_sub_node(features, 'acpi')
-        self.add_sub_node(features, 'apic')
 
     def _os(self, os_loader):
         os = self.get_node('/domain/os')

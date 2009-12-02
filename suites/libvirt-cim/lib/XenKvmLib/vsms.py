@@ -91,7 +91,8 @@ def enumerate_instances(server, virt='Xen'):
 
 # classes to define VSSD parameters
 class CIM_VirtualSystemSettingData(CIMClassMOF):
-    def __init__(self, name, virt, uuid=None, bldr=None, emulator=None):
+    def __init__(self, name, virt, uuid=None, bldr=None, emulator=None,
+                 pae=False, acpi=False, apic=False):
         type = get_class_type(self.__class__.__name__)
         self.InstanceID = '%s:%s' % (type, name)
         self.Caption = self.Description = 'Virtual System'
@@ -119,6 +120,10 @@ class CIM_VirtualSystemSettingData(CIMClassMOF):
         if uuid is not None:
             self.UUID = uuid
 
+        self.EnablePAE = pae 
+        self.EnableACPI = acpi 
+        self.EnableAPIC = apic
+
 class Xen_VirtualSystemSettingData(CIM_VirtualSystemSettingData):
     pass
 
@@ -128,9 +133,11 @@ class KVM_VirtualSystemSettingData(CIM_VirtualSystemSettingData):
 class LXC_VirtualSystemSettingData(CIM_VirtualSystemSettingData):
     pass
 
-def get_vssd_mof(virt, dom_name, uuid=None, bldr=None):
+def get_vssd_mof(virt, dom_name, uuid=None, bldr=None, pae=False, acpi=False,
+                 apic=False):
     vssd_cn = eval(get_typed_class(virt, "VirtualSystemSettingData"))
-    vssd = vssd_cn(dom_name, virt, uuid=uuid, bldr=bldr)
+    vssd = vssd_cn(dom_name, virt, uuid=uuid, bldr=bldr, pae=pae, acpi=acpi,
+                   apic=apic)
     return vssd.mof()
 
 # classes to define RASD parameters
