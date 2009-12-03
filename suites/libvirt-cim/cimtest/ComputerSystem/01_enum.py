@@ -28,7 +28,7 @@ from XenKvmLib import enumclass
 from XenKvmLib.xm_virt_util import domain_list
 from XenKvmLib.classes import get_typed_class
 from VirtLib import utils
-from CimTest import Globals
+from CimTest.Globals import logger, CIM_ERROR_ENUMERATE
 from CimTest.ReturnCodes import PASS, FAIL
 
 SUPPORTED_TYPES = ['Xen', 'KVM', 'XenFV', 'LXC']
@@ -48,20 +48,20 @@ def main():
                 idx = live_cs.index(name)
                 del live_cs[idx]
             except ValueError, detail:
-                Globals.logger.error("Provider reports system `%s', \
-but virsh does not", name)
+                logger.error("Provider reports system `%s', but virsh does not",
+                             name)
                 status = FAIL
 
         for system in live_cs:
-            Globals.logger.error("Provider does not report system `%s', \
-but virsh does", system)
+            logger.error("Provider does not report system `%s', but virsh does",
+                         system)
             status = FAIL
 
     except IndexError, detail:
-        Globals.logger.error("Exception: %s", detail)
+        logger.error("Exception: %s", detail)
     except Exception, detail:
-        Globals.logger.error(Globals.CIM_ERROR_ENUMERATE, 'ComputerSystem')
-        Globals.logger.error("Exception: %s", detail)
+        logger.error(Globals.CIM_ERROR_ENUMERATE, 'ComputerSystem')
+        logger.error("Exception: %s", detail)
 
     return status
 
