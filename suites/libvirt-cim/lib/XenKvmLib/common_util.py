@@ -246,12 +246,12 @@ def check_cimom(ip):
     return rc, out
 
 def pre_check(ip, virt):
-    cmd = "virsh -c %s list --all" % virt2uri(virt)
+    cmd = "virsh -c %s list --all 2>/dev/null" % virt2uri(virt)
     ret, out = utils.run_remote(ip, cmd)
     if ret != 0:
         return "This libvirt install does not support %s"  % virt
 
-    cmd = "virsh -c %s version" % virt2uri(virt)
+    cmd = "virsh -c %s version 2>/dev/null" % virt2uri(virt)
     ret, out = utils.run_remote(ip, cmd)
     if ret != 0:
         # The above version cmd does not work for F10.
@@ -341,7 +341,8 @@ def create_diskpool(server, virt='KVM', dpool=default_pool_name,
                 dpoolname=dpool_list[0]
 
         if dpoolname == None:
-            cmd = "virsh -c %s pool-info %s" % (virt2uri(virt), dpool)
+            cmd = "virsh -c %s pool-info %s 2>/dev/null" % \
+                  (virt2uri(virt), dpool)
             ret, out = utils.run_remote(server, cmd)
             if ret == 0:
                 logger.error("Disk pool with name '%s' already exists", dpool)
@@ -403,7 +404,7 @@ def create_netpool_conf(server, virt, use_existing=False,
                 test_network = vir_network[0]
 
         if test_network == None:
-            cmd = "virsh -c %s net-list --all | grep -w %s" % \
+            cmd = "virsh -c %s net-list --all 2>/dev/null | grep -w %s" % \
                   (virt2uri(virt), net_name)
             ret, out = utils.run_remote(server, cmd)
             # If success, network pool with name net_name already exists

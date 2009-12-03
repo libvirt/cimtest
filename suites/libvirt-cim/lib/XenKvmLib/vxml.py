@@ -176,7 +176,7 @@ class Virsh:
                              " cmd on '%s'", vcmd, ip) 
                 return 0
 
-        cmd = 'virsh -c %s %s %s' % (self.vuri, vcmd, name)
+        cmd = 'virsh -c %s %s %s 2>/dev/null' % (self.vuri, vcmd, name)
         s, o = utils.run_remote(ip, cmd)
         if vcmd == 'define' or vcmd == 'create' or vcmd == 'net-create' \
            or vcmd == 'pool-create':
@@ -223,7 +223,7 @@ class NetXML(Virsh, XMLClass):
         self.server = server
 
         if is_new_net is False:
-            cmd = "virsh net-dumpxml %s" % self.net_name
+            cmd = "virsh net-dumpxml %s 2>/dev/null" % self.net_name
             s, net_xml = utils.run_remote(server, cmd)
             if s != 0:
                 logger.error("Encounter error dump netxml")
@@ -245,7 +245,8 @@ class NetXML(Virsh, XMLClass):
 
         n_list = net_list(server, virt)
         for _net_name in n_list:
-            cmd = "virsh net-dumpxml %s | awk '/ip address/ {print}' | \
+            cmd = "virsh net-dumpxml %s 2>/dev/null | \
+                   awk '/ip address/ {print}' | \
                    cut -d ' ' -f 4 | sed 's/address=//'" % _net_name 
             s, in_use_addr = utils.run_remote(server, cmd)
             in_use_addr = in_use_addr.strip("'")
@@ -302,7 +303,7 @@ class PoolXML(Virsh, XMLClass):
         self.server = server
 
         if is_new_pool is False:
-            cmd = "virsh pool-dumpxml %s" % self.pool_name
+            cmd = "virsh pool-dumpxml %s 2>/dev/null" % self.pool_name
             s, disk_xml = utils.run_remote(server, cmd)
             if s != 0:
                 logger.error("Encounter error dump netxml")
@@ -516,7 +517,7 @@ class VirtXML(Virsh, XMLClass):
         return networkStr
 
     def dumpxml(self, ip):
-        cmd = 'virsh -c %s dumpxml %s' % (self.vuri, self.dname)
+        cmd = 'virsh -c %s dumpxml %s 2>/dev/null' % (self.vuri, self.dname)
         s, o = utils.run_remote(ip, cmd)
         if s == 0:
             self.xml_string = o

@@ -97,7 +97,7 @@ def destroy_domain(server, dom, virt="Xen"):
     if virt == "XenFV":
        virt = "Xen"
 
-    cmd = "virsh -c %s destroy %s" %  (virt2uri(virt), dom)
+    cmd = "virsh -c %s destroy %s 2>/dev/null" %  (virt2uri(virt), dom)
     ret, out = utils.run_remote(server, cmd)
     print cmd, ret, out
 
@@ -108,7 +108,7 @@ def domain_list(server, virt="Xen"):
     if virt == "XenFV":
        virt = "Xen"
 
-    cmd = "virsh -c %s list --all | sed -e '1,2 d' -e '$ d'" % \
+    cmd = "virsh -c %s list --all 2>/dev/null | sed -e '1,2 d' -e '$ d'" % \
                 virt2uri(virt)
     ret, out = utils.run_remote(server, cmd)
 
@@ -128,7 +128,7 @@ def active_domain_list(server, virt="Xen"):
     if virt == "XenFV":
         virt = "Xen"
 
-    cmd = "virsh -c %s list | sed -e '1,2 d' -e '$ d'" % \
+    cmd = "virsh -c %s list 2>/dev/null | sed -e '1,2 d' -e '$ d'" % \
                 virt2uri(virt)
     ret, out = utils.run_remote(server, cmd)
 
@@ -175,7 +175,7 @@ def bootloader(server, gtype = 0):
 def net_list(server, virt="Xen"):
     """Function to list active network"""
     names = []
-    cmd = "virsh -c %s net-list | sed -e '1,2 d' -e '$ d'" % \
+    cmd = "virsh -c %s net-list 2>/dev/null | sed -e '1,2 d' -e '$ d'" % \
                 virt2uri(virt)
     ret, out = utils.run_remote(server, cmd)
 
@@ -192,8 +192,8 @@ def net_list(server, virt="Xen"):
 def get_bridge_from_network_xml(network, server, virt="Xen"):
     """Function returns bridge name for a given virtual network"""
 
-    cmd = "virsh -c %s net-dumpxml %s | awk '/bridge name/ { print $2 }'" % \
-                (virt2uri(virt), network)
+    cmd = "virsh -c %s net-dumpxml %s 2>/dev/null | \
+           awk '/bridge name/ { print $2 }'" % (virt2uri(virt), network)
     ret, out = utils.run_remote(server, cmd)
 
     if ret != 0:
@@ -205,7 +205,7 @@ def get_bridge_from_network_xml(network, server, virt="Xen"):
 def net_destroy(network, server, virt="Xen"):
     """Function destroys a given virtual network"""
 
-    cmd = "virsh -c %s net-destroy %s" % (virt2uri(virt), network)
+    cmd = "virsh -c %s net-destroy %s 2>/dev/null" % (virt2uri(virt), network)
     ret, out = utils.run_remote(server, cmd)
 
     return ret 
@@ -224,7 +224,7 @@ def network_by_bridge(bridge, server, virt="Xen"):
     return None
 
 def virsh_version(server, virt="KVM"):
-    cmd = "virsh -c %s -v " % virt2uri(virt)
+    cmd = "virsh -c %s -v 2>/dev/null" % virt2uri(virt)
     ret, out = utils.run_remote(server, cmd)
     if ret != 0:
         return None
@@ -233,7 +233,7 @@ def virsh_version(server, virt="KVM"):
 def diskpool_list(server, virt="KVM"):
     """Function to list active DiskPool list"""
     names = []
-    cmd = "virsh -c %s pool-list | sed -e '1,2 d' -e '$ d'" % \
+    cmd = "virsh -c %s pool-list 2>/dev/null | sed -e '1,2 d' -e '$ d'" % \
            virt2uri(virt)
     ret, out = utils.run_remote(server, cmd)
 
@@ -251,7 +251,7 @@ def diskpool_list(server, virt="KVM"):
 def vol_list(server, virt="KVM", pool_name=None):
     """ Function to list the volumes of a pool"""
 
-    cmd = "virsh -c %s vol-list %s | sed -e '1,2 d' -e '$ d'" \
+    cmd = "virsh -c %s vol-list %s 2>/dev/null | sed -e '1,2 d' -e '$ d'" \
             % (virt2uri(virt), pool_name)
     ret, out = utils.run_remote(server, cmd)
     if ret != 0:
@@ -262,7 +262,7 @@ def vol_list(server, virt="KVM", pool_name=None):
 def vol_delete(server, virt="KVM", vol_name=None, pool_name=None):
     """ Function to delete the volume of a pool"""
 
-    cmd = "virsh -c %s vol-delete %s --pool %s"\
+    cmd = "virsh -c %s vol-delete %s --pool %s 2>/dev/null" \
             % (virt2uri(virt), vol_name, pool_name)
     ret, out = utils.run_remote(server, cmd)
     if ret != 0:
@@ -272,19 +272,19 @@ def vol_delete(server, virt="KVM", vol_name=None, pool_name=None):
 
 
 def virsh_vcpuinfo(server, dom, virt="Xen"):
-    cmd = "virsh -c %s vcpuinfo %s | grep VCPU | wc -l" % (virt2uri(virt),
-          dom)
+    cmd = "virsh -c %s vcpuinfo %s 2>/dev/null | grep VCPU | wc -l" \
+          % (virt2uri(virt), dom)
     ret, out = utils.run_remote(server, cmd)
     if out.isdigit():
         return out
     return None
 
 def get_hv_ver(server, virt="Xen"):
-    cmd = "virsh -c %s version"  %virt2uri(virt)
+    cmd = "virsh -c %s version 2>/dev/null"  %virt2uri(virt)
     ret, out = utils.run_remote(server, cmd)
     if ret == 0:
-        cmd = "virsh -c %s version | grep ^Running | cut -d ' ' -f 3,4" \
-               %virt2uri(virt)
+        cmd = "virsh -c %s version 2>/dev/null | grep ^Running | \
+              cut -d ' ' -f 3,4" % virt2uri(virt)
 
     # This is a workaround work for F10.
     # The version option does not seem to work on F10.

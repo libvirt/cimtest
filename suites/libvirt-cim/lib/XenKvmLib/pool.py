@@ -107,7 +107,7 @@ def enum_pools(virt, ip):
 
 def enum_volumes(virt, server, pooln=default_pool_name):
     volume = 0
-    cmd = "virsh -c %s vol-list %s | sed -e '1,2 d' -e '$ d'" % \
+    cmd = "virsh -c %s vol-list %s 2>/dev/null | sed -e '1,2 d' -e '$ d'" % \
           (virt2uri(virt), pooln)
     ret, out = run_remote(server ,cmd)
     if ret != 0:
@@ -115,7 +115,8 @@ def enum_volumes(virt, server, pooln=default_pool_name):
     lines = out.split("\n")
     for line in lines:
         vol = line.split()[0]   
-        cmd = "virsh -c %s vol-info --pool %s %s" % (virt2uri(virt), pooln, vol)
+        cmd = "virsh -c %s vol-info --pool %s %s 2>/dev/null" % \
+              (virt2uri(virt), pooln, vol)
         ret, out = run_remote(server ,cmd)
         if ret == 0:
             volume = volume + 1
@@ -164,7 +165,7 @@ def get_pool_rasds(server, virt, pool_type="NetworkPool", filter_default=True):
 def net_undefine(network, server, virt="Xen"):
     """Function undefine a given virtual network"""
 
-    cmd = "virsh -c %s net-undefine %s" % (virt2uri(virt), network)
+    cmd = "virsh -c %s net-undefine %s 2>/dev/null" % (virt2uri(virt), network)
     ret, out = run_remote(server, cmd)
 
     return ret
@@ -186,7 +187,8 @@ def undefine_diskpool(server, virt, dp_name):
         if dp_name == None:
            return FAIL
 
-        cmd = "virsh -c %s pool-undefine %s" % (virt2uri(virt), dp_name)
+        cmd = "virsh -c %s pool-undefine %s 2>/dev/null" % \
+              (virt2uri(virt), dp_name)
         ret, out = run_remote(server, cmd)
         if ret != 0:
             logger.error("Failed to undefine pool '%s'", dp_name)

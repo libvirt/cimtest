@@ -42,7 +42,7 @@ def get_cimtest_version():
 def get_libvirt_ver(ip):
     libvirt_ver = "Unknown"
     hyp_ver = "Unknown"
-    cmd = "virsh version"
+    cmd = "virsh version 2>/dev/null"
     virsh_ver = get_cmd_val(cmd, ip)
     if virsh_ver != "Unknown":
         libvirt, tok1, tok2, hypervisor = virsh_ver.splitlines()

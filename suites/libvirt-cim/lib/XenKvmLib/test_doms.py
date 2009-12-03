@@ -47,19 +47,19 @@ def define_test_domain(xml, server, virt="Xen"):
     f.write(xml)
     f.close()
 
-    cmd = "virsh -c %s define %s" % (virt2uri(virt), name)
+    cmd = "virsh -c %s define %s 2>/dev/null" % (virt2uri(virt), name)
     s, o = utils.run_remote(server, cmd)
 
     return s == 0
 
 def undefine_test_domain(name, server, virt="Xen"):
-    cmd = "virsh -c %s undefine %s" % (virt2uri(virt), name)
+    cmd = "virsh -c %s undefine %s 2>/dev/null" % (virt2uri(virt), name)
     s, o = utils.run_remote(server, cmd)
 
     return s == 0
 
 def start_test_domain(name, server, virt="Xen"):
-    cmd = "virsh -c %s start %s" % (virt2uri(virt), name)
+    cmd = "virsh -c %s start %s 2>/dev/null" % (virt2uri(virt), name)
     s, o = utils.run_remote(server, cmd)
 
     return s == 0
@@ -119,7 +119,7 @@ def viruuid(name, server, virt="Xen"):
 def destroy_and_undefine_domain(name, server, virt="Xen"):
     """Destroy and undefine a domain.
     name could be domid or domname"""
-    cmd = "virsh -c %s 'destroy %s ; undefine %s'" % \
+    cmd = "virsh -c %s 'destroy %s ; undefine %s' 2>/dev/null" % \
                 (virt2uri(virt), name, name)
     utils.run_remote(server, cmd)
 
@@ -154,7 +154,7 @@ def test_domain_function(xmlfile_domname, server, cmd, virt="Xen"):
     else:
         name = xmlfile_domname
 
-    vcmd = "virsh -c %s %s %s" % (virt2uri(virt), cmd, name)
+    vcmd = "virsh -c %s %s %s 2>/dev/null" % (virt2uri(virt), cmd, name)
     s, o = utils.run_remote(server, vcmd)
     if cmd == "define" or cmd == "create":
         f.close()
@@ -164,7 +164,7 @@ def vir_cpu_list(name_id, server, virt="Xen"):
     """
        Get the vcpu lists. The input is either the domid or domname.
     """
-    cmd = "virsh -c %s vcpuinfo %s | grep '^$' | wc -l" % \
+    cmd = "virsh -c %s vcpuinfo %s 2>/dev/null | grep '^$' | wc -l" % \
                 (virt2uri(virt), name_id)
     ret, out = utils.run_remote(server, cmd)
 
@@ -180,7 +180,7 @@ def create_vnet(server, net_xml, virt="Xen"):
     nf.write(net_xml)
     nf.flush()
     fname = nf.name
-    cmd = "virsh -c %s net-create %s" % (virt2uri(virt), fname)
+    cmd = "virsh -c %s net-create %s 2>/dev/null" % (virt2uri(virt), fname)
     ret, out = utils.run_remote(server, cmd)
     nf.close()
     if ret != 0:
