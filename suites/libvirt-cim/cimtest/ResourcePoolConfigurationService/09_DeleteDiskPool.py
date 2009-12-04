@@ -48,7 +48,8 @@ import pywbem
 from XenKvmLib import rpcs_service
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import FAIL, PASS
-from XenKvmLib.const import do_main, platform_sup, get_provider_version
+from XenKvmLib.const import do_main, platform_sup, get_provider_version, \
+                            _image_dir
 from XenKvmLib.enumclass import EnumInstances, EnumNames
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.pool import create_pool, verify_pool, undefine_diskpool
@@ -75,7 +76,8 @@ def main():
             rpcs_conn.DeleteResourcePool()
         except pywbem.CIMError, (err_no, desc):
             if err_no == cim_errno :
-                logger.info("Got expected exception for '%s' service", cim_mname)
+                logger.info("Got expected exception for '%s' service", 
+                            cim_mname)
                 logger.info("Errno is '%s' ", err_no)
                 logger.info("Error string is '%s'", desc)
                 return PASS
@@ -87,7 +89,7 @@ def main():
     elif curr_cim_rev >= libvirt_cim_child_pool_rev:
         
         try:
-            pool_attr = { "Path" : "/tmp" }
+            pool_attr = { "Path" : _image_dir }
             status = create_pool(server, virt, test_pool, pool_attr, 
                                  pool_type="DiskPool", mode_type=TYPE)
             if status != PASS:
