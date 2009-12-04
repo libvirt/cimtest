@@ -52,6 +52,7 @@ def try_define(options, units, value, cxml):
     for rasd in rasds:
         if rasd.classname == mrasd_cn:
             rasd['VirtualQuantity'] = Uint64(value)
+            rasd['Limit'] = Uint64(value)
             rasd['AllocationUnits'] = units 
             rasd_list[mrasd_cn] = inst_to_mof(rasd)
         else:
