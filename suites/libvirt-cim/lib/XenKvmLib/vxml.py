@@ -1005,9 +1005,12 @@ class LXCXML(VirtXML, VirtCIM):
                        keymap="en-us",
                        irstype="mouse", btype="usb", vnc_passwd=None):
         VirtXML.__init__(self, 'lxc', test_dom, set_uuid(), mem, vcpus)
-        VirtCIM.__init__(self, 'LXC', test_dom, uuid, const.LXC_default_mp,
-                         const.LXC_default_source, ntype, net_name, mac, vcpus,
-                         mem, const.default_mallocunits, None, grstype, 
+        # pae, acpi and apic parameters doesn't make sense here, so we
+        # statically set them to False (a.k.a. ignore them)
+        VirtCIM.__init__(self, 'LXC', test_dom, uuid, False, False, False, 
+                         const.LXC_default_mp, const.LXC_default_source, 
+                         ntype, net_name, mac, vcpus, mem, 
+                         const.default_mallocunits, None, grstype, 
                          address, is_ipv6_only, port_num, keymap, irstype, 
                          btype, vnc_passwd)
         self._os(const.LXC_init_path)
