@@ -106,7 +106,7 @@ def main():
     try:
         virt_xml =  get_class(virt)
         lport = randrange(5900, 5999)
-        vsxml = virt_xml(test_dom, port_num=str(lport))
+        vsxml = virt_xml(test_dom, address='127.0.0.1', port_num=str(lport))
 
         # Define the VS, and verify the KVMRedirectionSAP values.
         ret = vsxml.cim_define(server)
