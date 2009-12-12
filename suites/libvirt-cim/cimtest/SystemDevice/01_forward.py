@@ -49,6 +49,8 @@ def main():
     
     if virt == 'Xen':
         test_disk = 'xvdb'
+    elif virt == 'LXC':
+        test_disk = '/tmp'
     else:
         test_disk = 'hdb'
 
@@ -90,29 +92,32 @@ def main():
 
     mem_cn = get_typed_class(virt, "Memory")
     exp_pllist = { mem_cn  : ['%s/mem' % test_dom] }
-    proc_cn = get_typed_class(virt, "Processor")
-    exp_pllist[proc_cn] = [] 
-    for i in range(test_cpu):
-        exp_pllist[proc_cn].append( '%s/%s' % (test_dom, i))
+    
+    input_cn = get_typed_class(virt, "PointingDevice")
+    if virt == 'LXC':
+        point_device = "%s/%s" %(test_dom, "mouse:usb")
+    elif virt == 'Xen':
+        point_device = "%s/%s" %(test_dom, "mouse:xen")
+    else:
+        point_device = "%s/%s" %(test_dom, "mouse:ps2")
+
+    exp_pllist[input_cn] = [point_device]
+
+    disk_cn =  get_typed_class(virt, "LogicalDisk")
+    exp_pllist[disk_cn] = [ '%s/%s' % (test_dom, test_disk)]
 
     if virt != 'LXC':
         net_cn = get_typed_class(virt, "NetworkPort")
-        disk_cn =  get_typed_class(virt, "LogicalDisk")
         exp_pllist[net_cn]  = ['%s/%s' % (test_dom, test_mac)]
-        exp_pllist[disk_cn] = [ '%s/%s' % (test_dom, test_disk)]
+                
+        proc_cn = get_typed_class(virt, "Processor")
+        exp_pllist[proc_cn] = [] 
+        for i in range(test_cpu):
+            exp_pllist[proc_cn].append( '%s/%s' % (test_dom, i))
 
         curr_cim_rev, changeset = get_provider_version(virt, server)
         if curr_cim_rev >= input_graphics_pool_rev:
-            input_cn = get_typed_class(virt, "PointingDevice")
             graphics_cn = get_typed_class(virt, "DisplayController")
-            if virt == 'LXC':
-                point_device = "%s/%s" %(test_dom, "mouse:usb")
-            elif virt == 'Xen':
-                point_device = "%s/%s" %(test_dom, "mouse:xen")
-            else:
-                point_device = "%s/%s" %(test_dom, "mouse:ps2")
-
-            exp_pllist[input_cn] = [point_device]
             exp_pllist[graphics_cn] = ['%s/graphics' % test_dom]
 
  
