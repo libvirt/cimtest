@@ -32,6 +32,7 @@ from CimTest.Globals import logger, CIM_NS
 from XenKvmLib.const import do_main
 from CimTest.ReturnCodes import PASS, FAIL
 from XenKvmLib.vsms_util import call_modify_res 
+from XenKvmLib.classes import get_typed_class
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 default_dom = 'rstest_domain'
@@ -40,7 +41,7 @@ default_dom = 'rstest_domain'
 def main():
     options = main.options 
 
-    cn = "KVM_DiskResourceAllocationSettingData"
+    cn = get_typed_class(options.virt, "DiskResourceAllocationSettingData")
 
     service = get_vsms_class(options.virt)(options.ip)
     cxml = vxml.get_class(options.virt)(default_dom)
