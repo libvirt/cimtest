@@ -39,7 +39,7 @@ from XenKvmLib.vsmigrations import check_mig_support, local_remote_migrate, \
                                    cleanup_guest_netpool
 from XenKvmLib.common_util import poll_for_state_change, create_netpool_conf
 
-sup_types = ['KVM', 'Xen']
+sup_types = ['KVM', 'Xen', 'XenFV']
 
 REQUESTED_STATE = 3
 

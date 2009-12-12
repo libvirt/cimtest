@@ -30,7 +30,7 @@ from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from CimTest.Globals import logger
 from XenKvmLib.const import get_provider_version
 
-SUPPORTED_TYPES = ['KVM', 'Xen']
+SUPPORTED_TYPES = ['KVM', 'Xen', 'XenFV']
 default_dom = 'test_domain'
 libvirt_em_type_changeset = 737
 

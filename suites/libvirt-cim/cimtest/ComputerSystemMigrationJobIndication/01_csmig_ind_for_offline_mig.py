@@ -41,7 +41,7 @@ from XenKvmLib.common_util import poll_for_state_change, create_netpool_conf,\
                                   destroy_netpool
 from XenKvmLib.indications import sub_ind, handle_request, poll_for_ind
 
-sup_types = ['KVM', 'Xen']
+sup_types = ['KVM', 'Xen', 'XenFV']
 
 REQUESTED_STATE = 3
 
