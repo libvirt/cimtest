@@ -955,7 +955,7 @@ class XenFVXML(VirtXML, VirtCIM):
             logger.error('Error: Disk image does not exist')
             sys.exit(1)
         VirtXML.__init__(self, 'xenfv', test_dom, set_uuid(), mem, vcpus)
-        VirtCIM.__init__(self, 'XenFV', test_dom, disk, uuid, pae, acpi, apic,
+        VirtCIM.__init__(self, 'XenFV', test_dom, uuid, pae, acpi, apic, disk,
                          disk_file_path, ntype, net_name, mac, vcpus, mem, 
                          mem_allocunits, emu_type, grstype, address, 
                          is_ipv6_only, port_num, 
