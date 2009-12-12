@@ -28,7 +28,8 @@ from CimTest.Globals import logger
 from CimTest.ReturnCodes import FAIL, PASS
 from XenKvmLib.const import do_main 
 
-sup_types = ['Xen', 'KVM', 'XenFV']
+#Xen paravirt doesn't support ACPI, PAE, or APIC
+sup_types = ['KVM', 'XenFV']
 default_dom = 'features_domain'
 
 @do_main(sup_types)
