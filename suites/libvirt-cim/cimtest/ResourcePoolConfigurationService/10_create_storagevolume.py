@@ -33,7 +33,7 @@ from CimTest.Globals import logger
 from CimTest.ReturnCodes import FAIL, PASS, SKIP
 from XenKvmLib.const import do_main, platform_sup, default_pool_name, \
                             get_provider_version, _image_dir
-from XenKvmLib.vsms import RASD_TYPE_STOREVOL
+from XenKvmLib.vsms import RASD_TYPE_STOREVOL, RASD_TYPE_DISK
 from XenKvmLib.rasd import libvirt_rasd_storagepool_changes
 from XenKvmLib import rpcs_service
 from XenKvmLib.assoc import Associators
@@ -46,7 +46,7 @@ from XenKvmLib.pool import create_pool, undefine_diskpool, DIR_POOL
 pool_attr = { 'Path' : _image_dir }
 vol_name = "cimtest-vol.img"
 
-def get_stovol_rasd_from_sdc(virt, server, dp_inst_id):
+def get_template_rasd_from_sdc(virt, server, dp_inst_id):
     rasd = None
     ac_cn = get_typed_class(virt, "AllocationCapabilities")
     an_cn = get_typed_class(virt, "SettingsDefineCapabilities")
@@ -62,7 +62,7 @@ def get_stovol_rasd_from_sdc(virt, server, dp_inst_id):
     return PASS, rasd
 
 def get_stovol_settings(server, virt, dp_id, pool_name):
-    status, dp_rasds = get_stovol_rasd_from_sdc(virt, server, dp_id) 
+    status, dp_rasds = get_template_rasd_from_sdc(virt, server, dp_id) 
     if status != PASS:
         logger.error("Failed to get the StorageVol RASD's")
         return None
@@ -111,19 +111,29 @@ def verify_vol(server, virt, pool_name, exp_vol_path, found):
 
     return found 
 
-def verify_sto_vol_rasd(virt, server, dp_inst_id, exp_vol_path):
+#This function verifies that a template DiskRASD exists for the newly created
+#storage volume.
+def verify_template_rasd_exists(virt, server, dp_inst_id, exp_vol_path):
     dv_rasds = []
-    status, rasds = get_stovol_rasd_from_sdc(virt, server, dp_inst_id)
+    status, rasds = get_template_rasd_from_sdc(virt, server, dp_inst_id)
     if status != PASS:
         logger.error("Failed to get the StorageVol for '%s' vol", exp_vol_path)
         return FAIL
 
     for item in rasds:
-        if item['Address'] == exp_vol_path and item['PoolID'] == dp_inst_id:
+        if item['Address'] == exp_vol_path and item['PoolID'] == dp_inst_id \
+           and item['ResourceType'] == RASD_TYPE_DISK:
            dv_rasds.append(item)
 
-    if len(dv_rasds) != 4:
-        logger.error("Got '%s' StorageVolRASD's expected 4", len(dv_rasds))
+    exp_template_rasd = 4
+
+    if virt == "Xen" or virt == "XenFV":
+        #There's one of each RASD type for both paravirt Xen and full virt Xen
+        exp_template_rasd = exp_template_rasd * 2
+
+    if len(dv_rasds) != exp_template_rasd:
+        logger.error("Got '%s' StorageVolRASD's expected %s", len(dv_rasds),
+                     exp_template_rasd)
         return FAIL
 
     return PASS
@@ -222,8 +232,9 @@ def main():
                 raise Exception("Failed to create the Vol %s" % vol_name)
 
             found = verify_vol(server, virt, pool_name, exp_vol_path, found)
-            stovol_status = verify_sto_vol_rasd(virt, server, dp_inst_id, 
-                                                exp_vol_path)
+            stovol_status = verify_template_rasd_exists(virt, server, 
+                                                        dp_inst_id, 
+                                                        exp_vol_path)
 
             ret = cleanup_pool_vol(server, virt, pool_name, 
                                    clean_pool, exp_vol_path)
@@ -237,7 +248,6 @@ def main():
             logger.error("Exception details: %s", details)
             status = FAIL
 
-        
     return status
 if __name__ == "__main__":
     sys.exit(main())
