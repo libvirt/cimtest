@@ -82,11 +82,17 @@ def get_rasd_rec(virt, cn, s_sysname, inst_id):
 def gen_indication(test_dom, s_sysname, virt, cxml, service, ind_name,
                    rasd=None, nmem_disk=None):
     status = FAIL
+
+    if virt == "XenFV":
+        prefix = "Xen"
+    else:
+        prefix = virt
+ 
     try:
 
         if ind_name == "add":
             cn = 'VirtualSystemSettingData'
-            inst_id = '%s:%s' % (virt, test_dom)
+            inst_id = '%s:%s' % (prefix, test_dom)
             classname = get_typed_class(virt, cn)
             vssd_ref = get_rasd_rec(virt, cn, s_sysname, inst_id)
 

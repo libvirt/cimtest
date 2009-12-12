@@ -113,7 +113,13 @@ def main():
         service = get_vsms_class(options.virt)(options.ip)
         classname = get_typed_class(options.virt, 'VirtualSystemSettingData')
         netpool = EnumNames(options.ip, classname)
-        inst_id = '%s:%s' % (options.virt, default_dom) 
+
+        if options.virt == "XenFV":
+            prefix = "Xen"
+        else:
+            prefix = options.virt
+
+        inst_id = '%s:%s' % (prefix, default_dom) 
         vssd_ref = None
         for i in range(0, len(netpool)):
             ret_pool = netpool[i].keybindings['InstanceID']

@@ -74,7 +74,12 @@ def main():
         if ret:
             raise Exception("Failed to define the dom: %s" % default_dom)
 
-        inst_id = '%s:%s' % (options.virt, test_dom)
+        if options.virt == "XenFV":
+            prefix = "Xen"
+        else:
+            prefix = options.virt 
+
+        inst_id = '%s:%s' % (prefix, test_dom)
         netpool = EnumNames(options.ip, classname)
         vssd_ref = None
         for i in range(0, len(netpool)):
