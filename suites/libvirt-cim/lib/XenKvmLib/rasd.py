@@ -29,7 +29,7 @@ from XenKvmLib.classes import get_typed_class, get_class_type
 from XenKvmLib.enumclass import GetInstance, EnumInstances
 from XenKvmLib.assoc import Associators 
 from XenKvmLib.const import default_pool_name, default_network_name, \
-                            get_provider_version
+                            get_provider_version, default_net_type
 from XenKvmLib.pool import enum_volumes
 from XenKvmLib.xm_virt_util import virsh_version
 from XenKvmLib.common_util import parse_instance_id
@@ -251,6 +251,8 @@ def get_default_rasds(host_ip, type):
             ac_id_list.append("NetworkPool/%s" % default_network_name)
             ac_id_list.append("ProcessorPool/0")
 
+    net_cn = "NetResourceAllocationSettingData"
+
     templates = [] 
     
     for id in ac_id_list:
@@ -260,7 +262,10 @@ def get_default_rasds(host_ip, type):
             return []
 
         for rasd in rasd_list:
-            if rasd['InstanceID'] == "Default": 
+            if rasd['InstanceID'] == "Default":
+                if rasd.classname.find(net_cn) > 0 and \
+                   rasd['NetworkType'] != default_net_type:
+                    continue
                 templates.append(rasd)
 
     return templates
