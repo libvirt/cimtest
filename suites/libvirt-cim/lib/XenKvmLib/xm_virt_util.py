@@ -272,11 +272,11 @@ def vol_delete(server, virt="KVM", vol_name=None, pool_name=None):
 
 
 def virsh_vcpuinfo(server, dom, virt="Xen"):
-    cmd = "virsh -c %s vcpuinfo %s 2>/dev/null | grep VCPU | wc -l" \
-          % (virt2uri(virt), dom)
+    cmd = "virsh -c %s vcpuinfo %s 2>/dev/null " % (virt2uri(virt), dom)
     ret, out = utils.run_remote(server, cmd)
-    if out.isdigit():
-        return out
+    if ret == 0 :
+        vcpu = out.count("VCPU")
+        return vcpu
     return None
 
 def get_hv_ver(server, virt="Xen"):
