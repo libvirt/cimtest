@@ -86,7 +86,7 @@ copy_in_ramdisk() {
 kernel_path() {
     local prefix=$1
 
-    local image=`find /boot | grep vmlinuz | grep -v xen | tail -n1`
+    local image=`find /boot | grep vmlinuz | egrep -v 'xen|hmac' | tail -n1`
 
     if [ -z $image ]; then
         touch /boot/vmlinuz-$DUMMY_PATH
