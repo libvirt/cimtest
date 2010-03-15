@@ -324,6 +324,8 @@ def get_exp_disk_rasd_len(virt, ip, rev, id):
     libvirt_rasd_template_changes = 707
     libvirt_rasd_new_changes = 805
     libvirt_rasd_dpool_changes = 839
+    libvirt_rasd_floppy_changes = 1023
+    libvirt_rasd_stvol_unit_changes = 1025
 
     libvirt_ver = virsh_version(ip, virt)
 
@@ -334,6 +336,13 @@ def get_exp_disk_rasd_len(virt, ip, rev, id):
     # StoragePoolRASD record 1 for each of Min, Max, Default, and Incr
     exp_storagevol_rasd = 4
     exp_len = exp_base_num 
+   
+    # StoragePoolRASD record with AllocationUnits=G 1 for each \
+    # of Min, Max, Default,  Incr
+    exp_storagevol_unit_changes = 4
+
+    # Floppy record 1 for each of Min, Max, Default, and Incr
+    exp_floppy = 4
 
     if id == "DiskPool/0":
         pool_types = 7
@@ -350,7 +359,11 @@ def get_exp_disk_rasd_len(virt, ip, rev, id):
 
         elif rev >= libvirt_rasd_dpool_changes and libvirt_ver >= '0.4.1':
             volumes = enum_volumes(virt, ip)
-            exp_len = ((volumes * exp_base_num) + exp_cdrom) * xen_multi
+            if rev >= libvirt_rasd_floppy_changes:
+                exp_len = ((volumes * exp_base_num) + \
+                           exp_cdrom + exp_floppy) * xen_multi
+            else:
+                exp_len = ((volumes * exp_base_num) + exp_cdrom) * xen_multi
 
         else:
             exp_len = (exp_base_num + exp_cdrom) * xen_multi 
@@ -363,16 +376,28 @@ def get_exp_disk_rasd_len(virt, ip, rev, id):
         elif rev >= libvirt_rasd_dpool_changes:
             id = parse_instance_id(id)
             volumes = enum_volumes(virt, ip, id[1])
-            exp_len = (volumes * exp_base_num) + exp_cdrom
 
-    if rev >= libvirt_rasd_storagepool_changes and libvirt_ver >= '0.4.1' \
-       and virt != 'LXC':
-        exp_len += exp_storagevol_rasd
+            if rev >= libvirt_rasd_floppy_changes:
+                exp_len = (volumes * exp_base_num) + exp_cdrom + exp_floppy
+            else:
+                exp_len = (volumes * exp_base_num) + exp_cdrom 
+
+
+    if virt != 'LXC' and libvirt_ver >= '0.4.1':
+        if rev >= libvirt_rasd_storagepool_changes:
+            exp_len += exp_storagevol_rasd
+
+        if rev >= libvirt_rasd_stvol_unit_changes:
+            exp_len +=  exp_storagevol_unit_changes
 
     return exp_len
 
 def get_exp_net_rasd_len(virt, rev, id):
     net_rasd_template_changes = 861 
+    net_rasd_direct_nettype_changes = 1029
+
+    # NetRASD record for Direct NetType 1 for each min, max, incr, default
+    exp_direct = 4
 
     exp_base_num = 4
 
@@ -385,8 +410,12 @@ def get_exp_net_rasd_len(virt, rev, id):
     if rev >= net_rasd_template_changes:
         dev_types = 2
         net_types = 3
+        exp_base_num = exp_base_num * dev_types * net_types
 
-        return exp_base_num * dev_types * net_types
+	if rev >= net_rasd_direct_nettype_changes:
+            exp_base_num += exp_direct
+
+        return exp_base_num
 
     return exp_base_num
 
