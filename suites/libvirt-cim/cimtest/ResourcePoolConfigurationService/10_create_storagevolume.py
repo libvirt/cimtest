@@ -231,6 +231,11 @@ def main():
             if res[0] != PASS:
                 raise Exception("Failed to create the Vol %s" % vol_name)
 
+            if res[1]['Resource']['InstanceID'] != exp_vol_path:
+                raise Exception("Incorrect InstanceID")
+            else:
+                status = PASS
+
             found = verify_vol(server, virt, pool_name, exp_vol_path, found)
             stovol_status = verify_template_rasd_exists(virt, server, 
                                                         dp_inst_id, 
@@ -239,7 +244,8 @@ def main():
             ret = cleanup_pool_vol(server, virt, pool_name, 
                                    clean_pool, exp_vol_path)
             if res[0] == PASS and found == 1 and \
-               ret == PASS and stovol_status == PASS:
+               ret == PASS and stovol_status == PASS and \
+               status == PASS:
                 status = PASS
             else:
                 return FAIL
