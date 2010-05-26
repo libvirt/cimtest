@@ -45,6 +45,7 @@ from XenKvmLib.pool import create_pool, undefine_diskpool, DIR_POOL
 
 pool_attr = { 'Path' : _image_dir }
 vol_name = "cimtest-vol.img"
+libvirt_stovol_instance_id=1032
 
 def get_template_rasd_from_sdc(virt, server, dp_inst_id):
     rasd = None
@@ -231,7 +232,8 @@ def main():
             if res[0] != PASS:
                 raise Exception("Failed to create the Vol %s" % vol_name)
 
-            if res[1]['Resource']['InstanceID'] != exp_vol_path:
+            if res[1]['Resource']['InstanceID'] != exp_vol_path and \
+               cim_rev >= libvirt_stovol_instance_id:
                 raise Exception("Incorrect InstanceID")
             else:
                 status = PASS
@@ -252,6 +254,8 @@ def main():
         
         except Exception, details:
             logger.error("Exception details: %s", details)
+            cleanup_pool_vol(server, virt, pool_name, 
+                             clean_pool, exp_vol_path)
             status = FAIL
 
     return status
