@@ -237,7 +237,7 @@ class NetXML(Virsh, XMLClass):
         self.add_sub_node(network, 'name', self.net_name)
         self.add_sub_node(network, 'uuid', set_uuid())
         self.add_sub_node(network, 'forward')
-        subnet = '192.168.123.'
+        subnet = '192.168.%d.' % (random.randint(1, 100))
         self.add_sub_node(network, 'bridge', name=self.vbr, stp='on',
                                              forwardDelay='0')
         ip_base = random.randint(1, 100)
@@ -249,6 +249,13 @@ class NetXML(Virsh, XMLClass):
                    awk '/ip address/ {print}' | \
                    cut -d ' ' -f 4 | sed 's/address=//'" % _net_name 
             s, in_use_addr = utils.run_remote(server, cmd)
+
+            sub_net_in_use = in_use_addr
+            sub_net_in_use = sub_net_in_use.rsplit('.', 1)[0].strip("'") + "."
+            if subnet == sub_net_in_use:
+                logger.error("Subnet address is in use by a different network")
+                return None 
+
             in_use_addr = in_use_addr.strip("'")
             if in_use_addr == addr:
                 logger.error("IP address is in use by a different network")
