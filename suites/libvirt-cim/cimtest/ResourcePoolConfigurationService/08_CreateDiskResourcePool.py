@@ -62,7 +62,7 @@ libvirt_disk_pool_support=837
 libvirt_netfs_pool_support=869
     
 def get_pool_attr(server, pool_type, dp_types, rev):
-    pool_attr = { "Path" : "/var/lib/libvirt/images/" }
+    pool_attr = { "Path" : "/var/lib/libvirt/images" }
 
     if rev >= libvirt_netfs_pool_support and \
        pool_type == dp_types['DISK_POOL_NETFS']:
