@@ -98,7 +98,7 @@ def verify_net_rasd(ip, virt, target_dev, source_dev, guest_name):
 
     return PASS 
 
- do_main(sup_types)
+@do_main(sup_types)
 def main():
     options = main.options
 
