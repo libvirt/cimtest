@@ -143,7 +143,7 @@ def verify_net_rasd(ip, virt, vsi_defaults, inst):
 
     return PASS 
 
- do_main(sup_types)
+@do_main(sup_types)
 def main():
     options = main.options
     server = options.ip
