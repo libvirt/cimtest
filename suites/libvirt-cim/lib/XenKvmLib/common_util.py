@@ -153,9 +153,12 @@ def poll_for_state_change(server, virt, dom, exp_state, timeout=30):
 
 def get_host_info(server, virt):
     try:
-        status, linux_cs = check_sblim(server)
-        if status == PASS:
-            return status, linux_cs
+    # Commenting out sblim check as libvirt-cim is not supporting it anymore.
+    # Leaving them commented, in case we add support for sblim at later time.
+
+    #    status, linux_cs = check_sblim(server)
+    #    if status == PASS:
+    #        return status, linux_cs
 
         hs_class = get_typed_class(virt, 'HostSystem')
         host_info = enumclass.EnumInstances(server, hs_class)
