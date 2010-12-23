@@ -146,13 +146,15 @@ def get_vssd_mof(virt, dom_name, uuid=None, bldr=None, pae=False, acpi=False,
 
 # classes to define RASD parameters
 class CIM_DiskResourceAllocationSettingData(CIMClassMOF):
-    def __init__(self, dev, source, name, emu_type=None):
+    def __init__(self, dev, source, name, instanceid=None, emu_type=None):
         self.ResourceType = RASD_TYPE_DISK
         if emu_type != None:
             self.EmulatedType = emu_type
         if dev != None:
             self.VirtualDevice = dev
             self.InstanceID = '%s/%s' % (name, dev)
+        if instanceid != None:
+            self.InstanceID = instanceid
         if source != None:
             self.Address = source
 
