@@ -42,6 +42,7 @@ from XenKvmLib.xm_virt_util import virsh_version, vol_list, vol_delete
 from XenKvmLib.classes import get_typed_class, inst_to_mof
 from XenKvmLib.common_util import destroy_diskpool
 from XenKvmLib.pool import create_pool, undefine_diskpool, DIR_POOL
+from pywbem.cim_types import Uint64
 
 pool_attr = { 'Path' : _image_dir }
 vol_name = "cimtest-vol.img"
@@ -62,7 +63,7 @@ def get_template_rasd_from_sdc(virt, server, dp_inst_id):
 
     return PASS, rasd
 
-def get_stovol_settings(server, virt, dp_id, pool_name):
+def get_stovol_settings(server, virt, dp_id, pool_name, format):
     status, dp_rasds = get_template_rasd_from_sdc(virt, server, dp_id) 
     if status != PASS:
         logger.error("Failed to get the StorageVol RASD's")
@@ -79,7 +80,8 @@ def get_stovol_settings(server, virt, dp_id, pool_name):
 
     if not pool_name in dpool_rasd['PoolID']:
         return None
-
+    dpool_rasd['FormatType'] = Uint64(format)
+    
     stovol_settings = inst_to_mof(dpool_rasd)
 
     return stovol_settings
@@ -197,67 +199,71 @@ def main():
     # vol creation, we can extend dp_types to include netfs etc 
     dp_types = { "DISK_POOL_DIR" : DIR_POOL }
 
-    for pool_name, pool_type in dp_types.iteritems():    
-        status = FAIL     
-        res = [FAIL]
-        found = 0
-        clean_pool=True
-        try:
-            if pool_type == DIR_POOL:
-                pool_name = default_pool_name
-                clean_pool=False
-            else:
-                status = create_pool(server, virt, pool_name, pool_attr, 
-                                     mode_type=pool_type, pool_type="DiskPool")
+    format_types = [1, 2]
 
-                if status != PASS:
-                    logger.error("Failed to create pool '%s'", pool_name)
-                    return status
+    for fs in format_types:
+        for pool_name, pool_type in dp_types.iteritems():    
+            status = FAIL     
+            res = [FAIL]
+            found = 0
+            clean_pool=True
+            try:
+                if pool_type == DIR_POOL:
+                    pool_name = default_pool_name
+                    clean_pool=False
+                else:
+                    status = create_pool(server, virt, pool_name, pool_attr, 
+                                         mode_type=pool_type, pool_type="DiskPool")
 
-            dp_inst_id = "%s/%s" % (dp_cn, pool_name)
-            stovol_settings = get_stovol_settings(server, virt, 
-                                                  dp_inst_id, pool_name)
-            if stovol_settings == None:
-                raise Exception("Failed to get the defualt StorageVolRASD info")
+                    if status != PASS:
+                        logger.error("Failed to create pool '%s'", pool_name)
+                        return status
 
-            disk_pool_inst = get_diskpool(server, virt, dp_cn, dp_inst_id)
-            if disk_pool_inst == None:
-                raise Exception("DiskPool instance for '%s' not found!" \
-                                % pool_name)
+                dp_inst_id = "%s/%s" % (dp_cn, pool_name)
+                stovol_settings = get_stovol_settings(server, virt, 
+                                                      dp_inst_id, pool_name, fs)
+                if stovol_settings == None:
+                    raise Exception("Failed to get the defualt StorageVolRASD info")
+                
+                disk_pool_inst = get_diskpool(server, virt, dp_cn, dp_inst_id)
+                if disk_pool_inst == None:
+                    raise Exception("DiskPool instance for '%s' not found!" \
+                                    % pool_name)
   
-            rpcs = get_typed_class(virt, "ResourcePoolConfigurationService")
-            rpcs_conn = eval("rpcs_service." + rpcs)(server)
-            res = rpcs_conn.CreateResourceInPool(Settings=stovol_settings, 
-                                                 Pool=disk_pool_inst)
-            if res[0] != PASS:
-                raise Exception("Failed to create the Vol %s" % vol_name)
+                rpcs = get_typed_class(virt, "ResourcePoolConfigurationService")
+                rpcs_conn = eval("rpcs_service." + rpcs)(server)
+                res = rpcs_conn.CreateResourceInPool(Settings=stovol_settings, 
+                                                     Pool=disk_pool_inst)
+                if res[0] != PASS:
+                    raise Exception("Failed to create the Vol %s" % vol_name)
 
-            if res[1]['Resource']['InstanceID'] != exp_vol_path and \
-               cim_rev >= libvirt_stovol_instance_id:
-                raise Exception("Incorrect InstanceID")
-            else:
-                status = PASS
+                if res[1]['Resource']['InstanceID'] != exp_vol_path and \
+                   cim_rev >= libvirt_stovol_instance_id:
+                    raise Exception("Incorrect InstanceID")
+                else:
+                    status = PASS
 
-            found = verify_vol(server, virt, pool_name, exp_vol_path, found)
-            stovol_status = verify_template_rasd_exists(virt, server, 
-                                                        dp_inst_id, 
-                                                        exp_vol_path)
+                found = verify_vol(server, virt, pool_name, exp_vol_path, found)
+                stovol_status = verify_template_rasd_exists(virt, server, 
+                                                            dp_inst_id, 
+                                                            exp_vol_path)
 
-            ret = cleanup_pool_vol(server, virt, pool_name, 
-                                   clean_pool, exp_vol_path)
-            if res[0] == PASS and found == 1 and \
-               ret == PASS and stovol_status == PASS and \
-               status == PASS:
-                status = PASS
-            else:
-                return FAIL
+                ret = cleanup_pool_vol(server, virt, pool_name, 
+                                       clean_pool, exp_vol_path)
+                if res[0] == PASS and found == 1 and \
+                   ret == PASS and stovol_status == PASS and \
+                   status == PASS:
+                    status = PASS
+                else:
+                    return FAIL
         
-        except Exception, details:
-            logger.error("Exception details: %s", details)
-            cleanup_pool_vol(server, virt, pool_name, 
-                             clean_pool, exp_vol_path)
-            status = FAIL
+            except Exception, details:
+                logger.error("Exception details: %s", details)
+                cleanup_pool_vol(server, virt, pool_name, 
+                                 clean_pool, exp_vol_path)
+                status = FAIL
 
     return status
+
 if __name__ == "__main__":
     sys.exit(main())
