@@ -66,7 +66,8 @@ def main():
         sds_classname = get_typed_class(options.virt, 'SettingsDefineState')
         mem = get_typed_class(options.virt, 'Memory')
         proc = get_typed_class(options.virt, 'Processor')
-        dev_not_rem = [mem, proc] 
+        input = get_typed_class(options.virt, 'PointingDevice')
+        dev_not_rem = [mem, proc, input] 
                 
         service = get_vsms_class(options.virt)(options.ip)
         for dev in devs:
