@@ -59,7 +59,7 @@ def main():
     server = options.ip
     virt   = options.virt
 
-    tc_scen = ['Start', 'Suspend', 'Reboot'] 
+    tc_scen = ['Start', 'Paused', 'Resume'] 
 
     action_passed = PASS 
     try:
@@ -73,10 +73,10 @@ def main():
         for action in tc_scen:
             if action == "Start":
                 status = cxml.cim_start(server)
-            elif action == "Suspend":
-                status = cxml.cim_suspend(server)
-            elif action == "Reboot":
-                status = cxml.cim_reboot(server)
+            elif action == "Paused":
+                status = cxml.cim_pause(server)
+            elif action == "Resume":
+                status = cxml.cim_reset(server)
             else:
                 raise Exception("Unexpected state change: %s" % action)
 
