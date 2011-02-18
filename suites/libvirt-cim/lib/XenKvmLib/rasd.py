@@ -395,11 +395,14 @@ def get_exp_disk_rasd_len(virt, ip, rev, id):
 def get_exp_net_rasd_len(virt, rev, id):
     net_rasd_template_changes = 861 
     net_rasd_direct_nettype_changes = 1029
+    net_rasd_vsi_nettype_changes = 1043
 
     # NetRASD record for Direct NetType 1 for each min, max, incr, default
     exp_direct = 4
 
     exp_base_num = 4
+    dev_types = 2
+    net_types = 3
 
     if id == "NetworkPool/0":
         pool_types = 3
@@ -408,14 +411,13 @@ def get_exp_net_rasd_len(virt, rev, id):
         return (exp_base_num * pool_types) + (exp_base_num * forward_modes) 
     
     if rev >= net_rasd_template_changes:
-        dev_types = 2
-        net_types = 3
         exp_base_num = exp_base_num * dev_types * net_types
 
-	if rev >= net_rasd_direct_nettype_changes:
-            exp_base_num += exp_direct
+    if rev >= net_rasd_direct_nettype_changes:
+        exp_base_num += exp_direct
 
-        return exp_base_num
+    if rev >= net_rasd_vsi_nettype_changes:
+        exp_base_num = 4 * (dev_types * net_types + exp_direct)
 
     return exp_base_num
 
