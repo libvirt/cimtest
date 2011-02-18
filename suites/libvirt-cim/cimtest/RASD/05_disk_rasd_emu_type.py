@@ -42,47 +42,43 @@ def main():
     if curr_cim_rev < libvirt_em_type_changeset:
         return SKIP
 
-    if options.virt == 'Xen':
-        emu_types = [0]
-    else:
-        emu_types = [0, 1]
+    exp_emu_type = 0
     try:
-        for exp_emu_type in emu_types:
-            virt_xml = get_class(options.virt)
-            cxml = virt_xml(default_dom, emu_type=exp_emu_type)
-            ret = cxml.cim_define(options.ip)
-            if not ret:
-                logger.error("Failed to call DefineSystem()")
-                return FAIL
+        virt_xml = get_class(options.virt)
+        cxml = virt_xml(default_dom, emu_type=exp_emu_type)
+        ret = cxml.cim_define(options.ip)
+        if not ret:
+            logger.error("Failed to call DefineSystem()")
+            return FAIL
     
-            drasd= get_typed_class(options.virt,
-                                   'DiskResourceAllocationSettingData')
+        drasd= get_typed_class(options.virt,
+                               'DiskResourceAllocationSettingData')
         
-            drasd_list = EnumInstances(options.ip, drasd, ret_cim_inst=True)
-            if len(drasd_list) < 1:
-                raise Exception("%s returned %i instances, expected at least 1"\
-                                %(drasd, len(drasd_list)))
+        drasd_list = EnumInstances(options.ip, drasd, ret_cim_inst=True)
+        if len(drasd_list) < 1:
+            raise Exception("%s returned %i instances, expected at least 1"\
+                            %(drasd, len(drasd_list)))
 
-            found_rasd = None
-            for rasd in drasd_list:
-                guest, dev, status = parse_instance_id(rasd['InstanceID'])
-                if status != PASS:
-                    raise Exception("Unable to parse InstanceID: %s" \
-                                    % rasd['InstanceID'])
-                if guest == default_dom:
-                    if rasd['EmulatedType'] == exp_emu_type:
-                        found_rasd = rasd
-                        status = PASS
-                        break
-                    else:
-                        raise Exception("EmulatedType Mismatch: got %d,"
-                                        "expected %d" %(rasd['EmulatedType'], 
-                                         exp_emu_type))
+        found_rasd = None
+        for rasd in drasd_list:
+            guest, dev, status = parse_instance_id(rasd['InstanceID'])
+            if status != PASS:
+                raise Exception("Unable to parse InstanceID: %s" \
+                                % rasd['InstanceID'])
+            if guest == default_dom:
+                if rasd['EmulatedType'] == exp_emu_type:
+                    found_rasd = rasd
+                    status = PASS
+                    break
+                else:
+                    raise Exception("EmulatedType Mismatch: got %d,"
+                                    "expected %d" %(rasd['EmulatedType'], 
+                                     exp_emu_type))
 
-            if found_rasd is None:
-                raise Exception("DiskRASD for defined dom was not found")
+        if found_rasd is None:
+            raise Exception("DiskRASD for defined dom was not found")
 
-            cxml.undefine(options.ip)
+        cxml.undefine(options.ip)
 
     except Exception, detail:
         logger.error("Exception: %s", detail)           
