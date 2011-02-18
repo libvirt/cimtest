@@ -45,7 +45,7 @@ from XenKvmLib.indications import sub_ind, handle_request, poll_for_ind
 sup_types = ['KVM', 'Xen', 'XenFV']
 libvirt_guest_rasd_indication_rev = 980
 
-nmem = 256 
+nmem = 131072
 nmac = '00:11:22:33:44:55'
 
 def create_guest(test_dom, ip, virt, cxml):
