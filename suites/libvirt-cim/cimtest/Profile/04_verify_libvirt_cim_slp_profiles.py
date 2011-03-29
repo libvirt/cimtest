@@ -89,6 +89,16 @@ def filter_reg_name_from_slp(slp_attrs):
         lines = line.split("RegisteredProfilesSupported")
         dmtf_profiles = lines[1].split("DMTF")
         for profile in dmtf_profiles:
+            snia = profile.split(",SNIA")
+            for sprofile in snia:
+                tmp_prof =  sprofile.rsplit(":", 1)
+                if len(tmp_prof) < 2:
+                    return []
+
+                temp_reg_ele =  tmp_prof[1].rstrip(",")
+                reg_prof_name = temp_reg_ele.rstrip(")")
+                slp_profile_list.append(reg_prof_name)
+
             tmp_prof =  profile.rsplit(":", 1)
             if len(tmp_prof) < 2:
                 return []
@@ -163,6 +173,8 @@ def main():
     # Make sure all the Libvirt-CIM profiles are advertised via slp
     if (libvirt_cim_reg_list) <= (slp_profile_list):
         logger.info("Successfully verified the Libvirt-CIM profiles")
+        logger.info("Slp returned profile --> %s,\n Libvirt-CIM expected "
+                     "profiles %s", slp_profile_list, libvirt_cim_reg_list)
         return PASS
 
     logger.error("Mismatch in the profiles registered")
