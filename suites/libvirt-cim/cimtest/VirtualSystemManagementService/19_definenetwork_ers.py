@@ -125,10 +125,17 @@ def main():
                 if  not ret:
                     status = verify_error(exp_rc, exp_desc, cxml)
                     if status != PASS:
-                        raise Exception('Defing domain with invalid %s name %s'
-                                        ' gave unexpected rc code %s and '
-                                        'description:\n %s'% (nettype, field,
-                                        cxml.err_rc, cxml.err_desc))
+                        # There are few libvirt version between 0.7.0
+                        # and 0.8.7 which give following error.
+                        status = verify_error(exp_rc, 
+                                            'No Network bridge name specified', 
+                                            cxml)
+                        if status != PASS:
+                            raise Exception('Defining domain with invalid %s' 
+                                            ' name %s gave unexpected rc code'
+                                            ' %s and description:\n'
+                                            ' %s'% (nettype, field,
+                                            cxml.err_rc, cxml.err_desc))
                     continue
                 ret = cxml.cim_start(options.ip)
                 if  ret:
