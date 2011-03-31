@@ -55,8 +55,12 @@ def main():
 
     if ret == PASS:
         if len(hs) != 0:
-            logger.error("Unexpected instance returned")
-            return FAIL
+            if hs[0].CreationClassName != name or hs[0].Name != host:
+                logger.error("Exp %s, got %s", name, hs[0].CreationClassName)
+                logger.error("Exp %s, got %s", host, hs[0].Name)
+                return FAIL
+            else:
+                return PASS
         else:
             if linux_cs.CreationClassName != 'Linux_ComputerSystem'\
               or linux_cs.Name != host:
