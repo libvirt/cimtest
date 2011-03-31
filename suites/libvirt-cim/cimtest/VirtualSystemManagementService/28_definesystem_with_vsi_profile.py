@@ -179,29 +179,34 @@ def main():
     try:
         rasd_list = get_rasd_list(server, virt, vsi_defaults, nrasd_cn)
         if len(rasd_list) < 1:
+            status = FAIL
             raise Exception("Unable to get template RASDs for %s" % test_dom)
 
         cxml = get_class(virt)(test_dom)
         cxml.set_res_settings(rasd_list)
         ret = cxml.cim_define(server)
         if not ret:
+            status = FAIL
             raise Exception("Unable to define guest %s" % test_dom)
        
         status = cxml.cim_start(server)
         if status != PASS:
-            raise Exception("Unable to start %s" % test_dom)
+            status = XFAIL
+            raise Exception("Unable to start VM "
+                            "*** Is VSI support available on this host? ***")
 
         status, inst = get_net_inst(server, nrasd_cn, test_dom)
         if status != PASS:
+            status = FAIL
             raise Exception("Failed to get net interface for %s" % test_dom)
 
         status = verify_net_rasd(server, virt, vsi_defaults, inst)
         if status != PASS:
+            status = FAIL
             logger.error("Failed to verify net interface for %s", test_dom)
 
     except Exception, details:
         logger.error(details)
-        status = FAIL
 
     cxml.cim_destroy(server)
     cxml.undefine(server)
