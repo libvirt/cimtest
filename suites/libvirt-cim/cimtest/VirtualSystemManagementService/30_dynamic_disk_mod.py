@@ -28,7 +28,7 @@ from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main
-from CimTest.ReturnCodes import FAIL, PASS
+from CimTest.ReturnCodes import FAIL, PASS, XFAIL
 from XenKvmLib import vsms_util
 
 sup_types = ['Xen', 'KVM', 'XenFV']
@@ -72,7 +72,7 @@ def main():
     status = vsms_util.add_disk_res(options.ip, service, cxml, vssd_ref,
                                     dasd, disk_attr)
     if status != PASS:
-        return FAIL
+        return XFAIL
     dasd = vsms.get_dasd_class(options.virt)(dev='vdc',
                                          instanceid='rstest_domain/vda',
                                          source='/home/rss.iso',
