@@ -55,8 +55,6 @@ def try_define(options, units, value, cxml):
             rasd['Limit'] = Uint64(value)
             rasd['AllocationUnits'] = units 
             rasd_list[mrasd_cn] = inst_to_mof(rasd)
-        else:
-            rasd_list[rasd.classname] = None 
 
     if rasd_list[mrasd_cn] is None:
         logger.error("Unable to get template MemRASD")
