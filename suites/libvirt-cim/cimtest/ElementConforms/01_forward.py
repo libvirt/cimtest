@@ -99,7 +99,16 @@ def verify_fields(assoc_val, managed_ele_values):
         elements = managed_ele_values[cn]
 
         for ele in elements:
-            if assoc_val.items() == ele.items():
+            val1=assoc_val.items()
+            # "Reserved" is the second  attribute.
+            # remove it.
+            del val1[1]
+            val2=ele.items()
+            # "Reserved" is the second  attribute.
+            # remove it.
+            del val2[1]
+            # Now compare without "Reserved"
+            if val1 == val2:
                 return PASS
 
     except Exception, details:
