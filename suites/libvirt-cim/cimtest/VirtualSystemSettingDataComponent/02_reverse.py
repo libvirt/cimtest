@@ -95,7 +95,7 @@ def assoc_values(ip, assoc_info, virt="Xen"):
                  "disk_rasd" : '%s/%s' %(test_dom, test_disk),
                  "mem_rasd"  : '%s/%s' %(test_dom, "mem"),
                  "input_rasd": '%s/%s' %(test_dom, input_device),
-                 "grap_rasd" : '%s/%s' %(test_dom, "graphics")
+                 "grap_rasd" : '%s/%s' %(test_dom, "vnc")
 
                 }
 

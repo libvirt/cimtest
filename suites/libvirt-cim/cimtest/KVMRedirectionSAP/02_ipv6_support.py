@@ -92,7 +92,7 @@ def main():
             if not ret:
                 raise Exception("Failed to define the dom: %s" % test_dom)
 
-            devid = "%s/%s" % (test_dom, 'graphics')
+            devid = "%s/%s" % (test_dom, 'vnc')
             vnc = get_typed_class(virt, "DisplayController")
             key_list = { 'DeviceID' : devid,
                          'CreationClassName' : vnc,

@@ -144,7 +144,7 @@ def eapf_list(server, virt, test_disk):
     display =  {
               'SystemName'        : test_dom,
               'CreationClassName' : display_inst,
-              'DeviceID'          : "%s/%s" % (test_dom, "graphics"),
+              'DeviceID'          : "%s/%s" % (test_dom, "vnc"),
            }
    
     point = {

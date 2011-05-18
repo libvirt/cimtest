@@ -147,7 +147,7 @@ def main():
         curr_cim_rev, changeset = get_provider_version(options.virt, options.ip)
         if curr_cim_rev >= input_graphics_pool_rev:
             keys['InputResourceAllocationSettingData'] = input_device
-            keys['GraphicsResourceAllocationSettingData'] = "%s/graphics" % test_dom
+            keys['GraphicsResourceAllocationSettingData'] = "%s/vnc" % test_dom
                
     ret = cxml.cim_define(options.ip)
     if not ret:

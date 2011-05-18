@@ -110,7 +110,7 @@ def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem, server):
                                     "VirtualQuantity" : (t_mem * 1024),
                                   },
                         dc_cn   : {
-                                    "InstanceID" : "%s/%s" %(t_dom, "graphics")
+                                    "InstanceID" : "%s/%s" %(t_dom, "vnc")
                                   },
                         pd_cn   : {
                                     "InstanceID" : point_device

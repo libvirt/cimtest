@@ -49,7 +49,7 @@ def verify_grasd_passwd_value(virt, server):
                          classname, len(rasd_list))
             return FAIL
 
-        inst_id = "%s/graphics" % default_dom
+        inst_id = "%s/vnc" % default_dom
         for rasd in rasd_list:
             # Verify the Password for the domain is set
             if rasd['InstanceID'] == inst_id:

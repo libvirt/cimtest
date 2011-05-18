@@ -118,7 +118,7 @@ def main():
         curr_cim_rev, changeset = get_provider_version(virt, server)
         if curr_cim_rev >= input_graphics_pool_rev:
             graphics_cn = get_typed_class(virt, "DisplayController")
-            exp_pllist[graphics_cn] = ['%s/graphics' % test_dom]
+            exp_pllist[graphics_cn] = ['%s/vnc' % test_dom]
 
  
     try:

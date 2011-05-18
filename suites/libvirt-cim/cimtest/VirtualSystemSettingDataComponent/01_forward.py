@@ -100,7 +100,7 @@ def init_list(test_disk, test_mac, server, virt='Xen'):
         rlist.append(input)
         rlist.append(graphics)
         prop_list[input] = "%s/%s" % (test_dom, input_device)
-        prop_list[graphics] = "%s/%s" % (test_dom, "graphics")
+        prop_list[graphics] = "%s/%s" % (test_dom, "vnc")
 
     if virt == 'LXC':
         prop_list = {rlist[1] : "%s/%s" % (test_dom, "mem")}        
