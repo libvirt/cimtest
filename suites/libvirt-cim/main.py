@@ -176,8 +176,7 @@ def print_exec_time(testsuite, exec_time, prefix=None):
     testsuite.debug("%s %sh | %smin | %ssec | %smsec" %
                     (prefix, h, m, s, msec)) 
 
-def main():
-    (options, args) = parser.parse_args()
+def main(options, args):
     to_addr = None
     from_addr = None
     relay = None
@@ -302,7 +301,21 @@ def main():
               (from_addr, to_addr, relay)
         send_report(to_addr, from_addr, relay, msg_body, heading)
 
-if __name__ == '__main__':
-    sys.exit(main())
+    return 0
+# main()
 
+if __name__ == '__main__':
+    ret = -1
+    try:
+        options, args = parser.parse_args()
+        ret = main(options, args)
+    except (KeyboardInterrupt, SystemExit):
+        print "\nKeyboardInterrupt. Cleaning up..."
+        status = cleanup_env(options.ip, options.virt)
+        if status != PASS:
+            print "Unable to clean up. Please check your environment."
+        else:
+            print "Clean up successful"
+
+    sys.exit(ret)
 
