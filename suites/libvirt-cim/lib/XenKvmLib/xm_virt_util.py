@@ -50,7 +50,7 @@ def list_guests_on_bridge(ip, bridge):
     specified bridge.
     """
 
-    cmd = "brctl show %s | grep 'vif' | grep -v vif0.*" % bridge
+    cmd = 'brctl show %s | grep "vif" | grep -v vif0.*' % bridge
 
     rc, out = utils.run_remote(ip, cmd)
     if rc != 0:
@@ -71,7 +71,7 @@ def disk_list(ip, vs_name):
     """Returns the list of disk of the specified VS
     """
 
-    guest_cmd = "cat /proc/partitions | awk '/^ /{ print $4 } ' "
+    guest_cmd = 'cat /proc/partitions | awk "/^ /{ print $4 } " '
     rc, out = run_remote_guest(ip, vs_name, guest_cmd)
 
     if rc != 0:
@@ -86,7 +86,7 @@ def max_free_mem(server):
     """
 
     xm_ret, mfm = utils.run_remote(server,
-                    "xm info | awk -F ': ' '/max_free_memory/ {print \$2}'")
+                    'xm info | awk -F ": " "/max_free_memory/ {print \$2}"')
     if xm_ret != 0:
         return None
 
@@ -108,7 +108,7 @@ def domain_list(server, virt="Xen"):
     if virt == "XenFV":
        virt = "Xen"
 
-    cmd = "virsh -c %s list --all 2>/dev/null | sed -e '1,2 d' -e '$ d'" % \
+    cmd = 'virsh -c %s list --all 2>/dev/null | sed -e "1,2 d" -e "$ d"' % \
                 virt2uri(virt)
     ret, out = utils.run_remote(server, cmd)
 
@@ -128,7 +128,7 @@ def active_domain_list(server, virt="Xen"):
     if virt == "XenFV":
         virt = "Xen"
 
-    cmd = "virsh -c %s list 2>/dev/null | sed -e '1,2 d' -e '$ d'" % \
+    cmd = 'virsh -c %s list 2>/dev/null | sed -e "1,2 d" -e "$ d"' % \
                 virt2uri(virt)
     ret, out = utils.run_remote(server, cmd)
 
@@ -162,7 +162,7 @@ def bootloader(server, gtype = 0):
     if fv_cap(server) and gtype == 1:
         bootloader = "/usr/lib/xen/boot/hvmloader"
     else:
-        cmd = "cat /etc/issue | grep -v ^$ | egrep 'Red Hat|Fedora'"
+        cmd = 'cat /etc/issue | grep -v ^$ | egrep "Red Hat|Fedora"'
         ret, out = utils.run_remote(server,cmd)
         if ret != 0:
         # For SLES
@@ -175,7 +175,7 @@ def bootloader(server, gtype = 0):
 def net_list(server, virt="Xen"):
     """Function to list active network"""
     names = []
-    cmd = "virsh -c %s net-list 2>/dev/null | sed -e '1,2 d' -e '$ d'" % \
+    cmd = 'virsh -c %s net-list 2>/dev/null | sed -e "1,2 d" -e "$ d"' % \
                 virt2uri(virt)
     ret, out = utils.run_remote(server, cmd)
 
@@ -192,8 +192,8 @@ def net_list(server, virt="Xen"):
 def get_bridge_from_network_xml(network, server, virt="Xen"):
     """Function returns bridge name for a given virtual network"""
 
-    cmd = "virsh -c %s net-dumpxml %s 2>/dev/null | \
-           awk '/bridge name/ { print $2 }'" % (virt2uri(virt), network)
+    cmd = 'virsh -c %s net-dumpxml %s 2>/dev/null | \
+           awk "/bridge name/ { print $2 }"' % (virt2uri(virt), network)
     ret, out = utils.run_remote(server, cmd)
 
     if ret != 0:
@@ -233,7 +233,7 @@ def virsh_version(server, virt="KVM"):
 def diskpool_list(server, virt="KVM"):
     """Function to list active DiskPool list"""
     names = []
-    cmd = "virsh -c %s pool-list 2>/dev/null | sed -e '1,2 d' -e '$ d'" % \
+    cmd = 'virsh -c %s pool-list 2>/dev/null | sed -e "1,2 d" -e "$ d"' % \
            virt2uri(virt)
     ret, out = utils.run_remote(server, cmd)
 
@@ -251,7 +251,7 @@ def diskpool_list(server, virt="KVM"):
 def vol_list(server, virt="KVM", pool_name=None):
     """ Function to list the volumes of a pool"""
 
-    cmd = "virsh -c %s vol-list %s 2>/dev/null | sed -e '1,2 d' -e '$ d'" \
+    cmd = 'virsh -c %s vol-list %s 2>/dev/null | sed -e "1,2 d" -e "$ d"' \
             % (virt2uri(virt), pool_name)
     ret, out = utils.run_remote(server, cmd)
     if ret != 0:
@@ -283,14 +283,14 @@ def get_hv_ver(server, virt="Xen"):
     cmd = "virsh -c %s version 2>/dev/null"  %virt2uri(virt)
     ret, out = utils.run_remote(server, cmd)
     if ret == 0:
-        cmd = "virsh -c %s version 2>/dev/null | grep ^Running | \
-              cut -d ' ' -f 3,4" % virt2uri(virt)
+        cmd = 'virsh -c %s version 2>/dev/null | grep ^Running | \
+              cut -d " " -f 3,4' % virt2uri(virt)
 
     # This is a workaround work for F10.
     # The version option does not seem to work on F10.
     if ret != 0 and virt == 'KVM':
-        cmd = "qemu-kvm --help | grep -i version | tr -s [:space:]  |" \
-              " cut -d ' ' -f 1,5"
+        cmd = 'qemu-kvm --help | grep -i version | tr -s [:space:]  |' \
+              ' cut -d " " -f 1,5'
 
     ret, out = utils.run_remote(server, cmd)
     if ret == 0:
@@ -362,7 +362,7 @@ def processors_count(ip, vs_name):
     """Returns the number of processors of the specified VS
     """
 
-    guest_cmd = "grep '^$' /proc/cpuinfo | wc -l"
+    guest_cmd = 'grep "^$" /proc/cpuinfo | wc -l'
 
     rc, out = run_remote_guest(ip, vs_name, guest_cmd)
     if rc != 0:

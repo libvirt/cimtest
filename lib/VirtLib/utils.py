@@ -31,15 +31,24 @@ root_dot_ssh = os.path.join(os.getenv('HOME'), '.ssh')
 SSH_KEY = os.path.join(root_dot_ssh, 'id_rsa')
 AUTHED_KEYS = os.path.join(root_dot_ssh, 'authorized_keys')
 
+localhost = ["0.0.0.0", "127.0.0.1", "localhost"]
+
 def run_remote(ip, cmd):
     
-    cmd = 'ssh %s -i %s root@%s "%s"' % (SSH_PARMS, SSH_KEY, ip, cmd)
+    if ip not in localhost:
+        cmd = "ssh %s -i %s root@%s '%s'" % (SSH_PARMS, SSH_KEY, ip, cmd)
     return commands.getstatusoutput(cmd)
 
 def copy_remote(ip, local, remote='/tmp'):
 
-    cmd = 'scp -r %s -i %s %s root@%s:%s' % (SSH_PARMS, 
-                                            SSH_KEY, local, ip, remote)
+    if ip not in localhost:
+        cmd = 'scp -r %s -i %s %s root@%s:%s' % (SSH_PARMS,
+                                                 SSH_KEY, local, ip, remote)
+    else:
+        if local == remote:
+            return (0, "")
+        cmd = 'cp -r %s %s' % (local, remote)
+
     return commands.getstatusoutput(cmd)
 
 def setup_ssh_key():

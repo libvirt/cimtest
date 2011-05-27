@@ -67,7 +67,7 @@ def start_test_domain(name, server, virt="Xen"):
 def virdomid_list(server, virt="Xen"):
     """Get a list of domid from virsh"""
     
-    cmd = "virsh -c %s list 2>/dev/null | sed '1,2 d; /^$/d'" % \
+    cmd = 'virsh -c %s list 2>/dev/null | sed "1,2 d; /^$/d"' % \
                 virt2uri(virt)
     ret, out = utils.run_remote(server, cmd)
     if ret != 0:
@@ -108,7 +108,7 @@ def get_uuid_list():
 
 def viruuid(name, server, virt="Xen"):
     """Return domain uuid given domid or domname"""
-    cmd = "virsh -c %s domuuid %s 2>/dev/null | sed '/^$/d'" % \
+    cmd = 'virsh -c %s domuuid %s 2>/dev/null | sed "/^$/d"' % \
                 (virt2uri(virt), name)
     ret, out = utils.run_remote(server, cmd)
     if ret == 0:
@@ -119,7 +119,7 @@ def viruuid(name, server, virt="Xen"):
 def destroy_and_undefine_domain(name, server, virt="Xen"):
     """Destroy and undefine a domain.
     name could be domid or domname"""
-    cmd = "virsh -c %s 'destroy %s ; undefine %s' 2>/dev/null" % \
+    cmd = 'virsh -c %s "destroy %s ; undefine %s" 2>/dev/null' % \
                 (virt2uri(virt), name, name)
     utils.run_remote(server, cmd)
 
@@ -164,7 +164,7 @@ def vir_cpu_list(name_id, server, virt="Xen"):
     """
        Get the vcpu lists. The input is either the domid or domname.
     """
-    cmd = "virsh -c %s vcpuinfo %s 2>/dev/null | grep '^$' | wc -l" % \
+    cmd = 'virsh -c %s vcpuinfo %s 2>/dev/null | grep "^$" | wc -l' % \
                 (virt2uri(virt), name_id)
     ret, out = utils.run_remote(server, cmd)
 

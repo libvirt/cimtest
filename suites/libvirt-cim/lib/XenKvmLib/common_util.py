@@ -243,7 +243,7 @@ def check_cimom(ip):
         rc, out = utils.run_remote(ip, cmd)
 
     if rc == 0 :
-        cmd = "%s | awk '{ print \$8 }' | uniq" % cmd
+        cmd = '%s | awk "{ print \$8 }" | uniq' % cmd
         rc, out = utils.run_remote(ip, cmd)
 
     return rc, out
@@ -252,7 +252,7 @@ def pre_check(ip, virt):
     cmd = "virsh -c %s list --all 2>/dev/null" % virt2uri(virt)
     ret, out = utils.run_remote(ip, cmd)
     if ret != 0:
-        return "This libvirt install does not support %s"  % virt
+        return "The libvirt install on '%s' does not support %s" % (ip, virt)
 
     cmd = "virsh -c %s version 2>/dev/null" % virt2uri(virt)
     ret, out = utils.run_remote(ip, cmd)
@@ -491,7 +491,7 @@ def parse_instance_id(instid):
 
 
 def get_nfs_bin(server):
-    cmd = "cat /etc/issue | grep -v ^$ | egrep 'Red Hat|Fedora'"
+    cmd = 'cat /etc/issue | grep -v ^$ | egrep "Red Hat|Fedora"'
     rc, out = utils.run_remote(server, cmd)
     if rc != 0:
         #SLES

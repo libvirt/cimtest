@@ -166,7 +166,7 @@ def get_provider_version(virt, ip):
     # This is a sloppy mechanism for detecting a distro defined revision value
     distro = None
 
-    cmd = "cat /etc/issue | grep 'SUSE Linux Enterprise Server 11'"
+    cmd = 'cat /etc/issue | grep "SUSE Linux Enterprise Server 11"'
     rc, out = run_remote(ip, cmd)
     if rc == 0:
         distro = "sles11"      

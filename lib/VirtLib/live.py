@@ -30,7 +30,7 @@ def available_bridges(ip):
     """Return a list of the available bridges in the running dom0.
     """
 
-    cmd = "brctl show | grep -v 'bridge name' | awk '/^[^\t]/ { print \$1 }'"
+    cmd = 'brctl show | grep -v "bridge name" | awk "/^[^\\t]/ { print \$1 }"'
 
     rc, out = utils.run_remote(ip, cmd)
     if rc != 0:
@@ -39,8 +39,8 @@ def available_bridges(ip):
     return out.splitlines()
 
 def exclude_vir_bridge(ip):
-    cmd = "brctl show | grep -v 'bridge name' | grep -v vir | \
-                                  grep -v vif | awk '/^[^\t]/ { print \$1 }'"
+    cmd = 'brctl show | grep -v "bridge name" | grep -v vir | \
+           grep -v vif | awk "/^[^\\t]/ { print \$1 }"'
     rc, out = utils.run_remote(ip, cmd)
     if rc != 0:
         return []
@@ -51,7 +51,7 @@ def available_virt_bridge(ip):
     """Return a list of the available virtual bridges in the running dom0.
     """
 
-    cmd = "brctl show | grep -v 'bridge name' | grep -v peth | awk '/^[^\t]/ { print \$1 }'"
+    cmd = 'brctl show | grep -v "bridge name" | grep -v peth | awk "/^[^\\t]/ { print \$1 }"'
 
     rc, out = utils.run_remote(ip, cmd)
     if rc != 0:
@@ -78,14 +78,14 @@ def max_free_mem(server):
     """
 
     xm_ret, mfm = utils.run_remote(server,
-                    "xm info | awk -F ': ' '/max_free_memory/ {print \$2}'")
+                    'xm info | awk -F ": " "/max_free_memory/ {print \$2}"')
     if xm_ret != 0:
         return None
 
     return int(mfm)
 
 def fv_cap(server):
-    cmd = "egrep flags /proc/cpuinfo | uniq | egrep 'vmx|svm'"
+    cmd = 'egrep flags /proc/cpuinfo | uniq | egrep "vmx|svm"'
     ret, out = utils.run_remote(server, cmd)
     return ret == 0
 
