@@ -38,6 +38,12 @@ from time import sleep
 import pywbem
 from xml.dom import minidom, Node
 from xml import xpath
+
+try:
+    from xml.etree import cElementTree as ElementTree
+except:
+    from xml.etree import ElementTree
+
 from VirtLib import utils, live
 from XenKvmLib.xm_virt_util import get_bridge_from_network_xml, bootloader, \
                                    net_list 
@@ -210,6 +216,17 @@ class NetXML(Virsh, XMLClass):
             else:
                 vbr = bridgename
             return vbr
+        # get_valid_bridge_name
+
+        def _parse_net_dumpxml(_xml):
+            try:
+                root = ElementTree.fromstring(_xml)
+                ip_element = root.find("ip")
+                return ip_element.get("address")
+            except:
+                logger.error("Encounter error dump netxml")
+            return None
+        # _parse_net_dumpxml
 
         self.vbr = get_valid_bridge_name(server)
         if self.vbr is None:
@@ -223,7 +240,7 @@ class NetXML(Virsh, XMLClass):
         self.server = server
 
         if is_new_net is False:
-            cmd = "virsh net-dumpxml %s 2>/dev/null" % self.net_name
+            cmd = "virsh -c %s net-dumpxml %s 2>/dev/null" % (self.vuri, self.net_name)
             s, net_xml = utils.run_remote(server, cmd)
             if s != 0:
                 logger.error("Encounter error dump netxml")
@@ -245,10 +262,13 @@ class NetXML(Virsh, XMLClass):
 
         n_list = net_list(server, virt)
         for _net_name in n_list:
-            cmd = "virsh net-dumpxml %s 2>/dev/null | \
-                   awk '/ip address/ {print}' | \
-                   cut -d ' ' -f 4 | sed 's/address=//'" % _net_name 
-            s, in_use_addr = utils.run_remote(server, cmd)
+            cmd = "virsh -c %s net-dumpxml %s 2>/dev/null" % (self.vuri, _net_name)
+            s, xml = utils.run_remote(server, cmd)
+
+            in_use_addr = _parse_net_dumpxml(xml)
+            if in_use_addr is None:
+                logger.error("Unable to find IP address")
+                return None
 
             sub_net_in_use = in_use_addr
             sub_net_in_use = sub_net_in_use.rsplit('.', 1)[0].strip("'") + "."
@@ -310,7 +330,7 @@ class PoolXML(Virsh, XMLClass):
         self.server = server
 
         if is_new_pool is False:
-            cmd = "virsh pool-dumpxml %s 2>/dev/null" % self.pool_name
+            cmd = "virsh -c %s pool-dumpxml %s 2>/dev/null" % (self.vuri, self.pool_name)
             s, disk_xml = utils.run_remote(server, cmd)
             if s != 0:
                 logger.error("Encounter error dump netxml")
