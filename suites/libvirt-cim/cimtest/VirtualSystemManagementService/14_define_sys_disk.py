@@ -154,7 +154,7 @@ def main():
         logger.error(details)
         status = FAIL
 
-    if os.path.exists(addr):
+    if addr and os.path.exists(addr):
         os.remove(addr)
 
     if guest_defined == True: 

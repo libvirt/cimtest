@@ -57,7 +57,10 @@ def main():
     dev = GetInstance(options.ip, disk, key_list)
     status = 0
     
-    if dev.Name != test_dev:
+    if dev is None:
+        logger.error("GetInstance() returned None")
+        status = 1
+    else if dev.Name != test_dev:
         logger.error("Name should be `%s' instead of `%s'", test_dev, dev.Name)
         status = 1
 

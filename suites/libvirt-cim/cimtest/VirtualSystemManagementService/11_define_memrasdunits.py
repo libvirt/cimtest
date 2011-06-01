@@ -47,6 +47,10 @@ def try_define(options, units, value, cxml):
 
     rasds = get_default_rasds(options.ip, options.virt)
 
+    if not rasds:
+        logger.error("get_default_rasds() returned None")
+        return FAIL
+
     rasd_list = {} 
 
     for rasd in rasds:
@@ -55,6 +59,10 @@ def try_define(options, units, value, cxml):
             rasd['Limit'] = Uint64(value)
             rasd['AllocationUnits'] = units 
             rasd_list[mrasd_cn] = inst_to_mof(rasd)
+
+    if mrasd_cn not in rasd_list.keys():
+        logger.error("Key '%s' not found in dictionary '%s'" % (mrasd_cn, rasd_list))
+        return FAIL
 
     if rasd_list[mrasd_cn] is None:
         logger.error("Unable to get template MemRASD")

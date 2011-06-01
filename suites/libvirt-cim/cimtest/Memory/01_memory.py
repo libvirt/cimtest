@@ -56,7 +56,10 @@ def main():
 
     status = 0
 
-    if dev.ConsumableBlocks > dev.NumberOfBlocks:
+    if dev is None:
+        logger.error("GetInstance() returned None")
+        status = 1
+    else if dev.ConsumableBlocks > dev.NumberOfBlocks:
         logger.error("ConsumableBlocks should not be larger than NumberOfBlocks")
         status = 1
 

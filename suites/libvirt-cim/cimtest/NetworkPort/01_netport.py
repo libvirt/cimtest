@@ -83,6 +83,11 @@ def main():
         vsxml.undefine(options.ip)
         return FAIL
 
+    if dev is None:
+        logger.error("GetInstance() returned None")
+        vsxml.undefine(options.ip)
+        return FAIL
+
     if dev.DeviceID == None:
         logger.error("Error retrieving instance for devid %s", devid)
         vsxml.undefine(options.ip)
