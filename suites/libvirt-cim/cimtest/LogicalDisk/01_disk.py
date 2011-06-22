@@ -60,7 +60,7 @@ def main():
     if dev is None:
         logger.error("GetInstance() returned None")
         status = 1
-    else if dev.Name != test_dev:
+    elif dev.Name != test_dev:
         logger.error("Name should be `%s' instead of `%s'", test_dev, dev.Name)
         status = 1
 
