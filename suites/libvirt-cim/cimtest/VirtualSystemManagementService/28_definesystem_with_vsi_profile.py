@@ -175,6 +175,7 @@ def main():
 
     nrasd_cn = get_typed_class(virt, 'NetResourceAllocationSettingData')
     status  = FAIL
+    cxml = None
 
     try:
         rasd_list = get_rasd_list(server, virt, vsi_defaults, nrasd_cn)
@@ -208,8 +209,9 @@ def main():
     except Exception, details:
         logger.error(details)
 
-    cxml.cim_destroy(server)
-    cxml.undefine(server)
+    if cxml is not None:
+        cxml.cim_destroy(server)
+        cxml.undefine(server)
 
     return status 
 

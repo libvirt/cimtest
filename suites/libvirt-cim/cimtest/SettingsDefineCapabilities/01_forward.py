@@ -142,7 +142,7 @@ def get_pool_details(virt, server):
         if dpool.InstanceID == None or mpool.InstanceID == None \
            or npool.InstanceID == None or ppool.InstanceID == None:
            logger.error("Get pool None") 
-           return FAIL
+           return FAIL, None
         else:
            pool_set = [dpool, mpool, ppool, npool]      
     except Exception, detail:

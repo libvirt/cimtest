@@ -59,15 +59,16 @@ def main():
     if dev is None:
         logger.error("GetInstance() returned None")
         status = 1
-    elif dev.ConsumableBlocks > dev.NumberOfBlocks:
-        logger.error("ConsumableBlocks should not be larger than NumberOfBlocks")
-        status = 1
+    else:
+        if dev.ConsumableBlocks > dev.NumberOfBlocks:
+            logger.error("ConsumableBlocks should not be larger than NumberOfBlocks")
+            status = 1
 
-    capacity = dev.ConsumableBlocks * dev.BlockSize / 1024 
+        capacity = dev.ConsumableBlocks * dev.BlockSize / 1024 
 
-    if capacity != alloc_mem:
-        logger.error("Capacity should be %i MB instead of %i MB", alloc_mem, capacity)
-        status = 1
+        if capacity != alloc_mem:
+            logger.error("Capacity should be %i MB instead of %i MB", alloc_mem, capacity)
+            status = 1
 
     if status == 0:
         logger.info("Checked memory capacity: %s MB", capacity)
