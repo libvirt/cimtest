@@ -108,7 +108,7 @@ def gen_indication(test_dom, s_sysname, virt, cxml, service, ind_name,
 
         elif ind_name == 'delete':
             cn = 'GraphicsResourceAllocationSettingData'
-            inst_id = '%s/%s' % (test_dom, "graphics")
+            inst_id = '%s/%s' % (test_dom, "vnc")
             classname = get_typed_class(virt, cn)
             nrasd = get_rasd_rec(virt, cn, s_sysname, inst_id)
 
