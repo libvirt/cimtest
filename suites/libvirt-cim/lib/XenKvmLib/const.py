@@ -58,7 +58,7 @@ CIM_SAP_AVAILABLE_STATE = 6
 
 
 # vxml.NetXML
-default_bridge_name = 'testbridge'
+default_bridge_name = 'testbr'
 default_network_name = 'cimtest-networkpool'
 default_net_type = 'network'
 
