@@ -628,6 +628,12 @@ class VirtCIM:
         self.iasd = vsms.get_iasd_class(virt)(name=dom_name, 
                                               res_sub_type=irstype, 
                                               bus_type=btype)
+        if virt == "KVM":
+            dasd = vsms.get_dasd_class(virt)
+            self.cdrom_dasd = dasd(dev=const.KVM_default_cdrom_dev,
+                                   source="",
+                                   name=dom_name,
+                                   emu_type=1)
     def cim_define(self, ip, ref_conf=None):
         service = vsms.get_vsms_class(self.virt)(ip)
         sys_settings = str(self.vssd)
@@ -644,6 +650,10 @@ class VirtCIM:
                 pass
             else:
                 res_settings.append(str(self.nasd))
+
+        # CDROM device
+        if self.virt == "KVM":
+            res_settings.append(str(self.cdrom_dasd))
 
         curr_cim_rev, changeset = get_provider_version(self.virt, ip)
         if curr_cim_rev >= vsms_graphics_sup:
@@ -941,6 +951,11 @@ class KVMXML(VirtXML, VirtCIM):
         disk = self.add_sub_node(devices, 'disk', type='file', device='disk')
         self.add_sub_node(disk, 'source', file=disk_img)
         self.add_sub_node(disk, 'target', dev=disk_dev)
+
+        cdrom = self.add_sub_node(devices, 'disk', type='file', device='cdrom')
+        self.add_sub_node(cdrom, 'source', file="")
+        self.add_sub_node(cdrom, 'target', dev=const.KVM_default_cdrom_dev)
+
         self.add_sub_node(devices, 'input', type='mouse', bus='ps2')
         self.add_sub_node(devices, 'graphics', type='vnc', port='5900',
                           keymap='en-us')

@@ -87,6 +87,7 @@ KVM_default_emulator = '/usr/bin/qemu-system-x86_64'
 KVM_disk_path = os.path.join(_image_dir, 'default-kvm-dimage')
 KVM_secondary_disk_path = os.path.join(_image_dir, 'default-kvm-dimage.2ND')
 KVM_default_disk_dev = 'hda'
+KVM_default_cdrom_dev = 'hdc'
 KVM_default_mac = '11:22:33:aa:bb:cc'
 
 # vxml.XenFVXML
