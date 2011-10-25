@@ -32,9 +32,10 @@ import pywbem
 
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL, SKIP
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
-from XenKvmLib.const import do_main, _image_dir
+from XenKvmLib.const import do_main, _image_dir, KVM_default_cdrom_dev
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.vxml import get_class
+from XenKvmLib import vsms
 
 supported = ['KVM',]
 
@@ -49,6 +50,19 @@ class CIMDomain(object):
         self.server = server
         self.virt = virt
         self._domain = get_class(virt)(name)
+
+        # CIM Instance for cdrom
+        dasd = vsms.get_dasd_class(virt)
+        cdrom_dasd = dasd(dev=KVM_default_cdrom_dev, source="",
+                          name=name, emu_type=1)
+        self._domain.res_settings.append(str(cdrom_dasd))
+
+        # cdrom XML description
+        devices = self._domain.get_node('/domain/devices')
+        cdrom = self._domain.add_sub_node(devices, 'disk', type='file',
+                                          device='cdrom')
+        self._domain.add_sub_node(cdrom, 'source', file="")
+        self._domain.add_sub_node(cdrom, 'target', dev=KVM_default_cdrom_dev)
     #__init__
 
     def define(self):
