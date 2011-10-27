@@ -119,11 +119,12 @@ def main():
     virt = options.virt
     server = options.ip
     
-    cxml = get_class(virt)(test_dom)
+    cxml = None
     prasd_cn = get_typed_class(virt, "ProcResourceAllocationSettingData")
     dom_define = dom_start = False
     try:
         for count in range(3):
+            cxml = get_class(virt)(test_dom)
             status = setup_guest(server, virt, cxml, prasd_cn)
             if status != PASS:
                 return status

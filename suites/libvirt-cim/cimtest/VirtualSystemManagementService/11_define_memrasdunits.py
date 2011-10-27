@@ -113,8 +113,7 @@ def check_value(options):
 def main():
     options = main.options
 
-    cxml = get_class(options.virt)(default_dom)
-
+    cxml = None
     status = FAIL 
     guest_is_undefined = None 
 
@@ -123,6 +122,7 @@ def main():
 
         value = mem_bytes >> shift
 
+        cxml = get_class(options.virt)(default_dom)
         status = try_define(options, units, value, cxml)
         if status != PASS:
             break
