@@ -47,7 +47,7 @@ new_mac1 = "11:%s:22:%s:33:%s" % (new_int, new_int, new_int)
 new_int += 1
 new_mac2 = "11:%s:22:%s:33:%s" % (new_int, new_int, new_int)
 
-def cleanup_env(ip, virt, cxml):
+def cleanup_env(ip, cxml):
     cxml.destroy(ip)
     cxml.undefine(ip)
 
@@ -82,13 +82,13 @@ def main():
         ret = cxml.cim_define(options.ip)
         if not ret:
             logger.error("Failed to define the dom: %s", default_dom)
-            cleanup_env(options.ip, options.virt, cxml)
+            cleanup_env(options.ip, cxml)
             return FAIL
         if case == "start":
             ret = cxml.start(options.ip)
             if not ret:
                 logger.error("Failed to start the dom: %s", default_dom)
-                cleanup_env(options.ip, options.virt, cxml)
+                cleanup_env(options.ip, cxml)
                 return FAIL
 
         status = vsms_util.mod_vcpu_res(options.ip, service, cxml, pasd, ncpu,
@@ -114,7 +114,7 @@ def main():
         if status != PASS:
             break
 
-    cleanup_env(options.ip, options.virt, cxml)
+    cleanup_env(options.ip, cxml)
 
     return status
 

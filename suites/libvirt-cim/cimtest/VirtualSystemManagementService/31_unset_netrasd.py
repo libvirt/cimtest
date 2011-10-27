@@ -28,7 +28,7 @@
 import sys
 import pywbem
 
-from CimTest.ReturnCodes import PASS, FAIL
+from CimTest.ReturnCodes import PASS, FAIL, XFAIL, SKIP
 from CimTest.Globals import logger, CIM_USER, CIM_PASS, CIM_NS
 from XenKvmLib.const import do_main
 from XenKvmLib.classes import get_typed_class

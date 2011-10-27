@@ -306,8 +306,8 @@ def main(options, args):
 
 if __name__ == '__main__':
     ret = -1
+    options, args = parser.parse_args()
     try:
-        options, args = parser.parse_args()
         ret = main(options, args)
     except (KeyboardInterrupt, SystemExit):
         print "\nKeyboardInterrupt. Cleaning up..."
