@@ -91,19 +91,19 @@ def check_proc_sched(server, virt, cn_name):
             return FAIL
    
         if proc_rasd["VirtualQuantity"] != nvcpu and virt != 'KVM':
-            logger.error("VirtualQuantity is %i, expected %i", 
+            logger.error("VirtualQuantity is %s, expected %s",
                          proc_rasd["VirtualQuantity"], nvcpu)
             return FAIL
         elif proc_rasd["VirtualQuantity"] != nvcpu and virt == "KVM":
             return XFAIL_RC(libvirt_bug)
 
         if proc_rasd["Limit"] != limit:
-            logger.error("Limit is %i, expected %i", 
+            logger.error("Limit is %s, expected %s",
                          proc_rasd["Limit"], limit)
             return FAIL
 
         if proc_rasd["Weight"] != weight:
-            logger.error("Weight is %i, expected %i", 
+            logger.error("Weight is %s, expected %s",
                           proc_rasd["Weight"], weight)
             return FAIL
 
