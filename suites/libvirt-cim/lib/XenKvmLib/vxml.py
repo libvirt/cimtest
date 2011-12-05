@@ -34,15 +34,10 @@ import sys
 import random
 import platform
 import tempfile
-from time import sleep
 import pywbem
-from xml.dom import minidom, Node
-from xml import xpath
 
-try:
-    from xml.etree import cElementTree as ElementTree
-except:
-    from xml.etree import ElementTree
+from lxml import etree
+from time import sleep
 
 from VirtLib import utils, live
 from XenKvmLib.xm_virt_util import get_bridge_from_network_xml, bootloader, \
@@ -64,35 +59,37 @@ class XMLClass:
     xdoc = None
 
     def __init__(self):
-        self.xdoc = minidom.Document()
         self.refresh()
 
     def __str__(self):
         return self.xml_string
 
     def refresh(self):
-        self.xml_string = self.xdoc.toxml()
+        if self.xdoc is not None:
+            self.xml_string = etree.tostring(self.xdoc)
 
     def get_node(self, ixpath):
-        node_list = xpath.Evaluate(ixpath, self.xdoc.documentElement)
+        if self.xdoc is None:
+            return None
+
+        node_list = self.xdoc.xpath(ixpath)
         if len(node_list) != 1:
             raise LookupError('Zero or multiple nodes found for XPath' + ixpath)
         return node_list[0]
+
     def add_sub_node(self, parent, node_name, text_cdata=None, **attrs):
         if isinstance(parent, basestring):
             pnode = self.get_node(parent)
         else:
             pnode = parent
 
-        node = self.xdoc.createElement(node_name)
+        if pnode is None:
+            self.xdoc = etree.Element(node_name, **attrs)
+            node = self.xdoc
+        else:
+            node = etree.SubElement(pnode, node_name, **attrs)
 
-        for key in attrs.keys():
-            node.setAttribute(key, str(attrs[key]))
-
-        if text_cdata is not None:
-            node.appendChild(self.xdoc.createTextNode(str(text_cdata)))
-
-        pnode.appendChild(node)
+        node.text = str(text_cdata)
         self.refresh()
 
         return node
@@ -103,13 +100,7 @@ class XMLClass:
         else:
             pnode = parent
         
-        for cnode in pnode.childNodes:
-            pnode.removeChild(cnode)
-            cnode.unlink()
-
-        if text_cdata is not None:
-            pnode.appendChild(self.xdoc.createTextNode(str(text_cdata)))
-
+        pnode.text = str(text_cdata)
         self.refresh()
 
     def set_attributes(self, node, **attrs):
@@ -118,8 +109,8 @@ class XMLClass:
         else:
             pnode = node
 
-        for key in attrs.keys():
-            pnode.setAttribute(key, str(attrs[key]))
+        for key, val in attrs.items():
+            pnode.set(key, val)
 
         self.refresh()
 
@@ -127,7 +118,7 @@ class XMLClass:
         '''Don't use this to define domain.
            Extra newline in the text node fails libvirt
         '''
-        return self.xdoc.toprettyxml()
+        return etree.tostring(self.xdoc, pretty_print=True)
 
     def get_value_xpath(self, xpathStr):
         try:
@@ -136,15 +127,19 @@ class XMLClass:
             logger.info('Zero or multiple node found')
             return None
 
-        if node.nodeType == Node.ATTRIBUTE_NODE:
-            return node.value
-        if node.nodeType == Node.TEXT_NODE:
-            return node.toxml()
-        if node.nodeType == Node.ELEMENT_NODE:
+        ret = ''
+
+        if etree.iselement(node):
+            ret = node.text
+            for child in node:
+                ret = ret + child.text
+        elif isinstance(node, basestring):
+            ret = node
+
+        if ret is None:
             ret = ''
-            for child in node.childNodes:
-                ret = ret + child.toxml()
-            return ret
+
+        return ret
     
 
 class Virsh:
@@ -220,7 +215,7 @@ class NetXML(Virsh, XMLClass):
 
         def _parse_net_dumpxml(_xml):
             try:
-                root = ElementTree.fromstring(_xml)
+                root = etree.fromstring(_xml)
                 ip_element = root.find("ip")
                 return ip_element.get("address")
             except:
@@ -247,7 +242,7 @@ class NetXML(Virsh, XMLClass):
                 return None
             else:
                 self.xml_string = net_xml
-                self.xdoc = minidom.parseString(self.xml_string)
+                self.xdoc = etree.fromstring(self.xml_string)
                 return 
     
         network = self.add_sub_node(self.xdoc, 'network')
@@ -337,7 +332,7 @@ class PoolXML(Virsh, XMLClass):
                 return None
             else:
                 self.xml_string = disk_xml
-                self.xdoc = minidom.parseString(self.xml_string)
+                self.xdoc = etree.fromstring(self.xml_string)
                 return
 
         pool = self.add_sub_node(self.xdoc, 'pool', type='dir')
@@ -547,8 +542,9 @@ class VirtXML(Virsh, XMLClass):
         cmd = 'virsh -c %s dumpxml %s 2>/dev/null' % (self.vuri, self.dname)
         s, o = utils.run_remote(ip, cmd)
         if s == 0:
-            self.xml_string = o
-            self.xdoc = minidom.parseString(self.xml_string)
+            o = "".join([i.strip() for i in o.split("\n") if i])
+            self.xdoc = etree.fromstring(o)
+            self.refresh()
 
     def _set_emulator(self, emu):
         self.add_sub_node('/domain/devices', 'emulator', emu)
@@ -562,7 +558,7 @@ class VirtXML(Virsh, XMLClass):
         # pick the 1st virtual bridge
         br = br_list[0]
         interface = self.get_node('/domain/devices/interface')
-        interface.setAttribute('type', 'bridge')
+        interface.set('type', 'bridge')
         self.add_sub_node(interface, 'source', bridge=br)
             
         return br
@@ -570,20 +566,25 @@ class VirtXML(Virsh, XMLClass):
     def _set_vbridge(self, ip, virt_type, net_name):
         vbr = get_bridge_from_network_xml(net_name, ip, virt=virt_type)
 
-        interface = self.get_node('/domain/devices/interface')
-        interface.setAttribute('type', 'bridge')
-        self.add_sub_node(interface, 'source', bridge=vbr)
+        if vbr is not None:
+            interface = self.get_node('/domain/devices/interface')
+            interface.set('type', 'bridge')
+            self.add_sub_node(interface, 'source', bridge=vbr)
 
         return vbr
 
     def set_interface_details(self, devices, net_mac, net_type, net_name, 
                               virt_type):
         interface = self.add_sub_node(devices, 'interface', type=net_type)
-        self.add_sub_node(interface, 'mac', address=net_mac)
+
+        if net_mac:
+            self.add_sub_node(interface, 'mac', address=net_mac)
+
         if net_type == 'bridge':
             self._set_vbridge(CIM_IP, virt_type, net_name)
         elif net_type == 'network':
-            self.add_sub_node(interface, 'source', network=net_name)
+            if net_name:
+                self.add_sub_node(interface, 'source', network=net_name)
         elif net_type == 'ethernet':
             pass
         elif net_type == 'user':

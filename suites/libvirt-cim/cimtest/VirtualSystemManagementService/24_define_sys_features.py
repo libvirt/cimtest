@@ -48,13 +48,13 @@ def main():
 
         cxml.dumpxml(options.ip)
 
-        if cxml.xml_get_pae() == None:
+        if cxml.xml_get_pae() is None:
             raise Exception("Failed to set pae for dom: %s" % default_dom)
 
-        if cxml.xml_get_acpi() == None:
+        if cxml.xml_get_acpi() is None:
             raise Exception("Failed to set acpi for dom: %s" % default_dom)
 
-        if cxml.xml_get_apic() == None:
+        if cxml.xml_get_apic() is None:
             raise Exception("Failed to set apic for dom: %s" % default_dom)
 
         status = PASS

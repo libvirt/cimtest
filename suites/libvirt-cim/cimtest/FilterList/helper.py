@@ -35,11 +35,7 @@ from XenKvmLib.vxml import get_class
 import VirtLib
 from VirtLib.utils import run_remote
 
-try:
-    from xml.etree import cElementTree as ElementTree
-except:
-    from xml.etree import ElementTree
-
+from lxml import etree
 
 class BaseTestObject(object):
 
@@ -247,7 +243,7 @@ class FilterListTest(BaseTestObject):
 
         # Remove all unecessary spaces and new lines
         _xml = "".join([a.strip() for a in out.split("\n") if a])
-        return ElementTree.fromstring(_xml)
+        return etree.fromstring(_xml)
     # libvirt_filter_dumpxml
 
     def libvirt_entries_in_filter_lists(self):

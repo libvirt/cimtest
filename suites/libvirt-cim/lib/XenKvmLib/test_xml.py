@@ -29,8 +29,7 @@ import os
 import sys 
 import random
 from VirtLib import utils
-from xml import xpath
-from xml.dom import minidom, Node
+from lxml import etree
 from CimTest.Globals import logger
 from XenKvmLib.test_doms import set_uuid, create_vnet
 from VirtLib.live import available_bridges
@@ -212,22 +211,26 @@ def dumpxml(name, server, virt="Xen"):
         return o
 
 def get_value_xpath(xmlStr, xpathStr):
-    xmldoc = minidom.parseString(xmlStr)
-    nodes = xpath.Evaluate(xpathStr, xmldoc.documentElement)
+    xmldoc = etree.fromstring(xmlStr)
+    nodes = xmldoc.xpath(xpathStr)
 
     if len(nodes) != 1:
         raise LookupError('Zero or multiple xpath results found!')
 
     node = nodes[0]
-    if node.nodeType == Node.ATTRIBUTE_NODE:
-        return node.value
-    if node.nodeType == Node.TEXT_NODE:
-        return node.toxml()
-    if node.nodeType == Node.ELEMENT_NODE:
+    ret = ''
+
+    if etree.iselement(node):
+        ret = node.text
+        for child in node:
+            ret = ret + child.text
+    elif isinstance(node, str):
+        ret = node
+
+    if ret is None:
         ret = ''
-        for child in node.childNodes:
-            ret = ret + child.toxml()
-        return ret
+
+    return ret
 
 def xml_get_dom_name(xmlStr):
     return get_value_xpath(xmlStr,

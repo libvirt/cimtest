@@ -102,20 +102,8 @@ def setup_second_guest(ip, virt, cxml2, ref):
     return PASS, "define"
 
 def get_dom_disk_src(xml, ip):
-    disk_list = []
-
     xml.dumpxml(ip)
-    myxml = xml.get_formatted_xml()
-
-    lines = myxml.splitlines()
-    for l in lines:
-        if l.find("source file=") != -1:
-            disk = l.split('=')[1]
-            disk = disk.lstrip('\'')
-            disk = disk.rstrip('\'/>')
-            disk_list.append(disk)
-   
-    return disk_list 
+    return xml.xdoc.xpath("/domain/devices/disk/source/@file")
 
 @do_main(sup_types)
 def main():
