@@ -33,10 +33,8 @@ def get_cmd_val(cmd, ip):
     return out
 
 def get_cimtest_version():
-    revision = commands.getoutput("hg parents --template \
-    \"{rev}\" 2>/dev/null")
-    changeset = commands.getoutput("hg parents --template \
-    \"{node|short}\" 2>/dev/null")
+    revision = commands.getoutput("git rev-list --count HEAD 2>/dev/null")
+    changeset = commands.getoutput("git rev-parse --short HEAD 2> /dev/null")
     return revision, changeset
 
 def get_libvirt_ver(ip):
