@@ -38,6 +38,9 @@ from VirtLib.utils import run_remote
 sup_types = ["KVM",]
 
 domain = None
+flist_name = None
+nested_name = None
+applied_name = None
 
 def get_filter_inst_and_inst_name(name):
     try:
@@ -89,6 +92,7 @@ def create_filter_list(name):
 
     # A NestedFilterList instance will add the "clean-traffic" filter
     # as an entry of the newly created FilterList
+    global nested_name
     logger.info("Creating NestedFilterList instance")
     nested_name = test.CreateFilterListInstance(None, "KVM_NestedFilterList",
                                   {"Antecedent":flist_name,
@@ -125,8 +129,11 @@ def get_nwport_inst_and_inst_name(domain_name):
 
 def cleanup():
     try:
-        # Destroy filter list
-        test.wbem.DeleteInstance(flist_name)
+        # Destroy filter list instances
+        for n in [applied_name, nested_name, flist_name]:
+            if n is not None:
+                logger.info("Deleting instance %s", n)
+                test.wbem.DeleteInstance(n)
     except Exception, e:
         logger.error("Error deleting filter list: %s", e)
 
@@ -165,14 +172,28 @@ def main():
 
         # An AppliedFilterList Instance will apply the filter to the network
         # port of the defined domain
-        test.CreateFilterListInstance(None, "KVM_AppliedFilterList",
-                                      {"Antecedent":nwport_name,
-                                       "Dependent":flist_name})
+        global applied_name
+        logger.info ("Creating AppliedFilterList instance")
+        applied_name = test.CreateFilterListInstance(None, "KVM_AppliedFilterList",
+                                                     {"Antecedent":nwport_name,
+                                                      "Dependent":flist_name})
+        logger.info("Got AppliedFilterList name '%s'", applied_name)
+        #applied = test.GetInstance(applied_name)
+        #logger.info("Got AppliedFilterList '%s'", applied)
+
+        # Check results
+        filterref = test.libvirt_applied_filter_lists(domain_name)[0]
+        rule = helper.FilterRule(filterref)
+        if rule.filter != test_flist:
+            raise Exception("AppliedFilterList name '%s' does not match expected '%s'",
+                            rule.filter, test_flist)
+
+        test.cim_applied_filter_lists(domain_name)
+        logger.info("AppliedFilterList created succesfully")
+        result = PASS
     except Exception, e:
         logger.error("Caught exception: %s", e)
         result = FAIL
-
-    # Check results
 
     # Cleanup
     cleanup()

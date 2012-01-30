@@ -252,7 +252,7 @@ class FilterListTest(BaseTestObject):
         d = {}
         for f in filters:
             root = self.libvirt_filter_dumpxml(f[0])
-            if not root:
+            if root is None:
                 return None
 
             d[f] = root
@@ -307,6 +307,22 @@ class FilterListTest(BaseTestObject):
 
         return self.Associators(_inst_name, result_class="CIM_FilterEntryBase")
     # cim_entries_in_filter_list
+
+    def libvirt_applied_filter_lists(self, dom_name):
+        cmd = "virsh -q -c %s dumpxml %s 2>/dev/null" % (self.uri, dom_name)
+        ret, dom_xml = run_remote(self.server, cmd)
+        if ret:
+            logger.error("Error retrieving domain xml for %s", dom_name)
+            return None
+
+        xdoc = etree.fromstring(dom_xml)
+        filter_list = xdoc.xpath("/domain/devices/interface/filterref")
+        return filter_list
+    # libvirt_applied_filter_lists
+
+    def cim_applied_filter_lists(self, dom_name):
+        pass
+    # cim_applied_filter_lists
 # FilterListTest
 
 
@@ -319,9 +335,17 @@ class FilterRule(object):
     __versions = {"ip"  : "4",
                   "ipv6": "6",}
 
-    __actions = {"accept" : "1",
-                 "deny"   : "2",
-                 "drop"   : "2",}
+    __actions = {"accept"   : "1",
+                 "deny"     : "2",
+                 "drop"     : "2",
+                 "reject"   : "3",
+                 "return"   : "4",
+                 "continue" : "5",}
+
+    __protocolids = {"ipv4": "2048",
+                     "arp" : "2054",
+                     "rarp": "32821",
+                     "ipv6": "34525",}
 
     __baserule_map = {"action"      : "Action",
                       "direction"   : "Direction",
@@ -394,7 +418,7 @@ class FilterRule(object):
 
         for e in element:
             self.__dict = dict(self.__dict, **e.attrib)
-            if not self.__type:
+            if self.__type is None:
                 self.__type = e.tag
 
         try:
@@ -415,6 +439,12 @@ class FilterRule(object):
             return self.__actions[self.__dict[key]]
         elif key == "type":
             return self.__type
+        elif key == "protocolid":
+            value = self.__dict[key]
+            try:
+                return self.__protocolids[value]
+            except KeyError:
+                return value
 
         try:
             return self.__dict[key]
@@ -470,7 +500,7 @@ class FilterRule(object):
             # convert the property value to string
             prop = instance.properties[inst_key]
             val = self.__getattr__(key)
-            if val.startswith("0x"):
+            if isinstance(val, str) and val.startswith("0x"):
                 inst_val = hex(int(prop.value))
             else:
                 inst_val = str(prop.value)
