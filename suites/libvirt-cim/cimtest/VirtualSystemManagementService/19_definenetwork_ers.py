@@ -37,7 +37,7 @@ from XenKvmLib.xm_virt_util import virsh_version
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 default_dom = 'brgtest_domain'
-nmac = '99:aa:bb:cc:ee:ff'
+nmac = '88:aa:bb:cc:ee:ff'
 npool_name = default_network_name + str(random.randint(1, 100)) 
 brg_name = "br" + str(random.randint(1, 100)) 
 
@@ -89,11 +89,16 @@ def main():
 
         expected_values['invalid']['bridge'] = inv_br_str
     else:
+        logger.error('DEBUG libvirt_version=%s', libvirt_version)
         if libvirt_version >= "0.7.0":
             expected_values['empty']['network'] = inv_empty_network
             expected_values['invalid']['network'] = inv_empty_network
-            expected_values['invalid']['bridge'] = " Failed to add tap "\
-                                                   "interface to bridge"
+            if libvirt_version >= "0.9.8":
+                expected_values['invalid']['bridge'] = "Cannot get interface "\
+                                                       "MTU on 'invalid'"
+            else:
+                expected_values['invalid']['bridge'] = " Failed to add tap "\
+                                                       "interface to bridge"
 
 
     tc_scen = {
@@ -114,7 +119,8 @@ def main():
     status = PASS
     for nettype in nettypes:
         for  tc, field in tc_scen.iteritems():
-            logger.error("DEBUG nettype is %s, field is %s, tc is %s", nettype, field, tc)
+            logger.error("DEBUG nettype is %s, field is %s, tc is %s",
+                         nettype, field, tc)
             cxml = vxml.get_class(options.virt)(default_dom, mac=nmac,
                                                 ntype=nettype,
                                                 net_name=field)
@@ -122,7 +128,7 @@ def main():
             try:
                 ret = cxml.cim_define(options.ip)
 
-                if  not ret:
+                if not ret:
                     status = verify_error(exp_rc, exp_desc, cxml)
                     if status != PASS:
                         # There are few libvirt version between 0.7.0
@@ -138,7 +144,7 @@ def main():
                                             cxml.err_rc, cxml.err_desc))
                     continue
                 ret = cxml.cim_start(options.ip)
-                if  ret:
+                if ret:
                     status = verify_error(exp_rc, exp_desc, cxml)
                     cxml.undefine(options.ip) 
                     if status != PASS:
