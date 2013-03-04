@@ -42,7 +42,7 @@ kernel_path = os.path.join(image_dir, 'default-xen-kernel')
 init_path = os.path.join(image_dir, 'default-xen-initrd')
 disk_path = os.path.join(image_dir, 'default-xen-dimage')
 
-default_mac = '11:22:33:aa:bb:cc'
+default_mac = '88:22:33:aa:bb:cc'
 
 def testxml(test_dom="domU1", mem = 128, vcpus = 1, mac = default_mac,
             disk_file_path = disk_path, disk = "xvda"):

@@ -40,7 +40,7 @@ from XenKvmLib.const import get_provider_version
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 default_dom = 'uuid_domain'
 test_dom = 'test_domain'
-nmac = '99:aa:bb:cc:ee:ff'
+nmac = '88:aa:bb:cc:ee:ff'
 duplicate_uuid_support = 915
 
 def get_vssd(ip, virt, dom):

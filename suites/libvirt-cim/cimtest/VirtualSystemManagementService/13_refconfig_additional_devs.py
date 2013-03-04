@@ -38,8 +38,8 @@ from XenKvmLib.vxml import get_class
 sup_types = ['Xen', 'XenFV', 'KVM']
 test_dom = 'rstest_domain'
 test_dom2 = 'rstest_domain2'
-mac1 = '99:aa:bb:cc:ee:ff'
-mac2 = '99:aa:bb:cc:ee:aa'
+mac1 = '88:aa:bb:cc:ee:ff'
+mac2 = '88:aa:bb:cc:ee:aa'
 
 REQUESTED_STATE = 2
 TIME = "00000000000000.000000:000"

@@ -32,7 +32,7 @@ from XenKvmLib.common_util import create_netpool_conf, destroy_netpool
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 default_dom = 'brgtest_domain'
-nmac = '99:aa:bb:cc:ee:ff'
+nmac = '88:aa:bb:cc:ee:ff'
 npool_name = default_network_name + str(random.randint(1, 100)) 
 brg_name = "br" + str(random.randint(1, 100)) 
 

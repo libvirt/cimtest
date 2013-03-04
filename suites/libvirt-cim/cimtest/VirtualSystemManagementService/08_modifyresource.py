@@ -43,9 +43,9 @@ cpu = 2
 ncpu = 1
 nmem = 131072 
 new_int = randint(10, 99)
-new_mac1 = "11:%s:22:%s:33:%s" % (new_int, new_int, new_int)
+new_mac1 = "88:%s:22:%s:33:%s" % (new_int, new_int, new_int)
 new_int += 1
-new_mac2 = "11:%s:22:%s:33:%s" % (new_int, new_int, new_int)
+new_mac2 = "88:%s:22:%s:33:%s" % (new_int, new_int, new_int)
 
 def cleanup_env(ip, cxml):
     cxml.destroy(ip)

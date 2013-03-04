@@ -80,7 +80,7 @@ Xen_init_path = os.path.join(_image_dir, 'default-xen-initrd')
 Xen_disk_path = os.path.join(_image_dir, 'default-xen-dimage')
 Xen_secondary_disk_path = os.path.join(_image_dir, 'default-xen-dimage.2ND')
 Xen_default_disk_dev = 'xvda'
-Xen_default_mac = '11:22:33:aa:bb:cc'
+Xen_default_mac = '88:22:33:aa:bb:cc'
 
 # vxml.KVMXML
 KVM_default_emulator = '/usr/bin/qemu-system-x86_64'
@@ -88,7 +88,7 @@ KVM_disk_path = os.path.join(_image_dir, 'default-kvm-dimage')
 KVM_secondary_disk_path = os.path.join(_image_dir, 'default-kvm-dimage.2ND')
 KVM_default_disk_dev = 'hda'
 KVM_default_cdrom_dev = 'hdc'
-KVM_default_mac = '11:22:33:aa:bb:cc'
+KVM_default_mac = '88:22:33:aa:bb:cc'
 
 # vxml.XenFVXML
 s, o = platform.architecture()
@@ -109,7 +109,7 @@ LXC_default_emulator = '/usr/libexec/libvirt_lxc'
 LXC_default_tty = '/dev/ptmx'
 LXC_default_mp = '/tmp'
 LXC_default_source = '/var/lib/libvirt/images/lxc_files'
-LXC_default_mac = '11:22:33:aa:bb:cc'
+LXC_default_mac = '88:22:33:aa:bb:cc'
 LXC_netns_support = False  
 
 parser = OptionParser()
