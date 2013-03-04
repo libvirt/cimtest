@@ -37,7 +37,10 @@ from XenKvmLib.xm_virt_util import domain_list, active_domain_list, \
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 default_dom = 'rstest_domain'
 cpu = 2
-RECOVERY_VAL = 3
+# AutomaticRecoveryAction
+NONE_VAL = 2
+RESTART_VAL = 3
+
 DEFINED_STATE = 3
 bug = "00008"
 f9_bug = "00010"
@@ -113,7 +116,7 @@ def main():
                 raise Expcetion("Failed to get the VSSD instance for %s" % \
                                 default_dom)
 
-            val = pywbem.cim_types.Uint16(RECOVERY_VAL)
+            val = pywbem.cim_types.Uint16(RESTART_VAL)
             inst['AutomaticRecoveryAction'] = val
             vssd = inst_to_mof(inst)
 
@@ -135,9 +138,9 @@ def main():
                 raise Exception("Failed to get the VSSD instance for %s" % \
                                 default_dom)
 
-            if inst.AutomaticRecoveryAction != RECOVERY_VAL:
+            if inst.AutomaticRecoveryAction != RESTART_VAL:
                 logger.error("Exp AutomaticRecoveryAction=%d, got %d", 
-                             RECOVERY_VAL, inst.AutomaticRecoveryAction)
+                             RESTART_VAL, inst.AutomaticRecoveryAction)
                 raise Exception("%s not updated properly" % default_dom)
 
             status = PASS
