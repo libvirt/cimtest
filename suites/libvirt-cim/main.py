@@ -23,12 +23,14 @@
 #
 
 from time import time
+from time import sleep
 from optparse import OptionParser
 import os
 import sys
 sys.path.append('../../lib')
 import TestSuite
 from CimTest.Globals import logger, log_param
+from CimTest.ReturnCodes import PASS, FAIL, XFAIL, SKIP
 import commands
 from VirtLib import groups
 import ConfigParser
@@ -274,6 +276,14 @@ def main(options, args):
 
         os_status = os.WEXITSTATUS(status)
 
+        # status should be from our test; however, if there's an OS level
+        # failure, it could be set to errno.  But that's included in our
+        # output, so just set it to FAIL; otherwise, we get a KeyError
+        # in Reporter.py when trying to index it's 'rc' record
+        if os_status not in (PASS, FAIL, XFAIL, SKIP):
+               logger.error("Changing os_status from %d to FAIL", os_status)
+               os_status = FAIL
+
         testsuite.print_results(test['group'], test['test'], os_status, output)
 
         exec_time = end_time - start_time
@@ -281,6 +291,11 @@ def main(options, args):
 
         if options.print_exec_time:
             print_exec_time(testsuite, exec_time, "  Test execution time:")
+
+        # Give ourselves a 3 second pause before running the next
+        # test to help ensure we have cleaned things up properly just
+        # in case the cimserver is a little slow to respond
+        sleep(3)
 
     testsuite.debug("%s\n" % div) 
 
