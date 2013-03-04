@@ -493,27 +493,72 @@ def parse_instance_id(instid):
 def get_nfs_bin(server):
     cmd = 'cat /etc/issue | grep -v ^$ | egrep "Red Hat|Fedora"'
     rc, out = utils.run_remote(server, cmd)
+    is_systemd = 0
     if rc != 0:
         #SLES
         nfs_server_bin =  "/etc/init.d/nfsserver"
     else:
+        # Default, but allow it to be changed
         nfs_server_bin =  "/etc/init.d/nfs"
 
-    return nfs_server_bin
+        # Check for 'systemd' being used
+        # Fedora 15 seems to have been the first place this was the default
+        # RHEL 7 and beyond will also use the mechanism.
+        # Since 'out' returns the fetched string, let's parse it a bit more
+        # looking for the number after the string 'release' which happens to
+        # be the version.
+        #
+        # On Fedora systems it's
+        #
+        #     "Fedora release 18 (Spherical Cow)"
+        #
+        # while on RHEL systems it's:
+        #
+        #     "Red Hat Enterprise Linux Server release 6.4 (Santiago)"
+        #
+        # This nasty thing finds 'release ' in the line, splits there and
+        # then uses index [1] as the point of reference of the version number
+        # string to split again in order to return index [0] as a string
+        # representation of the OS version.
+        #
+        vers_str = out.split('release ')[1].split()[0]
+        if 'Fedora' in out and int(vers_str) >= 15 or \
+           'Red Hat' in out and float(vers_str) >= 7.0:
+            # Handle this differently - the command would be
+            # "systemctl {start|restart|status} nfs"
+            nfs_server_bin = "systemctl %s nfs"
+            is_systemd = 1
 
-def nfs_config(server, nfs_server_bin):
-    cmd = "ps aux | grep -v -e nfsiod -e grep | grep nfsd"
+    return nfs_server_bin, is_systemd
+
+def nfs_config(server, nfs_server_bin, is_systemd):
+    if is_systemd == 0:
+        cmd = "ps aux | grep -v -e nfsiod -e grep | grep nfsd"
+    else:
+        cmd = "systemctl | grep nfs-server"
     rc, out = utils.run_remote(server, cmd)
     # if NFS services is not found on the machine, start it.. 
     if rc != PASS :
         # Check if NFS server is installed ...
-        if not os.path.exists(nfs_server_bin):
-            logger.error("NFS server '%s' does not seem to be installed "\
-                         "on '%s'", nfs_server_bin, server)
-            return SKIP
+        if is_systemd == 0:
+            if not os.path.exists(nfs_server_bin):
+                logger.error("NFS server '%s' does not seem to be installed "\
+                             "on '%s'", nfs_server_bin, server)
+                return SKIP
+        else:
+            # Works on Fedora and RHEL6
+            cmd = "rpm -q nfs-utils"
+            rc, out = utils.run_remote(server, cmd)
+            if rc != PASS :
+                logger.error("NFS server package nfs-utils does not seem "\
+                             "to be installed on '%s'", server)
+                return SKIP
 
         # Start the nfs server ...
-        nfs_server_cmd = "%s start" % nfs_server_bin
+        if is_systemd == 0:
+            nfs_server_cmd = "%s start" % nfs_server_bin
+        else:
+            nfs_server_cmd = nfs_server_bin % "start"
         rc, out = utils.run_remote(server, nfs_server_cmd)
         if rc != PASS:
             logger.error("Could not start the nfsserver on '%s'", server)
@@ -573,13 +618,16 @@ def netfs_cleanup(server, pool_attr):
         move_file(back_exports_file, exports_file)
 
     # restart the nfs server
-    nfs_server_bin = get_nfs_bin(server)
-    nfs_server_cmd = "%s restart" % nfs_server_bin
+    nfs_server_bin, is_systemd = get_nfs_bin(server)
+    if is_systemd == 0:
+        nfs_server_cmd = "%s restart" % nfs_server_bin
+    else:
+        nfs_server_cmd = nfs_server_bin % "restart"
     rc, out = utils.run_remote(server, nfs_server_cmd)
     if rc != PASS:
         logger.error("Could not restart NFS server on '%s'" % server)
 
-def netfs_config(server, nfs_server_bin, dest_dir_to_mnt):
+def netfs_config(server, nfs_server_bin, dest_dir_to_mnt, is_systemd):
     src_dir_for_mnt = mkdtemp()
     
     try:
@@ -601,7 +649,10 @@ def netfs_config(server, nfs_server_bin, dest_dir_to_mnt):
                             % (src_dir_for_mnt, dest_dir_to_mnt))
 
         # Restart the nfs server....
-        nfs_server_cmd = "%s restart" % nfs_server_bin
+        if is_systemd == 0:
+            nfs_server_cmd = "%s restart" % nfs_server_bin
+        else:
+            nfs_server_cmd = nfs_server_bin % "restart"
         rc, out = utils.run_remote(server, nfs_server_cmd)
         if rc != PASS:
             raise Exception("Could not restart NFS server on '%s'" % server)
@@ -615,12 +666,12 @@ def netfs_config(server, nfs_server_bin, dest_dir_to_mnt):
     return PASS, src_dir_for_mnt
 
 def nfs_netfs_setup(server):
-    nfs_server_bin = get_nfs_bin(server)
+    nfs_server_bin, is_systemd = get_nfs_bin(server)
    
     dest_dir = mkdtemp()
 
     # Before going ahead verify that nfs server is available on machine..
-    ret = nfs_config(server, nfs_server_bin)
+    ret = nfs_config(server, nfs_server_bin, is_systemd)
     if ret != PASS:
         logger.error("Failed to configure NFS on '%s'", server)
         logger.info("Trying to look for nfs mounted dir on '%s'...", server)
@@ -631,7 +682,8 @@ def nfs_netfs_setup(server):
         else:
             return PASS, server, src_dir, dest_dir
     else:
-        ret, src_dir = netfs_config(server, nfs_server_bin, dest_dir)
+        ret, src_dir = netfs_config(server, nfs_server_bin, \
+                                    dest_dir, is_systemd)
         if ret != PASS:
             logger.error("Failed to configure netfs on '%s'", server)
             return ret, None, None, None
