@@ -64,7 +64,7 @@ def  get_slp_info(server):
         logger.info("Test not supported for sfcb yet ... hence skipping")
         return SKIP
 
-    cmd = "cimconfig -l -p | grep slp"
+    cmd = "cimconfig -l -p | grep slp=true"
     rc, out = run_remote(server, cmd)
     if rc != 0:
         logger.error("SLP is not enabled for the cimserver on '%s'", server)
