@@ -44,6 +44,7 @@
 #                                                  -Date: 26.05.2009
 
 import sys
+import os
 import pywbem
 from XenKvmLib import rpcs_service
 from CimTest.Globals import logger
@@ -88,13 +89,17 @@ def main():
 
     elif curr_cim_rev >= libvirt_cim_child_pool_rev:
         
+        del_path = False
         try:
-            pool_attr = { "Path" : _image_dir }
+            path = os.path.join(_image_dir, 'deltest')
+            if not os.path.exists(path):
+                os.mkdir(path)
+                del_path = True
+            pool_attr = { "Path" : path }
             status = create_pool(server, virt, test_pool, pool_attr, 
                                  pool_type="DiskPool", mode_type=TYPE)
             if status != PASS:
-                logger.error("Failed to create diskpool '%s'", test_pool)
-                return status 
+                raise Exception("Failed to create diskpool '%s'" % test_pool)
 
             status = verify_pool(server, virt, test_pool, 
                                  pool_attr, pool_type="DiskPool")
@@ -112,8 +117,8 @@ def main():
                     break
 
             if pool_settings == None:
-                logger.error("Failed to get poolsettings for '%s'", test_pool)
-                return FAIL
+                raise Exception("Failed to get poolsettings for '%s'" \
+                                % test_pool)
 
             rpcs_conn.DeleteResourcePool(Pool = pool_settings)
             pool = EnumInstances(server, dp)
@@ -127,8 +132,10 @@ def main():
             logger.error("Exception details: %s", details)
             destroy_diskpool(server, virt, test_pool)
             undefine_diskpool(server, virt, test_pool)
-            return FAIL
+            status = FAIL
 
+        if del_path:
+            os.rmdir(path)
     return status
 
 if __name__ == "__main__":

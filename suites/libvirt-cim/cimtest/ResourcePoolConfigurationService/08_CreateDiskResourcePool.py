@@ -48,6 +48,7 @@
 #                                                   -Date: 26.05.2009
 
 import sys
+import os
 from CimTest.Globals import logger
 from XenKvmLib.xm_virt_util import virsh_version
 from CimTest.ReturnCodes import FAIL, PASS, SKIP
@@ -55,8 +56,9 @@ from XenKvmLib.const import do_main, platform_sup
 from XenKvmLib.classes import get_typed_class
 from XenKvmLib.common_util import destroy_diskpool, nfs_netfs_setup, \
                                   netfs_cleanup
-from XenKvmLib.pool import create_pool, verify_pool, undefine_diskpool
-from XenKvmLib.const import get_provider_version
+from XenKvmLib.pool import create_pool, verify_pool, undefine_diskpool, \
+                           DIR_POOL, NETFS_POOL
+from XenKvmLib.const import get_provider_version, _image_dir
 
 libvirt_disk_pool_support=837
 libvirt_netfs_pool_support=869
@@ -94,19 +96,20 @@ def main():
     
     curr_cim_rev, changeset = get_provider_version(virt, server)
     if curr_cim_rev >= libvirt_disk_pool_support:
-        dp_types["DISK_POOL_DIR"] =  1
+        dp_types["DISK_POOL_DIR"] =  DIR_POOL
     if curr_cim_rev >= libvirt_netfs_pool_support:
-         dp_types["DISK_POOL_NETFS"] = 3
+        dp_types["DISK_POOL_NETFS"] = NETFS_POOL
 
     if len(dp_types) == 0 :
-        logger.info("No disk pool types in list , hence skipping the test...")
+        logger.info("No disk pool types in list, hence skipping the test...")
         return SKIP
     
     status = FAIL     
     pool_attr = None
     # For now the test case support only the creation of 
     # dir type disk pool, netfs later change to fs and disk pooltypes etc 
-    for key, value in dp_types.iteritems():    
+    for key, value in dp_types.iteritems():
+        del_path = False
         try:
             logger.info("Verifying '%s'.....", key)
             test_pool = key
@@ -114,6 +117,15 @@ def main():
                                               curr_cim_rev)
             if status != PASS:
                 return FAIL
+
+            # Cannot have two pools that use the same location/path, so
+            # since cimtest-diskpool already exists
+            if key == 'DISK_POOL_DIR':
+                path = os.path.join(_image_dir, 'temppool')
+                if not os.path.exists(path):
+                    os.mkdir(path)
+                    del_path = True
+                pool_attr["Path"] = path
 
             status = create_pool(server, virt, test_pool, pool_attr, 
                                  mode_type=value, pool_type= "DiskPool")
@@ -152,6 +164,8 @@ def main():
             if key == 'DISK_POOL_NETFS':
                 netfs_cleanup(server, pool_attr)
  
+        if del_path:
+            os.rmdir(path)
     return status
 
 if __name__ == "__main__":

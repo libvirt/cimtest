@@ -23,6 +23,7 @@
 #                                                   -Date: 04.14.2011
 
 import sys
+import os
 from pywbem import cim_types
 from CimTest.Globals import logger
 from XenKvmLib.xm_virt_util import virsh_version
@@ -77,11 +78,16 @@ def main():
     pool_attr = None
     key = 'DISK_POOL_DIR'
     value = 1
+    del_path = False
     try:
         logger.info("Verifying '%s'.....", key)
         test_pool = key
-        pool_attr = { "Path" : "/var/lib/libvirt/images",
+        pool_attr = { "Path" : "/var/lib/libvirt/images/autotest",
                       "Autostart" : cim_types.Uint16(1) }
+
+        if not os.path.exists(pool_attr["Path"]):
+                os.mkdir(pool_attr["Path"])
+                del_path = True
 
         status = create_pool(server, virt, test_pool, pool_attr, 
                              mode_type=value, pool_type= "DiskPool")
@@ -112,6 +118,9 @@ def main():
         status = FAIL
         logger.error("Exception details: %s", details)
  
+    if del_path:
+        os.rmdir(pool_attr["Path"])
+
     return status
 
 if __name__ == "__main__":
