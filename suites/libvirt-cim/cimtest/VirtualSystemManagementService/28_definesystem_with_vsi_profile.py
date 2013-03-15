@@ -35,6 +35,7 @@
 import sys
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import FAIL, PASS, SKIP, XFAIL_RC, XFAIL
+from VirtLib import utils
 from XenKvmLib.classes import get_typed_class, inst_to_mof
 from XenKvmLib.rasd import get_default_rasds
 from XenKvmLib.const import do_main, get_provider_version
@@ -172,6 +173,20 @@ def main():
                      'VSITypeID'    : "0x12345",
                      'VSITypeIDVersion' : "1"
                    } 
+
+    # Fedora changed the default device naming scheme, see
+    #  http://fedoraproject.org/wiki/Features/ConsistentNetworkDeviceNaming
+    #
+    # So if we're running on Fedora, let's "default" to "em1" although that
+    # doesn't guarantee that we will find what we're looking for.  This code
+    # probably needs some mechanism to detect with interfaces are available,
+    # then query those interfaces to find one that supports the feature we
+    # want.  If not are found and XFAIL could be generated indicating so.
+    #
+    cmd = 'cat /etc/issue | grep -v ^$ | egrep "Fedora"'
+    rc, out = utils.run_remote(server, cmd)
+    if rc == 0:
+        vsi_defaults['SourceDevice'] = "em1"
 
     nrasd_cn = get_typed_class(virt, 'NetResourceAllocationSettingData')
     status  = FAIL
