@@ -89,7 +89,6 @@ def main():
 
         expected_values['invalid']['bridge'] = inv_br_str
     else:
-        logger.error('DEBUG libvirt_version=%s', libvirt_version)
         if libvirt_version >= "0.7.0":
             expected_values['empty']['network'] = inv_empty_network
             expected_values['invalid']['network'] = inv_empty_network
