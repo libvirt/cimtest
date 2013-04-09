@@ -921,7 +921,7 @@ class KVMXML(VirtXML, VirtCIM):
                        port_num='-1', keymap="en-us", irstype="mouse", 
                        btype="ps2", vnc_passwd=None):
         if not os.path.exists(disk_file_path):
-            logger.error('Error: Disk image does not exist')
+            logger.error('Error: Disk image %s does not exist', disk_file_path)
             sys.exit(1)
         VirtXML.__init__(self, 'kvm', test_dom, set_uuid(), mem, vcpus)
         VirtCIM.__init__(self, 'KVM', test_dom, uuid, pae, acpi, apic, disk, 
@@ -984,7 +984,7 @@ class XenFVXML(VirtXML, VirtCIM):
                        keymap="en-us",
                        irstype="mouse", btype="ps2", vnc_passwd=None):
         if not os.path.exists(disk_file_path):
-            logger.error('Error: Disk image does not exist')
+            logger.error('Error: Disk image %s does not exist', disk_file_path)
             sys.exit(1)
         VirtXML.__init__(self, 'xenfv', test_dom, set_uuid(), mem, vcpus)
         VirtCIM.__init__(self, 'XenFV', test_dom, uuid, pae, acpi, apic, disk,
