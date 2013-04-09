@@ -38,7 +38,8 @@ from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_ERROR_ENUMERATE, \
                             CIM_ERROR_GETINSTANCE
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC, SKIP
-from XenKvmLib.xm_virt_util import diskpool_list, virsh_version, net_list,\
+from XenKvmLib.xm_virt_util import diskpool_list, virsh_version,\
+                                   virsh_version_cmp, net_list,\
                                    domain_list, virt2uri, net_destroy
 from XenKvmLib.vxml import PoolXML, NetXML
 from VirtLib import utils 
@@ -308,7 +309,7 @@ def cleanup_restore(server, virt):
     # libvirt_version >= 0.4.1
     # Hence Skipping the logic to delete the new conf file
     # and just returning PASS
-    if libvirt_version >= '0.4.1':
+    if virsh_version_cmp(libvirt_version, '0.4.1') >= 0:
         return status
     try:
         if os.path.exists(back_disk_file):
@@ -365,7 +366,7 @@ def create_diskpool(server, virt='KVM', dpool=default_pool_name,
 
 def create_diskpool_conf(server, virt, dpool=default_pool_name):
     libvirt_version = virsh_version(server, virt)
-    if libvirt_version >= '0.4.1':
+    if virsh_version_cmp(libvirt_version, '0.4.1') >= 0:
         status, dpoolname = create_diskpool(server, virt, dpool)
         diskid = "%s/%s" % ("DiskPool", dpoolname)
     else:
@@ -376,7 +377,7 @@ def create_diskpool_conf(server, virt, dpool=default_pool_name):
 
 def destroy_diskpool(server, virt, dpool):
     libvirt_version = virsh_version(server, virt)
-    if libvirt_version >= '0.4.1':
+    if virsh_version_cmp(libvirt_version, '0.4.1') >= 0:
         if dpool == None:
             logger.error("No disk pool specified")
             return FAIL

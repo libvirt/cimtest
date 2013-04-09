@@ -33,7 +33,7 @@ from CimTest.Globals import logger
 from CimTest.ReturnCodes import FAIL, PASS
 from XenKvmLib.const import default_network_name, do_main, get_provider_version
 from XenKvmLib.common_util import create_netpool_conf, destroy_netpool
-from XenKvmLib.xm_virt_util import virsh_version
+from XenKvmLib.xm_virt_util import virsh_version, virsh_version_cmp
 
 sup_types = ['Xen', 'KVM', 'XenFV']
 default_dom = 'brgtest_domain'
@@ -71,7 +71,7 @@ def main():
     libvirt_version = virsh_version(options.ip, options.virt)
     inv_empty_network = "Network not found"
     if options.virt == "Xen" or options.virt == "XenFV":
-        if libvirt_version <= "0.3.3":
+        if virsh_version_cmp(libvirt_version, "0.3.3") <= 0:
             inv_empty_network = "no network with matching name"
 
             inv_br_str = "POST operation failed: (xend.err 'Device 0 (vif) " + \
@@ -89,10 +89,10 @@ def main():
 
         expected_values['invalid']['bridge'] = inv_br_str
     else:
-        if libvirt_version >= "0.7.0":
+        if virsh_version_cmp(libvirt_version, "0.7.0") >= 0:
             expected_values['empty']['network'] = inv_empty_network
             expected_values['invalid']['network'] = inv_empty_network
-            if libvirt_version >= "0.9.8":
+            if virsh_version_cmp(libvirt_version, "0.9.8") >= 0:
                 expected_values['invalid']['bridge'] = "Cannot get interface "\
                                                        "MTU on 'invalid'"
             else:

@@ -31,7 +31,7 @@ from XenKvmLib.assoc import Associators
 from XenKvmLib.const import default_pool_name, default_network_name, \
                             get_provider_version, default_net_type
 from XenKvmLib.pool import enum_volumes
-from XenKvmLib.xm_virt_util import virsh_version
+from XenKvmLib.xm_virt_util import virsh_version, virsh_version_cmp
 from XenKvmLib.common_util import parse_instance_id
 
 pasd_cn = 'ProcResourceAllocationSettingData'
@@ -81,7 +81,8 @@ def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem, server):
 
         libvirt_version = virsh_version(server, virt)
 
-        if virt == 'LXC' or (virt == 'XenFV' and libvirt_version < "0.6.3"):
+        if virt == 'LXC' or (virt == 'XenFV' and \
+                             virsh_version_cmp(libvirt_version, "0.6.3") < 0):
            point_device = "%s/%s" %(t_dom, "mouse:usb")
         elif virt == 'Xen':
            point_device = "%s/%s" %(t_dom, "mouse:xen")
@@ -357,7 +358,8 @@ def get_exp_disk_rasd_len(virt, ip, rev, id):
            rev < libvirt_rasd_new_changes:
             exp_len = exp_base_num + exp_cdrom
 
-        elif rev >= libvirt_rasd_dpool_changes and libvirt_ver >= '0.4.1':
+        elif rev >= libvirt_rasd_dpool_changes and \
+             virsh_version_cmp(libvirt_ver, '0.4.1') >= 0:
             volumes = enum_volumes(virt, ip)
             if rev >= libvirt_rasd_floppy_changes:
                 exp_len = ((volumes * exp_base_num) + \
@@ -383,7 +385,7 @@ def get_exp_disk_rasd_len(virt, ip, rev, id):
                 exp_len = (volumes * exp_base_num) + exp_cdrom 
 
 
-    if virt != 'LXC' and libvirt_ver >= '0.4.1':
+    if virt != 'LXC' and virsh_version_cmp(libvirt_ver, '0.4.1') >= 0:
         if rev >= libvirt_rasd_storagepool_changes:
             exp_len += exp_storagevol_rasd
 

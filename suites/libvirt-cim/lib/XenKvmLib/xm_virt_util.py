@@ -23,6 +23,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 #
 import os
+import re
 from VirtLib import utils
 import socket
 from VirtLib.live import fv_cap
@@ -222,6 +223,11 @@ def network_by_bridge(bridge, server, virt="Xen"):
             return network
 
     return None
+
+def virsh_version_cmp(version1, version2):
+    def normalize(v):
+        return [int(x) for x in re.sub(r'(\.0+)*$','', v).split(".")]
+    return cmp(normalize(version1), normalize(version2))
 
 def virsh_version(server, virt="KVM"):
     cmd = "virsh -c %s -v 2>/dev/null" % virt2uri(virt)

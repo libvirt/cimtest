@@ -35,7 +35,7 @@ from XenKvmLib import rpcs_service
 import pywbem
 from CimTest.CimExt import CIMClassMOF
 from XenKvmLib.vxml import NetXML, PoolXML
-from XenKvmLib.xm_virt_util import virsh_version
+from XenKvmLib.xm_virt_util import virsh_version, virsh_version_cmp
 from XenKvmLib.vsms import RASD_TYPE_STOREVOL
 from XenKvmLib.common_util import destroy_diskpool
 
@@ -183,7 +183,7 @@ def undefine_netpool(server, virt, net_name):
 
 def undefine_diskpool(server, virt, dp_name):
     libvirt_version = virsh_version(server, virt)
-    if libvirt_version >= '0.4.1':
+    if virsh_version_cmp(libvirt_version, '0.4.1') >= 0:
         if dp_name == None:
            return FAIL
 
@@ -285,7 +285,7 @@ def verify_pool(server, virt, poolname, pool_attr_list, mode_type=0,
             ret_mode = net_xml.xml_get_netpool_mode()
             libvirt_version = virsh_version(server, virt)
             #Forward mode support was added in 0.4.2
-            if libvirt_version >= '0.4.2':
+            if virsh_version_cmp(libvirt_version, '0.4.2') >= 0:
                 if mode_type == 1 and ret_mode != "nat":
                     logger.error("Error when verifying 'nat' type network")
                     return FAIL

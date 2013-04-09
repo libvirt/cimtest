@@ -36,7 +36,7 @@ from CimTest.ReturnCodes import FAIL, PASS, SKIP
 from XenKvmLib.const import do_main, platform_sup, get_provider_version
 from XenKvmLib.rasd import libvirt_rasd_storagepool_changes
 from XenKvmLib import rpcs_service
-from XenKvmLib.xm_virt_util import virsh_version
+from XenKvmLib.xm_virt_util import virsh_version, virsh_version_cmp
 from XenKvmLib.classes import get_typed_class, inst_to_mof
 from XenKvmLib.common_util import nfs_netfs_setup, netfs_cleanup
 from XenKvmLib.pool import create_pool, NETFS_POOL, get_diskpool, \
@@ -123,7 +123,8 @@ def main():
 
     libvirt_ver = virsh_version(server, virt)
     cim_rev, changeset = get_provider_version(virt, server)
-    if libvirt_ver < "0.4.1" and cim_rev < libvirt_rasd_storagepool_changes:
+    if virsh_version_cmp(libvirt_ver, "0.4.1") < 0 or \
+       cim_rev < libvirt_rasd_storagepool_changes:
         logger.info("Storage Volume creation support is available with Libvirt" 
                     "version >= 0.4.1 and Libvirt-CIM rev '%s'", 
                     libvirt_rasd_storagepool_changes)

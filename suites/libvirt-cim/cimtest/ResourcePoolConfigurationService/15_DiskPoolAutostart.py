@@ -26,7 +26,7 @@ import sys
 import os
 from pywbem import cim_types
 from CimTest.Globals import logger
-from XenKvmLib.xm_virt_util import virsh_version
+from XenKvmLib.xm_virt_util import virsh_version, virsh_version_cmp
 from CimTest.ReturnCodes import FAIL, PASS, SKIP
 from XenKvmLib.const import do_main, platform_sup
 from XenKvmLib.classes import get_typed_class
@@ -62,7 +62,7 @@ def main():
     dp_types =  { }
 
     libvirt_version = virsh_version(server, virt)
-    if libvirt_version < "0.4.1":
+    if virsh_version_cmp(libvirt_version, "0.4.1") < 0:
         logger.info("Storage pool creation support is available in Libvirt "
                     "version >= 0.4.1 , hence skipping the test....")
         return SKIP

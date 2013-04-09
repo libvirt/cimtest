@@ -57,7 +57,6 @@ import os
 from distutils.file_util import move_file
 from XenKvmLib import assoc
 from XenKvmLib import enumclass
-from XenKvmLib.xm_virt_util import virsh_version
 from CimTest.ReturnCodes import PASS, FAIL, SKIP
 from CimTest.Globals import logger, CIM_ERROR_GETINSTANCE, \
                             CIM_ERROR_ASSOCIATORS

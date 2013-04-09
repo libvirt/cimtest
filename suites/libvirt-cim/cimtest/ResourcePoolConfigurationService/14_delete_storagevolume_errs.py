@@ -33,7 +33,7 @@ from VirtLib import utils
 from CimTest.Globals import logger
 from pywbem import CIM_ERR_FAILED, CIM_ERR_INVALID_PARAMETER, CIMError
 from CimTest.ReturnCodes import FAIL, PASS, SKIP
-from XenKvmLib.xm_virt_util import virsh_version
+from XenKvmLib.xm_virt_util import virsh_version, virsh_version_cmp
 from XenKvmLib.const import do_main, platform_sup, get_provider_version,\
                             default_pool_name, _image_dir
 from XenKvmLib import rpcs_service
@@ -119,7 +119,8 @@ def main():
 
     libvirt_ver = virsh_version(server, virt)
     cim_rev, changeset = get_provider_version(virt, server)
-    if libvirt_ver < "0.4.1" or cim_rev < libvirt_rasd_spool_del_changes:
+    if virsh_version_cmp(libvirt_ver, "0.4.1") < 0 or \
+       cim_rev < libvirt_rasd_spool_del_changes:
         logger.info("Storage Volume deletion support is available with Libvirt"
                     "version >= 0.4.1 and Libvirt-CIM rev '%s'", 
                     libvirt_rasd_spool_del_changes)
