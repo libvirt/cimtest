@@ -110,8 +110,8 @@ def enum_volumes(virt, server, pooln=default_pool_name):
     cmd = 'virsh -c %s vol-list %s 2>/dev/null | sed -e "1,2 d" -e "$ d"' % \
           (virt2uri(virt), pooln)
     ret, out = run_remote(server ,cmd)
-    if ret != 0:
-        return None
+    if ret != 0 or len(out) == 0:
+        return volume
     lines = out.split("\n")
     for line in lines:
         vol = line.split()[0]   
