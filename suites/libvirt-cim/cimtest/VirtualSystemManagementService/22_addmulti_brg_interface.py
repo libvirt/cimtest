@@ -63,8 +63,13 @@ def main():
     service = get_vsms_class(options.virt)(options.ip)
     classname = get_typed_class(options.virt, 'VirtualSystemSettingData')
 
-    vsxml = get_class(options.virt)(test_dom, mac=default_mac, ntype=ntype,
-                                    net_name=default_brg)
+    # Seems ACPI needs to be set for KVM in order for hotplug to work right
+    if options.virt == "KVM":
+        vsxml = get_class(options.virt)(test_dom, mac=default_mac, ntype=ntype,
+                                        net_name=default_brg, acpi=True)
+    else:
+        vsxml = get_class(options.virt)(test_dom, mac=default_mac, ntype=ntype,
+                                        net_name=default_brg)
     try:
         ret = vsxml.cim_define(options.ip)
         if not ret:

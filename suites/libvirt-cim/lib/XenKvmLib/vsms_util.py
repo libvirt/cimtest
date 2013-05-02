@@ -189,9 +189,22 @@ def add_net_res(server, service, virt, cxml, vssd_ref, nasd, attr):
                               % attr['nmac'])
 
         if virt == "KVM":
-            name = cxml.get_value_xpath(
+            # For KVM bridge types, compare the source bridge
+            if attr['ntype'] == 'bridge':
+                name = cxml.get_value_xpath(
+                           '/domain/devices/interface/source/@bridge[. = "%s"]'
+                           % attr['virt_net'])
+                attr_name = attr['virt_net']
+            # For KVM network types, compare the network name
+            else:
+                name = cxml.get_value_xpath(
                            '/domain/devices/interface/source/@network[. = "%s"]'
                            % attr['net_name'])
+                attr_name = attr['net_name']
+            if mac != attr['nmac'] or name != attr_name:
+                logger.error("MAC: Got %s, exp %s. NAME: Got %s, exp %s.",
+                             mac, attr['nmac'], name, attr['virt_net'])
+                raise Exception('Error adding rs for net mac')
             
         else:
             # For Xen, network interfaces are converted to bridge interfaces.
@@ -202,10 +215,10 @@ def add_net_res(server, service, virt, cxml, vssd_ref, nasd, attr):
             if name != None:
                 name = attr['net_name']
 
-        if mac != attr['nmac'] or name != attr['net_name']:
-            logger.error("Got %s, exp %s. Got %s, exp %s.", mac, 
-                         attr['nmac'], name, attr['net_name'])
-            raise Exception('Error adding rs for net mac')
+            if mac != attr['nmac'] or name != attr['net_name']:
+                logger.error("MAC: Got %s, exp %s. NAME: Got %s, exp %s. br %s",
+                             mac, attr['nmac'], name, attr['net_name'], br)
+                raise Exception('Error adding rs for net mac')
 
         logger.info('good status for net_mac')
     except Exception, details:
