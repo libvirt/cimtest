@@ -82,7 +82,7 @@ def main():
         logger.error("Expected %s %s", exp_desc, exp_rc)
 
     if status != PASS:
-        logger.error("------ FAILED: %s %s ------", cn, tc)
+        logger.error("------ FAILED: InstanceID Key Value. ------")
 
     Globals.CIM_NS = prev_namespace
     return status

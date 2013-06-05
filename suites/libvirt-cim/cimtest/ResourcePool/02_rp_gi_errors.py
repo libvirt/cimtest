@@ -94,7 +94,7 @@ def main():
                 logger.error("Expected %s %s", exp_desc, exp_rc)
 
         if status != PASS:
-            logger.error("------ FAILED: %s %s ------", cn, tc)
+            logger.error("------ FAILED: %s ------", cn)
             break
 
     return status 
