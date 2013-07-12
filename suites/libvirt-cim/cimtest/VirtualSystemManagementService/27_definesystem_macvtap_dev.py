@@ -30,6 +30,7 @@
 #
 
 import sys
+import os
 from CimTest.Globals import logger
 from CimTest.ReturnCodes import FAIL, PASS, SKIP
 from VirtLib import utils
@@ -131,6 +132,14 @@ def main():
         source_dev = "em1"
     else:
         source_dev = "eth1"
+
+    # The default device name may not named 'eth1' or 'em1' so this case would
+    # return FAIL. The following code will check if default device exists in
+    # the network card list and if not, source_dev will be changed into the 1st
+    # network card in the list.
+    net_info = os.popen('ip addr').read()
+    if net_info.find(source_dev) == -1:
+        source_dev = net_info.split(': ')[3]
 
     guest_defined = False
 
