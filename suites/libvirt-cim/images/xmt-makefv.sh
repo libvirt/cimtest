@@ -31,7 +31,7 @@ else
 fi
 
 die() {
-    echo "FAILED: $i" >&2
+    echo "FAILED: $1" >&2
  
     umount $TMPMOUT >/dev/null 2>&1
     kpartx -d $loop >/dev/null 2>&1
