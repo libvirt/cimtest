@@ -180,6 +180,6 @@ def get_provider_version(virt, ip):
     if revision.isdigit():
         revision = int(revision)
 
-    return revision, changeset 
+    return str(revision), str(changeset)
 
 
