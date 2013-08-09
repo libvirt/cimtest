@@ -51,7 +51,7 @@ partition() {
     local file=$1
 
     $PARTED $file mklabel msdos
-    $PARTED $file mkpartfs primary ext2 0 $(($SIZE - 1))
+    $PARTED $file mkpart primary ext2 0 $(($SIZE - 1))
 }
 
 mount_partition() {
@@ -62,7 +62,10 @@ mount_partition() {
 
     losetup /dev/$loopdev $file || die "Failed to losetup $file"
     kpartx -a /dev/$loopdev || die "Failed to kpartx $loopdev"
+    sleep 2
+    mke2fs -t ext2 /dev/mapper/${loopdev}p1 >/dev/null 2>&1 || die "Failed to mkfs ${loopdev}p1"
     tune2fs -j /dev/mapper/${loopdev}p1 >/dev/null 2>&1|| die "Failed to add journal"
+    sleep 2
     mount /dev/mapper/${loopdev}p1 $TMPMOUNT || die "Failed to mount ${loopdev}p1"
 
     echo $loopdev 
@@ -86,7 +89,7 @@ copy_in_ramdisk() {
 kernel_path() {
     local prefix=$1
 
-    local image=`find /boot | grep vmlinuz | egrep -v 'xen|hmac' | tail -n1`
+    local image=`find /boot | grep vmlinuz | egrep -v 'xen|hmac|rescue' | tail -n1`
 
     if [ -z $image ]; then
         touch /boot/vmlinuz-$DUMMY_PATH
