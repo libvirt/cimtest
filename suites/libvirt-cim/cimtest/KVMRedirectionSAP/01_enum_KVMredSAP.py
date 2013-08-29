@@ -50,7 +50,7 @@ test_dom = 'test_kvmredsap_dom'
 
 def enum_redsap(server, virt, classname):
     redsap_insts = { }
-    status = FAIL
+    status = PASS
 
     try:
         redsap_list = EnumInstances(server, classname)
@@ -58,11 +58,11 @@ def enum_redsap(server, virt, classname):
             if redsap.SystemName == test_dom:
                 if redsap.Classname not in redsap_insts.keys():
                     redsap_insts[redsap.Classname] = redsap
-                    status = PASS
                 else:
                     raise Exception("Got more than one record for: %s" \
                                      % test_dom)
     except Exception, details:
+        status = FAIL
         logger.error(CIM_ERROR_ENUMERATE, classname)
         logger.error("Exception details: %s", details)
 
@@ -139,7 +139,7 @@ def main():
             raise Exception("Failed to verify information for the defined "\
                             "dom:%s" % test_dom)
 
-        # For now verifying KVMRedirectoinSAP only for a defined LXC guest.
+        # For now verifying KVMRedirectionSAP only for a defined LXC guest.
         # Once complete Graphics support for LXC is in, we need to verify the
         # KVMRedirectionSAP for a running guest.
         if virt == 'LXC':
@@ -150,10 +150,10 @@ def main():
         status = vsxml.cim_start(server)
         if not ret:
             raise Exception("Failed to start the dom: %s" % test_dom)
+        action_start = True
 
         status, redsap_inst = enum_redsap(server, virt, classname)
         if status != PASS:
-            action_start = True         
             raise Exception("Failed to get information for running dom:%s" \
                              % test_dom)
 
@@ -162,7 +162,6 @@ def main():
 
         status = verify_redsap_values(val_list, redsap_inst, classname)
         if status != PASS:
-            action_start = True         
             raise Exception("Failed to verify information for running dom:%s" \
                             % test_dom)
 
