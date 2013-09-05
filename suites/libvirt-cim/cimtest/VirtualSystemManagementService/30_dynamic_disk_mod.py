@@ -39,7 +39,7 @@ def main():
     options = main.options
 
     if options.virt == 'KVM':
-        nddev = 'vda'
+        nddev = 'vdb'
     else:
         nddev = 'xvdb'
 

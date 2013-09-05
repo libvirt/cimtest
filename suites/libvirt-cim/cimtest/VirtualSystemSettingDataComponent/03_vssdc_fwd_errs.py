@@ -105,7 +105,7 @@ def main():
     if virt == "Xen":
         test_disk = "xvda"
     else: 
-        test_disk = "hda"
+        test_disk = "vda"
 
     virt_xml = vxml.get_class(virt)
     if virt == 'LXC':

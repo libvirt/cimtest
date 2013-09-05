@@ -176,7 +176,7 @@ def main():
     if virt == 'Xen':
         test_disk = 'xvdb'
     else:
-        test_disk = 'hda'
+        test_disk = 'vda'
 
     # Getting the VS list and deleting the test_dom if it already exists.
     virt_type = get_class(virt)

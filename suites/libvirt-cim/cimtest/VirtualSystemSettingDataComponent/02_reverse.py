@@ -159,7 +159,7 @@ def main():
     elif options.virt == "LXC":
         test_disk = "/tmp"
     else:
-        test_disk = "hdb"
+        test_disk = "vdb"
 
     virt_xml = vxml.get_class(options.virt)
     if options.virt == 'LXC':

@@ -339,7 +339,7 @@ def default_vssd_rasd_str(dom_name='test_domain',
 
     class_dasd = get_dasd_class(virt)
     if virt == 'KVM':
-        disk_dev = 'hda'
+        disk_dev = 'vda'
         disk_source = const.KVM_disk_path
     elif virt == 'XenFV':
         disk_dev = 'hda'

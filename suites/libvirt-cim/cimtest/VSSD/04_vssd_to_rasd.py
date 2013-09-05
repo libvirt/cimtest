@@ -214,7 +214,7 @@ def main():
     if virt == "LXC":
         test_disk = "/tmp"
     else:
-        test_disk = "hda"
+        test_disk = "vda"
 
     status, vsxml = setup_env(virt)
     if status != PASS:

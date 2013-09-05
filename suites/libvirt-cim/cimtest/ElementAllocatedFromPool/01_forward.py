@@ -146,7 +146,7 @@ def main():
     if virt == 'Xen':
         test_disk = 'xvda'
     else:
-        test_disk = 'hda'
+        test_disk = 'vda'
 
     # Getting the VS list and deleting the test_dom if it already exists.
     destroy_and_undefine_all(server)

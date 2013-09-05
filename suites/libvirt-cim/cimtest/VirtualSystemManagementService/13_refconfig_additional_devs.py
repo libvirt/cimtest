@@ -125,7 +125,7 @@ def main():
         test_disk = 'xvdb'
         disk_path = Xen_secondary_disk_path
     else:
-        test_disk = 'hdb'
+        test_disk = 'vdb'
         disk_path = KVM_secondary_disk_path
 
     cxml2 = virt_xml(test_dom2, mac=mac2, 

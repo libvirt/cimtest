@@ -52,7 +52,7 @@ def main():
     elif virt == 'LXC':
         test_disk = '/tmp'
     else:
-        test_disk = 'hdb'
+        test_disk = 'vdb'
 
     status = PASS
     virt_xml = vxml.get_class(virt)

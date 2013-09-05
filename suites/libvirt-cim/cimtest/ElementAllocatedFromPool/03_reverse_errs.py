@@ -180,7 +180,7 @@ def main():
     if virt == "Xen":
         test_disk = "xvda"
     else:
-        test_disk = "hda"
+        test_disk = "vda"
     virt_type = get_class(virt)
     vsxml = virt_type (test_dom, vcpus = test_vcpus, mac = test_mac, 
                        disk = test_disk)

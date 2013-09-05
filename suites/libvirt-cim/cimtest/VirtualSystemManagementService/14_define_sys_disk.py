@@ -67,7 +67,7 @@ def get_rasd_list(ip, virt, addr, disk_type):
     if virt == 'Xen':
         test_disk = 'xvda'
     else:
-        test_disk = 'hda'
+        test_disk = 'vda'
 
     for rasd in rasds:
         if rasd.classname == drasd_cn:

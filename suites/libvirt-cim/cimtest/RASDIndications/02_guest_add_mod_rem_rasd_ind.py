@@ -151,7 +151,7 @@ def main():
     ndpath = cxml.secondary_disk_path
 
     if virt == 'KVM':
-        nddev = 'hdb'
+        nddev = 'vdb'
     else:
         nddev = 'xvdb'
 

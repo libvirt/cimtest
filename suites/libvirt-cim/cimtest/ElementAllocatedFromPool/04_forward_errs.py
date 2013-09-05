@@ -496,7 +496,7 @@ def main():
     if virt == "Xen":
         test_disk = "xvda"
     else:    
-        test_disk = "hda"
+        test_disk = "vda"
     destroy_and_undefine_all(options.ip)
     vsxml = get_class(virt)(test_dom, vcpus = test_vcpus, 
                             mac = test_mac, disk = test_disk)

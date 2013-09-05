@@ -41,7 +41,7 @@ def setup_env(server, virt):
     if virt == 'Xen':
         test_disk = 'xvda'
     else:
-        test_disk = 'hda'
+        test_disk = 'vda'
     
     virt_xml = get_class(virt)
     if virt == 'LXC':

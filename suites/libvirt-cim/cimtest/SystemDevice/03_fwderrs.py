@@ -60,7 +60,7 @@ def main():
     if options.virt == 'Xen':
         test_disk = 'xvda'
     else:
-        test_disk = 'hda'
+        test_disk = 'vda'
 
     status = PASS
     virt_xml = vxml.get_class(options.virt)
