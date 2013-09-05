@@ -41,7 +41,7 @@ from time import sleep
 
 from VirtLib import utils, live
 from XenKvmLib.xm_virt_util import get_bridge_from_network_xml, bootloader, \
-                                   net_list 
+                                   net_list, host_cpu_model
 from XenKvmLib.test_doms import set_uuid, viruuid
 from XenKvmLib import vsms
 from XenKvmLib import const
@@ -650,7 +650,8 @@ class VirtCIM:
 
         curr_cim_rev, changeset = get_provider_version(self.virt, ip)
         if curr_cim_rev >= vsms_graphics_sup:
-            if self.gasd is not None:
+            if self.gasd is not None and \
+                    not str(host_cpu_model(ip, self.virt)).startswith('s390'):
                 res_settings.append(str(self.gasd))
 
         if curr_cim_rev >= vsms_inputdev_sup:

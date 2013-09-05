@@ -417,3 +417,10 @@ def network_macs(ip, vs_name):
 
     return ret
 
+def host_cpu_model(server, virt="KVM"):
+    cmd = "virsh -c %s nodeinfo 2>/dev/null | grep 'CPU model'" % virt2uri(virt)
+    ret, out = utils.run_remote(server, cmd)
+    if ret != 0:
+        return None
+    left, right = out.split(':')
+    return right.strip()
