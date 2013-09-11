@@ -71,10 +71,6 @@ def init_rasd_list(virt, ip, guest_name):
             if guest == guest_name:
                 rasd_insts[rasd.Classname] = rasd
 
-    if len(rasds) != len(rasd_insts):
-        logger.error("Expected %d RASDs, got %d", len(rasds), len(rasd_insts)) 
-        return rasd_insts, FAIL
-
     return rasd_insts, PASS
 
 @do_main(sup_types)
@@ -105,6 +101,11 @@ def main():
     if status != PASS:
         logger.error("Unable to build rasd instance list")
         return status
+
+    if len(vsxml.res_settings) != len(rasds):
+        logger.error("Expected %d RASDs, got %d", len(vsxml.res_settings),
+                     len(rasds))
+        return FAIL
 
     expr_values = {
                    'rc'   : CIM_ERR_NOT_FOUND,
