@@ -100,11 +100,13 @@ def main():
     rasds, status = init_rasd_list(virt, options.ip, test_dom)
     if status != PASS:
         logger.error("Unable to build rasd instance list")
+        vsxml.undefine(server)
         return status
 
     if len(vsxml.res_settings) != len(rasds):
         logger.error("Expected %d RASDs, got %d", len(vsxml.res_settings),
                      len(rasds))
+        vsxml.undefine(server)
         return FAIL
 
     expr_values = {
