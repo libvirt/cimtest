@@ -179,7 +179,9 @@ def get_provider_version(virt, ip):
     revision = revision.strip("+")
     if revision.isdigit():
         revision = int(revision)
+    else:
+        raise Exception("revision %s is not a digit", revision)
 
-    return str(revision), str(changeset)
+    return revision, changeset
 
 

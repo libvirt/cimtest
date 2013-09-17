@@ -101,8 +101,8 @@ def get_env_data(ip, virt):
     rev, changeset = get_provider_version(virt, ip)
     cimtest_revision, cimtest_changeset = get_cimtest_version()
 
-    lc_ver = "Libvirt-cim revision: %s\nLibvirt-cim changeset: %s\n" % \
-             (rev, changeset)
+    lc_ver = "Libvirt-cim revision: %d\nLibvirt-cim changeset: %s\n" % \
+             (rev, str(changeset))
     cimtest_ver = "Cimtest revision: %s\nCimtest changeset: %s\n" % \
                   (cimtest_revision, cimtest_changeset)
 
