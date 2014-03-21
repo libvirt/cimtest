@@ -93,7 +93,7 @@ def setup_env(server, virt):
 def init_rasd_list(virt, ip, guest_name):
     proc_rasd_cn = get_typed_class(virt, "ProcResourceAllocationSettingData")
 
-    rasd_insts = {}
+    rasd_insts = []
 
     rasds, status = enum_rasds(virt, ip)
     if status != PASS:
@@ -108,12 +108,12 @@ def init_rasd_list(virt, ip, guest_name):
                 return rasd_insts, FAIL
 
             if guest == guest_name:
-                rasd_insts[rasd.Classname] = rasd
+                rasd_insts.append((rasd.Classname, rasd))
 
     return rasd_insts, PASS
 
 def init_device_list(virt, ip, guest_name):
-    dev_insts = {}
+    dev_insts = []
 
     devs, status = enum_dev(virt, ip)
     if status != PASS:
@@ -128,7 +128,7 @@ def init_device_list(virt, ip, guest_name):
                 return dev_insts, FAIL
 
             if guest == guest_name:
-                dev_insts[dev.Classname] = dev
+                dev_insts.append((dev.Classname, dev))
 
     return dev_insts, PASS
 
@@ -140,11 +140,15 @@ def verify_rasd(virt, enum_list, rasds):
     status = FAIL
 
     for rasd in enum_list:
-        exp_rasd = rasds[rasd.classname]
-
-        if rasd['InstanceID'] != exp_rasd.InstanceID:
-            logger.error("Got %s instead of %s", rasd['InstanceID'],
-                         exp_rasd.InstanceID)
+        exp_rasd = None
+        for c, r in rasds:
+            if r.Classname == rasd.classname and \
+               r.InstanceID == rasd['InstanceId']:
+                exp_rasd = r
+                break
+        if exp_rasd is None:
+            logger.error("Could not find %s, %s in rasds",
+                         rasd.classname, rasd['InstanceID'])
             return FAIL
 
         status = compare_all_prop(rasd, exp_rasd)
@@ -161,10 +165,16 @@ def verify_devices(enum_list, devs):
         logger.error("Got %d %s devices, expected 1", len(enum_list), dev_cn)
         return FAIL
 
-    exp_dev = devs[dev_cn]
-
-    if dev['DeviceID'] != exp_dev.DeviceID:
-        logger.error("Got %s instead of %s", dev['DeviceID'], exp_dev.DeviceID)
+    exp_dev = None
+    for c,d in devs:
+        if dev_cn == d.Classname and dev['DeviceID'] == d.DeviceID:
+            exp_dev = d
+            break
+    if exp_dev is None:
+        logger.error("Did not find %s, %s in passed devs list",
+                     dev_cn, dev['DeviceID'])
+        for c,d in devs:
+            logger.error("devs class=%s id=%s", c, d.DeviceID)
         return FAIL
 
     status = compare_all_prop(dev, exp_dev)

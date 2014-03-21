@@ -64,7 +64,7 @@ test_mem    = 128
 test_mac    = "00:11:22:33:44:aa"
 
 def init_rasd_list(virt, ip):
-    rasd_insts = {}
+    rasd_insts = []
     rasds, status = enum_rasds(virt, ip)
     if status != PASS:
         logger.error("Enum RASDs failed")
@@ -78,7 +78,7 @@ def init_rasd_list(virt, ip):
                 return rasd_insts, FAIL
 
             if guest == test_dom:
-                rasd_insts[rasd.Classname] = rasd
+                rasd_insts.append(rasd)
 
     return rasd_insts, PASS
 
@@ -102,9 +102,19 @@ def verify_rasd(virt, ip, assoc_info):
            logger.error("VSSDC should not have returned info for dom %s",
                          guest)
            return FAIL
-       
+
         logger.info("Verifying: %s", rasd.classname)
-        exp_rasd = rasds[rasd.classname]
+        # Find our rasd
+        exp_rasd = None
+        for r in rasds:
+            if r.Classname == rasd.classname and \
+               r.InstanceID == rasd['InstanceId']:
+                exp_rasd = r
+                break;
+        if exp_rasd is None:
+            logger.error("Could not find %s,%s in rasds",
+                         rasd.classname, rasd['InstanceId'])
+            return FAIL
         status = compare_all_prop(rasd, exp_rasd)
         if status != PASS: 
             return status

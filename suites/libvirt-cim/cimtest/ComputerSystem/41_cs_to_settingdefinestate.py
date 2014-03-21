@@ -99,19 +99,19 @@ def get_associators_info(server, cn, an, qcn, instid):
                                  cn,
                                  InstanceID = instid)
         if len(assoc_info) < 1:
-            logger.error("%s returned %i %s objects", 
+            logger.error("get_associators_info %s returned %i %s objects",
                          an, len(assoc_info), qcn)
             status = FAIL
 
     except Exception, detail:
         logger.error(CIM_ERROR_ASSOCIATORS, cn)
-        logger.error("Exception: %s", detail)
+        logger.error("get_associators_info Exception: %s", detail)
         status = FAIL
 
     return status, assoc_info
 
 def init_rasd_list(virt, ip):
-    rasd_insts = {}
+    rasd_insts = []
     rasds, status = enum_rasds(virt, ip)
     if status != PASS:
         logger.error("Enum RASDs failed")
@@ -125,14 +125,14 @@ def init_rasd_list(virt, ip):
                 return rasd_insts, FAIL
 
             if guest == test_dom:
-                rasd_insts[rasd.Classname] = rasd
+                rasd_insts.append((rasd.Classname,rasd.InstanceID))
 
     return rasd_insts, PASS
 
 
 def verify_values(assoc_info, vssd_cs_values, an, qcn):
     if len(assoc_info) != 1:
-        logger.error("%s returned %i %s objects, Expected 1", an,
+        logger.error("verify_values %s returned %i %s objects, Expected 1", an,
                      len(assoc_info), qcn)
         return FAIL
 
@@ -140,18 +140,19 @@ def verify_values(assoc_info, vssd_cs_values, an, qcn):
     return compare_all_prop(vssd_cs_assoc, vssd_cs_values)
 
 def build_sd_info(sd_assoc_info, qcn, an, rasd_values):
-    sd_info = {} 
+    sd_info = []
 
     # Building the input for SettingsDefineState association.
     for sd_val in sd_assoc_info:
         if sd_val['SystemName'] == test_dom:
             classname_keyvalue = sd_val['CreationClassName']
             deviceid =  sd_val['DeviceID']
-            sd_info[classname_keyvalue] = deviceid
+            print "system, deviceid", test_dom, deviceid
+            sd_info.append((classname_keyvalue, deviceid))
 
     # Expect the SystemDevice records == len(rasd_values) entries.
     if len(sd_info) != len(rasd_values):
-        logger.error("%s returned %i %s objects, Expected %i", an,
+        logger.error("build_sd_info %s returned %i %s objects, Expected %i", an,
                      len(sd_info), qcn, len(rasd_values))
         return FAIL, sd_info
 
@@ -171,7 +172,7 @@ def get_cs_sysdev_info(server, virt, qcn, rasd_val):
                                    CreationClassName=cs_class, 
                                    Name=test_dom)
         if len(sd_assoc) < 1:
-            raise Exception("%s returned %d %s objects"  \
+            raise Exception("get_cs_sysdev_info %s returned %d %s objects"  \
                             % (an, len(sd_assoc), qcn))
 
         status, sd_info = build_sd_info(sd_assoc, qcn, an, rasd_val)        
@@ -180,18 +181,18 @@ def get_cs_sysdev_info(server, virt, qcn, rasd_val):
                             % test_dom)
 
     except Exception, details:
-        logger.error("Exception details: %s", details)
+        logger.error("get_cs_sysdev_info Exception details: %s", details)
         return FAIL, dom_cs, sd_info
 
     return PASS, dom_cs, sd_info
 
 def get_sds_info(server, virt, cs_cn, rasd_values,
                  in_setting_define_state, qcn):
-    sds_info = {}
+    sds_info = []
     try:
 
         an = get_typed_class(virt,"SettingsDefineState")
-        for cn, devid in sorted(in_setting_define_state.items()):
+        for cn, devid in in_setting_define_state:
             assoc_info = Associators(server, an, cn, DeviceID = devid,
                                      CreationClassName = cn,
                                      SystemName = test_dom,
@@ -200,29 +201,29 @@ def get_sds_info(server, virt, cs_cn, rasd_values,
             # we expect only one RASD record to be returned for each device 
             # type when queried with SDS association.
             if len(assoc_info) != 1:
-                raise Exception("%s returned %d %s objects, Expected 1" \
-                                % (an, len(assoc_info), cn))
-            
+                raise Exception("get_sds_info %s returned %d %s objects, "
+                                "Expected 1" % (an, len(assoc_info), cn))
+
             assoc_val = assoc_info[0]
             CCName = assoc_val.classname
-            exp_rasd = rasd_values[CCName]
-            if assoc_val['InstanceID'] != exp_rasd.InstanceID:
-                raise Exception("Got %s instead of %s" \
-                                 % (assoc_val['InstanceID'], 
-                                    exp_rasd.InstanceID))
+            InstanceID = assoc_val['InstanceID']
+            if (CCName,InstanceID) not in rasd_values:
+                raise Exception("get_sds_info cannot find (%s,%s) "
+                                "in rasd_values" % (CCName,InstanceID))
 
             # Build the input required for VSSDC association query.
             vs_name = assoc_val['InstanceID']
             if vs_name.find(test_dom) >= 0:
                 instid =  assoc_val['InstanceID']
-                sds_info[CCName] = instid 
+                sds_info.append((CCName,instid))
 
         if len(sds_info) != len(rasd_values):
-            raise Exception("%s returned %i %s objects, Expected %i" \
-                            % (an, len(sds_info), qcn, len(rasd_values)))
+            raise Exception("get_sds_info %s returned %i %s objects, "
+                            " Expected %i" % \
+                            (an, len(sds_info), qcn, len(rasd_values)))
 
     except Exception, details:
-        logger.error("Exception: %s", details)
+        logger.error("get_sds_info Exception: %s", details)
         return FAIL, sds_info
 
     return PASS, sds_info
@@ -243,7 +244,7 @@ def get_vssd_info(server, virt, in_vssdc_list, qcn):
             raise Exception("Instance matching %s was not returned"  % test_dom)
 
         an = get_typed_class(virt, 'VirtualSystemSettingDataComponent')
-        for cn, instid in sorted((in_vssdc_list.items())):
+        for cn, instid in in_vssdc_list:
             status, vssd_assoc_info = get_associators_info(server, cn, an, 
                                                            vssd_class, 
                                                            instid)
@@ -255,7 +256,7 @@ def get_vssd_info(server, virt, in_vssdc_list, qcn):
                 raise Exception("VSSD values verification error")
 
     except Exception, details:
-        logger.error("Exception details: %s", details)
+        logger.error("get_vssd_info Exception details: %s", details)
         return FAIL, vssd_assoc_info 
 
     return PASS, vssd_assoc_info 
@@ -279,7 +280,7 @@ def verify_vssdc_assoc(server, virt, cs_class, vssd_assoc_info, dom_cs):
         status = verify_values(cs_assoc_info, dom_cs, an, cs_class)
 
     except Exception, details:
-        logger.error("Exception details: %s", details)
+        logger.error("verify_vssd_assoc Exception details: %s", details)
         return FAIL
 
     return status
@@ -318,7 +319,7 @@ def main():
                                     vssd_assoc_info, dom_cs)
 
     except Exception, details:
-        logger.error("Exception details is %s", details)
+        logger.error("main Exception details is %s", details)
         status = FAIL
 
     vsxml.cim_destroy(server)

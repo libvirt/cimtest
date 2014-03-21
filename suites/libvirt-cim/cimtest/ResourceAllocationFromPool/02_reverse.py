@@ -67,7 +67,7 @@ def setup_env(server, virt):
 def init_rasd_list(virt, ip, guest_name):
     disk_rasd_cn = get_typed_class(virt, "DiskResourceAllocationSettingData")
 
-    rasd_insts = {}
+    rasd_insts = []
 
     rasds, status = enum_rasds(virt, ip)
     if status != PASS:
@@ -85,7 +85,7 @@ def init_rasd_list(virt, ip, guest_name):
                 return rasd_insts, FAIL
 
             if guest == guest_name:
-                rasd_insts[rasd.Classname] = rasd
+                rasd_insts.append((rasd.Classname, rasd))
 
     return rasd_insts, PASS
 
@@ -171,12 +171,12 @@ def main():
         if status != PASS:
             raise Exception("Unable to build pool instance list")
 
-        if len(rasds) != len(pools):
-            raise Exception("%d RASD insts != %d pool insts" % (len(rasds),
-                            len(pools)))
+        # There can be more than one instance per rasd class, such as is
+        # the case for controllers, so we cannot compare the number of
+        # elements in each.
 
         an = get_typed_class(virt, "ResourceAllocationFromPool")
-        for rasd_cn, rasd in rasds.iteritems():
+        for rasd_cn, rasd in rasds:
             pool = AssociatorNames(server, 
                                    an, 
                                    rasd_cn, 

@@ -64,11 +64,11 @@ sae_assoc_with_input_graphics_rev = 795
 test_dom    = "SAE_dom"
 
 def get_dom_records(an_cn, assoc_ei_info, assoc_ei_insts):
-    
+
     for assoc_ei_item in assoc_ei_info:
         rec = None
         CCN = assoc_ei_item['CreationClassName']
-        if 'DisplayController' in CCN or 'PointingDevice' in CCN : 
+        if 'DisplayController' in CCN or 'PointingDevice' in CCN :
             guest, dev, status = parse_instance_id(assoc_ei_item['DeviceID'])
             if status != PASS:
                 logger.error("Unable to parse DeviceID")
@@ -84,11 +84,8 @@ def get_dom_records(an_cn, assoc_ei_info, assoc_ei_insts):
                         "%s association", CCN, an_cn)
             return assoc_ei_insts, FAIL
 
-        if not CCN in assoc_ei_insts.keys() and rec != None:
-            assoc_ei_insts[CCN]=rec
-        elif rec != None and (CCN in assoc_ei_insts.keys()):
-            logger.error("Got more than one record for '%s'", CCN)
-            return assoc_ei_insts, FAIL
+        if rec is not None:
+            assoc_ei_insts.append(rec)
 
     return assoc_ei_insts, PASS
 
@@ -100,7 +97,7 @@ def init_list_for_compare(server, virt):
         c_list.append('PointingDevice' )
         c_list.append('DisplayController')
 
-    init_list = {} 
+    init_list = []
     for name in c_list:
         c_name = get_typed_class(virt, name)
         ei_details = EnumInstances(server, c_name, ret_cim_inst=True)
@@ -110,33 +107,43 @@ def init_list_for_compare(server, virt):
 
     return init_list, PASS
 
-    
 def verify_assoc(server, virt, an, assoc_info):
-    assoc_insts = {}
+    assoc_insts = []
     try:
         assoc_insts, status = get_dom_records(an, assoc_info, assoc_insts)
         if status != PASS or len(assoc_insts) < 1 :
             raise Exception("Failed to get insts for domain %s" % test_dom)
 
         in_list, status = init_list_for_compare(server, virt)
-        if status != PASS or len(in_list) != 3:
+        if status != PASS:
             raise Exception("Failed to get init_list")
 
-        in_list_keys = Set(in_list.keys())
-        assoc_list_keys = Set(assoc_insts.keys())
-        if len(in_list_keys & assoc_list_keys) < 1 :
-            raise Exception("Mistmatching Class Names, expected %s, got %s" \
-                            % (in_list_keys, assoc_list_keys))
+        if len(in_list) != len(assoc_insts):
+            raise Exception("in_list len=%d != assoc_insts len=%d",
+                            len(in_inst), len(assoc_insts))
 
-        for cname, prop in in_list.iteritems():
-            logger.info("Verifying Values for '%s'", cname)
-            exp_vals = in_list[cname].items()
-            res_vals = assoc_insts[cname].items()
-            for i in range(0, len(prop)):
-                if exp_vals[i][1] != res_vals[i][1]:
+        in_list_ccns = []
+        assoc_insts_ccns = []
+        for i in in_list:
+            in_list_ccns.append(i['CreationClassName'])
+        for a in assoc_insts:
+            assoc_insts_ccns.append(a['CreationClassName'])
+        if in_list_ccns != assoc_insts_ccns:
+            raise Exception("Mismatching Class Names, expected %s, got %s" \
+                            % (in_list_ccns, assoc_insts_ccns))
+
+        for exp_vals, res_vals in zip(in_list, assoc_insts):
+            if len(exp_vals) != len(res_vals):
+                raise Exception("'%s' mismatching element count exp=%d res=%d" \
+                                % (exp_vals['CreationClassName'], \
+                                   len(exp_vals), len(res_vals)))
+
+            for key in exp_vals.keys():
+                if exp_vals[key] != res_vals[key]:
                     logger.error("'%s' val mismatch for '%s': " \
-                                 "got '%s', expected '%s'", exp_vals[i][0], 
-                                 cname, res_vals[i][1], exp_vals[i][1])
+                                 "got '%s', expected '%s'",
+                                 exp_vals['CreationClassName'], key,
+                                 res_vals[key], exp_vals[key])
                     return FAIL
 
     except Exception, details:

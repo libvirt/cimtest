@@ -62,7 +62,7 @@ dc_dev_rev = 725
 test_dom    = "SAE_dom"
 
 def get_dom_records(cn, ei_info):
-    ei_insts = {}
+    ei_insts = []
     for ei_item in ei_info:
         rec = None
         CCN = ei_item['CreationClassName']
@@ -82,11 +82,8 @@ def get_dom_records(cn, ei_info):
                          "%s association", CCN, cn)
             return ei_insts, FAIL
 
-        if not CCN in ei_insts.keys() and rec != None:
-            ei_insts[CCN]=rec
-        elif rec != None and (CCN in ei_insts.keys()):
-            logger.error("Got more than one record for '%s'", CCN)
-            return ei_insts, FAIL
+        if rec is not None:
+            ei_insts.append((CCN, rec))
 
     return ei_insts, PASS
 
@@ -99,17 +96,20 @@ def init_list_for_assoc(server, virt):
     if curr_cim_rev >= dc_dev_rev:
         c_list.append('DisplayController')
 
-    key_dict = {}
+    in_list = []
     for name in c_list:
-        init_list = {} 
         c_name = get_typed_class(virt, name)
         ei_details = EnumNames(server, c_name)
         init_list, status = get_dom_records(c_name, ei_details)
         if status != PASS:
             return init_list, FAIL
-        key_dict[c_name] = dict(init_list[c_name].keybindings)
 
-    return key_dict, PASS
+        # List is returned as paired list of all bindings of the
+        # type ccn (or c_list).
+        for ccn, elem in init_list:
+            in_list.append((ccn, dict(elem.keybindings)))
+
+    return in_list, PASS
 
     
 @do_main(sup_types)
@@ -139,7 +139,7 @@ def main():
             raise Exception("'%s' returned %i records, expected 1" \
                             % (c_name, len(crs)))
 
-        for cn, value in in_list.iteritems(): 
+        for cn, value in in_list:
             logger.info("Verifying '%s' association with '%s'", an, cn)
             if 'ComputerSystem' in cn:
                 assoc_info = Associators(server, an, cn, 

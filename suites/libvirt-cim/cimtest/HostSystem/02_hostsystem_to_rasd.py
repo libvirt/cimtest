@@ -138,14 +138,14 @@ def get_assoc_info(server, cn, an, qcn, name, vsxml):
     return status, assoc_info
 
 def verify_RASD_values(server, sd_assoc_info, vsxml, virt="Xen"):
-    in_setting_define_state = {} 
+    in_setting_define_state = []
     status = PASS
     try:
         for i in range(len(sd_assoc_info)):
             if sd_assoc_info[i]['SystemName'] == test_dom:
                 classname_keyvalue = sd_assoc_info[i]['CreationClassName']
                 deviceid =  sd_assoc_info[i]['DeviceID']
-                in_setting_define_state[classname_keyvalue] = deviceid
+                in_setting_define_state.append((classname_keyvalue,deviceid))
 
         status, rasd_values, in_list = rasd_init_list(vsxml, virt, 
                                                       test_disk, test_dom, 
@@ -156,7 +156,7 @@ def verify_RASD_values(server, sd_assoc_info, vsxml, virt="Xen"):
 
         an = get_typed_class(virt, 'SettingsDefineState')
         sccn = get_typed_class(virt, 'ComputerSystem')
-        for cn, devid in sorted(in_setting_define_state.items()):
+        for cn, devid in in_setting_define_state:
             assoc_info = Associators(server,
                                      an,
                                      cn,
@@ -170,8 +170,9 @@ def verify_RASD_values(server, sd_assoc_info, vsxml, virt="Xen"):
                 status = FAIL
                 break
             index = (len(assoc_info) - 1)
+            assoc_val = assoc_info[index]
             rasd  = rasd_values[cn]
-            CCName = assoc_info[index].classname
+            CCName = assoc_val.classname
             if 'ProcResourceAllocationSettingData' in CCName:
                 status = verify_procrasd_values(assoc_info[index], rasd)
             elif 'NetResourceAllocationSettingData' in CCName:
@@ -189,7 +190,7 @@ def verify_RASD_values(server, sd_assoc_info, vsxml, virt="Xen"):
             else:
                 status = FAIL
             if status != PASS:
-                logger.error("Mistmatching association values" )
+                logger.error("Mismatching association values" )
                 break
     except Exception, detail:
         print_err(CIM_ERROR_ASSOCIATORS, detail, an)
