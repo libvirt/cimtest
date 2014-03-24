@@ -99,7 +99,7 @@ def hostname(server):
 
     return out
 
-def full_hostname(server):
-    """To return the fully qualifiec domain name(FQDN) of the system"""
+def full_hostname():
+    """To return the fully qualified domain name(FQDN) of the system"""
 
-    return socket.gethostbyaddr(socket.gethostname())[0]
+    return socket.getfqdn()

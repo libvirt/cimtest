@@ -155,7 +155,7 @@ def main():
 
     hs = get_typed_class(options.virt, "HostSystem")
     cs = get_typed_class(options.virt, "ComputerSystem")
-    host_name = full_hostname(options.ip)
+    host_name = full_hostname()
     host_name_val = [
                         'CreationClassName', hs,
                         'Name',              host_name

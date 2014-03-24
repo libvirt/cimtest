@@ -40,8 +40,8 @@ SUPPORTED_TYPES = ['Xen', 'KVM', 'XenFV', 'LXC']
 @do_main(SUPPORTED_TYPES)
 def main():
     options = main.options
-    host = full_hostname(options.ip) 
-   
+    host = full_hostname()
+
     status = FAIL
     keys = ['Name', 'CreationClassName']
     name = get_typed_class(options.virt, 'HostSystem')

@@ -100,7 +100,7 @@ def get_inst_from_list(cn, qcn, list, filter, exp_val):
 
 def get_hostsys(server, virt="Xen"):
     status = PASS 
-    host = full_hostname(server)
+    host = full_hostname()
 
     try:
         status, host_inst = get_host_info(server, virt)

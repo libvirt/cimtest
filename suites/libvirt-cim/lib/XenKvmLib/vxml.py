@@ -1109,7 +1109,7 @@ def get_class(virt):
 
 def set_default(server):
     dict = {}
-    dict['default_sysname'] = live.full_hostname(server)
+    dict['default_sysname'] = live.full_hostname()
     dict['default_port'] = CIM_PORT
     dict['default_url'] = "%s:%s" % (dict['default_sysname'],
                                      dict['default_port'])
