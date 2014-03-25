@@ -538,7 +538,7 @@ def nfs_config(server, nfs_server_bin, is_systemd):
     else:
         cmd = "systemctl | grep nfs-server"
     rc, out = utils.run_remote(server, cmd)
-    # if NFS services is not found on the machine, start it.. 
+    # if NFS services is not found on the machine, start it..
     if rc != PASS :
         # Check if NFS server is installed ...
         if is_systemd == 0:
@@ -638,7 +638,7 @@ def netfs_config(server, nfs_server_bin, dest_dir_to_mnt, is_systemd):
                 os.remove(back_exports_file)
             move_file(exports_file, back_exports_file)
         fd = open(exports_file, "w")
-        line = "\n %s %s(rw)" %(src_dir_for_mnt, server)
+        line = "\n %s %s(rw,fsid=0)" %(src_dir_for_mnt, server)
         fd.write(line)
         fd.close()
 
