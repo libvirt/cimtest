@@ -36,6 +36,7 @@ from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 input_graphics_pool_rev = 757
+controller_rev = 1310
 
 test_dom = "test_domain"
 test_mac = "00:11:22:33:44:55"
@@ -106,6 +107,7 @@ def main():
     disk_cn =  get_typed_class(virt, "LogicalDisk")
     exp_pllist[disk_cn] = [ '%s/%s' % (test_dom, test_disk)]
 
+    curr_cim_rev, changeset = get_provider_version(virt, server)
     if virt != 'LXC':
         net_cn = get_typed_class(virt, "NetworkPort")
         exp_pllist[net_cn]  = ['%s/%s' % (test_dom, test_mac)]
@@ -115,11 +117,16 @@ def main():
         for i in range(test_cpu):
             exp_pllist[proc_cn].append( '%s/%s' % (test_dom, i))
 
-        curr_cim_rev, changeset = get_provider_version(virt, server)
         if curr_cim_rev >= input_graphics_pool_rev:
             graphics_cn = get_typed_class(virt, "DisplayController")
             exp_pllist[graphics_cn] = ['%s/vnc' % test_dom]
 
+    # Need a version check too
+    if curr_cim_rev >= controller_rev and virt == 'KVM':
+        controller_cn = get_typed_class(virt, "Controller")
+        exp_pllist[controller_cn] = []
+        exp_pllist[controller_cn].append('%s/controller:pci:0' % test_dom)
+        exp_pllist[controller_cn].append('%s/controller:usb:0' % test_dom)
  
     try:
         res_pllist = {}

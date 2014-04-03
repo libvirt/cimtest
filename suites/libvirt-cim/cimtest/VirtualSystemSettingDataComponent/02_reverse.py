@@ -52,7 +52,7 @@ from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS
-from XenKvmLib.const import do_main
+from XenKvmLib.const import do_main, get_provider_version
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
 
 bug_libvirt = "00009"
@@ -62,6 +62,8 @@ test_dom    = "VSSDC_dom"
 test_vcpus  = 1
 test_mem    = 128
 test_mac    = "00:11:22:33:44:aa"
+
+controller_rev = 1310
 
 def assoc_values(ip, assoc_info, virt="Xen"):
     """
@@ -87,6 +89,12 @@ def assoc_values(ip, assoc_info, virt="Xen"):
 
                 }
 
+    curr_cim_rev, changeset = get_provider_version(virt, ip)
+    if curr_cim_rev >= controller_rev and virt == 'KVM':
+        # Add controllers too ... will need a cim/cimtest version check
+        rasd_list.update({"pci_rasd":"%s/controller:pci:0" % test_dom})
+        rasd_list.update({"usb_rasd":"%s/controller:usb:0" % test_dom})
+
     expect_rasds = len(rasd_list)
 
     try: 
@@ -101,8 +109,12 @@ def assoc_values(ip, assoc_info, virt="Xen"):
         mem_cn = get_typed_class(virt, 'MemResourceAllocationSettingData')
         input_cn = get_typed_class(virt, 'InputResourceAllocationSettingData')
         grap_cn = get_typed_class(virt, 'GraphicsResourceAllocationSettingData')
+        ctl_cn = get_typed_class(virt, 'ControllerResourceAllocationSettingData')
     
+        # REVISIT - VERSION CHECK?
         rasd_cns = [proc_cn, net_cn, disk_cn, mem_cn, input_cn, grap_cn]
+        if curr_cim_rev >= controller_rev and virt == 'KVM':
+            rasd_cns.append(ctl_cn)
 
         # Iterate over the rasds, looking for the expected InstanceID
         # listed in the rasd_list dictionary for the same classname in

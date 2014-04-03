@@ -54,7 +54,7 @@ from XenKvmLib.classes import get_typed_class
 from XenKvmLib import rasd
 from XenKvmLib.rasd import verify_procrasd_values, verify_netrasd_values, \
 verify_diskrasd_values, verify_memrasd_values, verify_displayrasd_values, \
-rasd_init_list, verify_inputrasd_values
+rasd_init_list, verify_inputrasd_values, verify_controllerrasd_values
 from XenKvmLib.const import default_network_name 
 
 libvirt_bug = "00009"
@@ -172,6 +172,7 @@ def verify_rasd_values(rasd_values_info, server):
     diskrasd =  rasd_values_list['%s'  %in_list['disk']]
     memrasd  =  rasd_values_list['%s'  %in_list['mem']]
     displayrasd = rasd_values_list['%s' %in_list['display']]
+    controllerrasd = rasd_values_list['%s' %in_list['controller']]
     inputrasd = rasd_values_list['%s' %in_list['point']]
 
     try:
@@ -187,6 +188,9 @@ def verify_rasd_values(rasd_values_info, server):
                 status  = verify_memrasd_values(rasd_instance, memrasd)
             elif 'GraphicsResourceAllocationSettingData' in CCName :
                 status = verify_displayrasd_values(rasd_instance, displayrasd)
+            elif 'ControllerResourceAllocationSettingData' in CCName :
+                status = verify_controllerrasd_values(rasd_instance,
+                                                      controllerrasd)
             elif 'InputResourceAllocationSettingData' in CCName:
                 status = verify_inputrasd_values(rasd_instance, inputrasd)
                 if status != PASS and virt== 'LXC':
@@ -194,7 +198,7 @@ def verify_rasd_values(rasd_values_info, server):
             else:
                 status = FAIL
             if status != PASS:
-                logger.error("Mistmatching %s values", CCName )
+                logger.error("Mismatching %s values", CCName )
                 break
     except  Exception, detail :
         logger.error("Exception in verify_rasd_values function: %s", detail)
