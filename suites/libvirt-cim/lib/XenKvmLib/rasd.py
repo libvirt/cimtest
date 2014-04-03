@@ -53,6 +53,8 @@ diskcn =  'LogicalDisk'
 dccn = 'DisplayController'
 pdcn = 'PointingDevice'
 ctlcn = 'Controller'
+# libvirt 1.2.2 adds a keyboard for (at least) KVM hypervisors
+kybdcn = 'Keyboard'
 
 libvirt_rasd_storagepool_changes = 934
 
@@ -68,6 +70,7 @@ def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem, server):
     dc_cn = get_typed_class(virt, dccn)
     pd_cn = get_typed_class(virt, pdcn)
     ctl_cn = get_typed_class(virt, ctlcn)
+    kybd_cn = get_typed_class(virt, kybdcn)
 
     in_list = { 'proc'    :      proc_cn,
                 'mem'     :      mem_cn,
@@ -77,13 +80,19 @@ def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem, server):
                 'controller' :   ctl_cn,
                 'point'    :     pd_cn
                }
+    libvirt_version = virsh_version(server, virt)
+    # libvirt 1.2.2 adds a keyboard as an input option for KVM domains
+    # so we need to handle that
+    has_kybd = False
+    if virt == 'KVM' and virsh_version_cmp(libvirt_version, "1.2.2") >= 0:
+        in_list.update({'keyboard':kybd_cn})
+        has_kybd = True
+
     try:
 
         disk_path = vsxml.xml_get_disk_source()
         if virt == 'LXC':
            disk_path = '/var/lib/libvirt/images/lxc_files'
-
-        libvirt_version = virsh_version(server, virt)
 
         if virt == 'LXC' or (virt == 'XenFV' and \
                              virsh_version_cmp(libvirt_version, "0.6.3") < 0):
@@ -92,6 +101,7 @@ def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem, server):
            point_device = "%s/%s" %(t_dom, "mouse:xen")
         else:
            point_device = "%s/%s" %(t_dom, "mouse:ps2")
+           keyboard_device = "%s/%s" %(t_dom, "keyboard:ps2")
         rasd_values = { 
                         proc_cn  : {
                                      "InstanceID"   : '%s/%s' %(t_dom, "proc"),
@@ -133,6 +143,12 @@ def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem, server):
                                     "InstanceID" : point_device
                                   }
                       } 
+        if has_kybd:
+            rasd_values.update({kybd_cn:
+                                  {
+                                    "InstanceID" : keyboard_device
+                                  }
+                               })
     except Exception, details:
         logger.error("Exception: In fn rasd_init_list %s", details)
         return FAIL, rasd_values, in_list
