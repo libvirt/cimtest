@@ -321,6 +321,8 @@ def rasd_cn_to_pool_cn(rasd_cn, virt):
         return get_typed_class(virt, "GraphicsPool")
     elif rasd_cn.find('InputResourceAllocationSettingData') >= 0:
         return get_typed_class(virt, "InputPool")
+    elif rasd_cn.find('ControllerResourceAllocationSettingData') >= 0:
+        return get_typed_class(virt, "ControllerPool")
     else:
         return None 
 

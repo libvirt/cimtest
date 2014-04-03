@@ -44,6 +44,7 @@ cim_mname  = "CreateChildResourcePool"
 input_graphics_pool_rev = 757
 libvirt_cim_child_pool_rev = 837
 libvirt_rasd_spool_del_changes = 971
+libvirt_controller_rev = 1312
 
 DIR_POOL = 1L
 FS_POOL = 2L
@@ -69,6 +70,8 @@ def pool_cn_to_rasd_cn(pool_cn, virt):
         return get_typed_class(virt, "GraphicsResourceAllocationSettingData")
     elif pool_cn.find('InputPool') >= 0:
         return get_typed_class(virt, "InputResourceAllocationSettingData")
+    elif pool_cn.find('ControllerPool') >= 0:
+        return get_typed_class(virt, "ControllerResourceAllocationSettingData")
     else:
         return None
 
@@ -79,6 +82,9 @@ def enum_pools(virt, ip):
     if curr_cim_rev >= input_graphics_pool_rev:
         pool_list.append('GraphicsPool')
         pool_list.append('InputPool')
+
+    if curr_cim_rev >= libvirt_controller_rev and virt == 'KVM':
+        pool_list.append('ControllerPool')
 
     pool_insts = {}
 

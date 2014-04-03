@@ -669,7 +669,8 @@ class VirtCIM:
             if self.iasd is not None:
                 res_settings.append(str(self.iasd))
 
-        if curr_cim_rev > vsms_controller_sup and self.ctlasd is not None:
+        if curr_cim_rev > vsms_controller_sup and self.ctlasd is not None and \
+           self.virt == 'KVM':
             res_settings.append(str(self.ctlasd))
 
         if ref_conf is None:
