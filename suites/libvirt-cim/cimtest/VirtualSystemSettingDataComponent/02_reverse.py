@@ -51,6 +51,7 @@ from XenKvmLib import assoc
 from XenKvmLib.test_doms import destroy_and_undefine_all 
 from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class
+from XenKvmLib.xm_virt_util import virsh_version, virsh_version_cmp
 from CimTest.Globals import logger, CIM_ERROR_ASSOCIATORS
 from XenKvmLib.const import do_main, get_provider_version
 from CimTest.ReturnCodes import PASS, FAIL, XFAIL_RC
@@ -78,6 +79,7 @@ def assoc_values(ip, assoc_info, virt="Xen"):
         input_device = "mouse:xen"
     else:
         input_device = "mouse:ps2"
+        keybd_device = "keyboard:ps2"
 
     rasd_list = {
                  "proc_rasd" : '%s/%s' %(test_dom, "proc"), 
@@ -86,14 +88,21 @@ def assoc_values(ip, assoc_info, virt="Xen"):
                  "mem_rasd"  : '%s/%s' %(test_dom, "mem"),
                  "input_rasd": '%s/%s' %(test_dom, input_device),
                  "grap_rasd" : '%s/%s' %(test_dom, "vnc")
-
                 }
 
     curr_cim_rev, changeset = get_provider_version(virt, ip)
-    if curr_cim_rev >= controller_rev and virt == 'KVM':
-        # Add controllers too ... will need a cim/cimtest version check
-        rasd_list.update({"pci_rasd":"%s/controller:pci:0" % test_dom})
-        rasd_list.update({"usb_rasd":"%s/controller:usb:0" % test_dom})
+    if virt == 'KVM':
+        # libvirt 1.2.2 adds a keyboard as an input option for KVM domains
+        # so we need to handle that
+        libvirt_version = virsh_version(ip, virt)
+        if virsh_version_cmp(libvirt_version, "1.2.2") >= 0:
+            rasd_list.update({"keybd_rasd":
+                               '%s/%s' %(test_dom, keybd_device)})
+
+        if curr_cim_rev >= controller_rev:
+            # Add controllers too ... will need a cim/cimtest version check
+            rasd_list.update({"pci_rasd":"%s/controller:pci:0" % test_dom})
+            rasd_list.update({"usb_rasd":"%s/controller:usb:0" % test_dom})
 
     expect_rasds = len(rasd_list)
 
@@ -111,7 +120,6 @@ def assoc_values(ip, assoc_info, virt="Xen"):
         grap_cn = get_typed_class(virt, 'GraphicsResourceAllocationSettingData')
         ctl_cn = get_typed_class(virt, 'ControllerResourceAllocationSettingData')
     
-        # REVISIT - VERSION CHECK?
         rasd_cns = [proc_cn, net_cn, disk_cn, mem_cn, input_cn, grap_cn]
         if curr_cim_rev >= controller_rev and virt == 'KVM':
             rasd_cns.append(ctl_cn)

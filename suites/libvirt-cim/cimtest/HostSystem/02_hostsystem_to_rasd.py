@@ -170,9 +170,10 @@ def verify_RASD_values(server, sd_assoc_info, vsxml, virt="Xen"):
                 status = FAIL
                 break
             index = (len(assoc_info) - 1)
-            assoc_val = assoc_info[index]
             rasd  = rasd_values[cn]
+            assoc_val = assoc_info[index]
             CCName = assoc_val.classname
+            InstanceID = assoc_val['InstanceID']
             if 'ProcResourceAllocationSettingData' in CCName:
                 status = verify_procrasd_values(assoc_info[index], rasd)
             elif 'NetResourceAllocationSettingData' in CCName:
@@ -185,7 +186,14 @@ def verify_RASD_values(server, sd_assoc_info, vsxml, virt="Xen"):
                 status = verify_displayrasd_values(assoc_info[index], rasd)
             elif 'ControllerResourceAllocationSettingData' in CCName:
                 status = verify_controllerrasd_values(assoc_info[index], rasd)
-            elif 'InputResourceAllocationSettingData' in CCName:
+            elif 'InputResourceAllocationSettingData' in CCName and \
+                 virt == 'KVM' and 'keyboard' in InstanceID :
+                # Force the issue - dictionary is keyed this way if
+                # there is a keyboard device supported
+                rasd = rasd_values['KVM_Keyboard']
+                status = verify_inputrasd_values(assoc_info[index], rasd)
+            elif 'InputResourceAllocationSettingData' in CCName and \
+                 'keyboard' not in InstanceID:
                 status = verify_inputrasd_values(assoc_info[index], rasd)
                 if status != PASS and virt == 'LXC':
                     return XFAIL_RC(libvirt_bug)

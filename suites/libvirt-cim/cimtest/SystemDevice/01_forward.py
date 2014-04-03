@@ -32,6 +32,7 @@ from XenKvmLib import vxml
 from XenKvmLib.classes import get_typed_class
 from CimTest.Globals import logger
 from XenKvmLib.const import do_main, get_provider_version
+from XenKvmLib.xm_virt_util import virsh_version, virsh_version_cmp
 from CimTest.ReturnCodes import PASS, FAIL
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
@@ -101,8 +102,15 @@ def main():
         point_device = "%s/%s" %(test_dom, "mouse:xen")
     else:
         point_device = "%s/%s" %(test_dom, "mouse:ps2")
+        keybd_device = "%s/%s" %(test_dom, "keyboard:ps2")
+        libvirt_version = virsh_version(server, virt)
 
-    exp_pllist[input_cn] = [point_device]
+    # libvirt 1.2.2 adds a keyboard as an input option for KVM domains
+    # so we need to handle that
+    if virt == 'KVM' and virsh_version_cmp(libvirt_version, "1.2.2") >= 0:
+        exp_pllist[input_cn] = [point_device, keybd_device]
+    else:
+        exp_pllist[input_cn] = [point_device]
 
     disk_cn =  get_typed_class(virt, "LogicalDisk")
     exp_pllist[disk_cn] = [ '%s/%s' % (test_dom, test_disk)]

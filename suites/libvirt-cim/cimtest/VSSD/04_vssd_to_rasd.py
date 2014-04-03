@@ -51,6 +51,7 @@ from XenKvmLib.test_doms import destroy_and_undefine_all
 from XenKvmLib import assoc
 from XenKvmLib.vxml import get_class
 from XenKvmLib.classes import get_typed_class
+from XenKvmLib.xm_virt_util import virsh_version, virsh_version_cmp
 from XenKvmLib import rasd
 from XenKvmLib.rasd import verify_procrasd_values, verify_netrasd_values, \
 verify_diskrasd_values, verify_memrasd_values, verify_displayrasd_values, \
@@ -175,9 +176,19 @@ def verify_rasd_values(rasd_values_info, server):
     controllerrasd = rasd_values_list['%s' %in_list['controller']]
     inputrasd = rasd_values_list['%s' %in_list['point']]
 
+    # libvirt 1.2.2 adds a keyboard as an input option for KVM domains
+    # so we need to handle that
+    has_keybd = False
+    if virt == 'KVM':
+        libvirt_version = virsh_version(server, virt)
+        if virsh_version_cmp(libvirt_version, "1.2.2") >= 0:
+            keybdrasd = rasd_values_list['%s' %in_list['keyboard']]
+            has_keybd = True
+
     try:
         for rasd_instance in rasd_values_info:
             CCName = rasd_instance.classname
+            InstanceID = rasd_instance['InstanceID']
             if  'ProcResourceAllocationSettingData' in CCName:
                 status = verify_procrasd_values(rasd_instance, procrasd)
             elif 'NetResourceAllocationSettingData' in CCName :
@@ -191,7 +202,13 @@ def verify_rasd_values(rasd_values_info, server):
             elif 'ControllerResourceAllocationSettingData' in CCName :
                 status = verify_controllerrasd_values(rasd_instance,
                                                       controllerrasd)
-            elif 'InputResourceAllocationSettingData' in CCName:
+            elif 'InputResourceAllocationSettingData' in CCName and \
+                 virt == 'KVM' and 'keyboard' in InstanceID :
+                # Force the issue - dictionary is keyed this way if
+                # there is a keyboard device supported
+                status = verify_displayrasd_values(rasd_instance, keybdrasd)
+            elif 'InputResourceAllocationSettingData' in CCName and \
+                 'keyboard' not in InstanceID:
                 status = verify_inputrasd_values(rasd_instance, inputrasd)
                 if status != PASS and virt== 'LXC':
                     return XFAIL_RC(libvirt_bug)
