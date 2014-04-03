@@ -96,6 +96,9 @@ def pool_init_list(virt, pool_assoc, net_name, dp_InstID):
         exp_pllist[mpool] = 'MemoryPool/0'
         exp_pllist[gpool] = 'GraphicsPool/0'
         exp_pllist[ipool] = 'InputPool/0'
+    if virt == 'KVM':
+        cpool = get_typed_class(virt, 'ControllerPool')
+        exp_pllist[cpool] = 'ControllerPool/0'
 
     for p_inst in pool_assoc:
         CName = p_inst.classname

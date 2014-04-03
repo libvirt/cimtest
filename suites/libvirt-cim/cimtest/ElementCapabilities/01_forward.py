@@ -54,6 +54,7 @@ def set_pool_info(server, virt, valid_elc_id):
         valid_elc_id = append_to_list(server, virt, "NetworkPool", valid_elc_id)
         valid_elc_id = append_to_list(server, virt, "GraphicsPool", valid_elc_id)
         valid_elc_id = append_to_list(server, virt, "InputPool", valid_elc_id)
+        valid_elc_id = append_to_list(server, virt, "ControllerPool", valid_elc_id)
 
     except Exception, details:
         logger.error("Exception: In fn set_pool_info(): %s", details)

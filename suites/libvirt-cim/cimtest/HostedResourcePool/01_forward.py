@@ -36,6 +36,8 @@ from XenKvmLib.const import do_main, default_pool_name
 from XenKvmLib.classes import get_typed_class
 
 input_graphics_pool_rev = 757
+controller_pool_rev = 1312
+
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 @do_main(sup_types)
 def main():
@@ -71,6 +73,7 @@ def main():
 
     mpool =  get_typed_class(virt, 'MemoryPool')
     exp_pllist = { mpool   : ['MemoryPool/0'] }
+    curr_cim_rev, changeset = get_provider_version(virt, options.ip)
     if virt != 'LXC':
         npool =  get_typed_class(virt, 'NetworkPool')
         dpool =  get_typed_class(virt, 'DiskPool')
@@ -79,12 +82,14 @@ def main():
         exp_pllist[npool] = ['NetworkPool/%s' %default_network_name]
         exp_pllist[ppool] = ['ProcessorPool/0']
 
-        curr_cim_rev, changeset = get_provider_version(virt, options.ip)
         if curr_cim_rev >= input_graphics_pool_rev:
             ipool = get_typed_class(virt, 'InputPool')
             gpool = get_typed_class(virt, 'GraphicsPool')
             exp_pllist[ipool] = ['InputPool/0']
             exp_pllist[gpool] = ['GraphicsPool/0']
+    if curr_cim_rev >= controller_pool_rev and virt == 'KVM':
+        cpool = get_typed_class(virt, 'ControllerPool')
+        exp_pllist[cpool] = ['ControllerPool/0']
     
     try:
         res_pllist = {}

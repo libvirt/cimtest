@@ -36,6 +36,7 @@ from XenKvmLib.classes import get_typed_class
 
 sup_types = ['Xen', 'KVM', 'XenFV', 'LXC']
 input_graphics_pool_rev = 757
+controller_pool_rev = 1312
 
 def enum_pools(ip, ac_cn, virt):
     pt = [get_typed_class(virt, 'MemoryPool'), 
@@ -47,6 +48,9 @@ def enum_pools(ip, ac_cn, virt):
     if curr_rev >= input_graphics_pool_rev and changeset != sles11_changeset:
           pt.append(get_typed_class(virt, 'GraphicsPool'))
           pt.append(get_typed_class(virt, 'InputPool'))
+
+    if curr_rev >= controller_pool_rev and virt == 'KVM':
+        pt.append(get_typed_class(virt, 'ControllerPool'))
 
     pools = {}
 
