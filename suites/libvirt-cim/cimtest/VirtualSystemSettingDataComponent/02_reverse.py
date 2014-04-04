@@ -63,18 +63,6 @@ test_vcpus  = 1
 test_mem    = 128
 test_mac    = "00:11:22:33:44:aa"
 
-def check_rasd_values(id, exp_id):
-    try:
-        if id != exp_id:
-            logger.error("Returned %s instead of %s", id, exp_id)
-            return FAIL
- 
-    except Exception, detail :
-        logger.error("Exception evaluating InstanceID: %s", detail)
-        return FAIL
-
-    return PASS
-
 def assoc_values(ip, assoc_info, virt="Xen"):
     """
         The association info of 
@@ -99,8 +87,11 @@ def assoc_values(ip, assoc_info, virt="Xen"):
 
                 }
 
+    expect_rasds = len(rasd_list)
+
     try: 
-        if len(assoc_info) <= 0: 
+        assoc_count = len(assoc_info)
+        if assoc_count <= 0:
             logger.error("No RASD instances returned")
             return FAIL
 
@@ -111,34 +102,63 @@ def assoc_values(ip, assoc_info, virt="Xen"):
         input_cn = get_typed_class(virt, 'InputResourceAllocationSettingData')
         grap_cn = get_typed_class(virt, 'GraphicsResourceAllocationSettingData')
     
-        for inst in assoc_info: 
-            if inst.classname == proc_cn:
-                status = check_rasd_values(inst['InstanceID'], 
-                                           rasd_list['proc_rasd'])
-            elif inst.classname == net_cn:
-                status = check_rasd_values(inst['InstanceID'], 
-                                           rasd_list['net_rasd'])
-            elif inst.classname == disk_cn: 
-                status = check_rasd_values(inst['InstanceID'], 
-                                           rasd_list['disk_rasd'])
-            elif inst.classname == mem_cn: 
-                status = check_rasd_values(inst['InstanceID'], 
-                                           rasd_list['mem_rasd'])
-            elif inst.classname == input_cn:
-                status = check_rasd_values(inst['InstanceID'],
-                                           rasd_list['input_rasd'])
-                if status == FAIL and virt == "LXC":
-                    return XFAIL_RC(bug_libvirt)
-            elif inst.classname == grap_cn:
-                status = check_rasd_values(inst['InstanceID'],
-                                           rasd_list['grap_rasd'])
-            else:
-                logger.error("Unexpected RASD instance type" )
-                status = FAIL
+        rasd_cns = [proc_cn, net_cn, disk_cn, mem_cn, input_cn, grap_cn]
 
-            if status == FAIL:
-                logger.error("Mistmatching association value" )
-                break  
+        # Iterate over the rasds, looking for the expected InstanceID
+        # listed in the rasd_list dictionary for the same classname in
+        # the returned assoc_info list
+        try:
+            found_rasds = 0
+            # Keep track of what worked
+            found_list = {}
+            assoc_list = {}
+            for cn in rasd_cns:
+                for rasd_key, rasd_value in rasd_list.iteritems():
+                    for j, inst in enumerate(assoc_info):
+                        if inst.classname == cn and \
+                           inst['InstanceID'] == rasd_value:
+                            #found_list.append((rasd_key, rasd_value))
+                            found_list.update({rasd_key: rasd_value})
+                            assoc_list.update({rasd_value: cn})
+                            found_rasds += 1
+        except Exception, detail:
+            logger.error("Exception evaluating InstanceID: %s", detail)
+            for (i,j) in found_list:
+                logger.error("Found cn=%s exp_id=%s", i, j)
+            return FAIL
+
+        # Check for errors
+        if expect_rasds != found_rasds:
+            logger.error("RASD instances don't match expect=%d found=%d.",
+                         expect_rasds, found_rasds)
+            status = FAIL
+            # What did we expect to find from the rasd_list, but did not
+            # find in the found_list (key'd by rasd name)?
+            # This means we're missing some device or perhaps the
+            # InstanceID format changed...
+            for k, v in rasd_list.iteritems():
+                if k not in found_list:
+                    logger.error("rasd_list ('%s','%s') not in found_list",
+                                 k , v)
+            # Thankfully the alternative is not possible - after all how
+            # could there be something in the found list that isn't in the
+            # rasd_list to start with...
+
+        if assoc_count != found_rasds:
+            status = FAIL
+            logger.error("Assoc instances don't match expect=%d found=%d.",
+                         assoc_count, found_rasds)
+            # What's in the assoc_info that's not in found assoc_list (key'd
+            # by InstanceID)
+            # Meaning there's a new device type that we haven't accounted for
+            for j, inst in enumerate(assoc_info):
+                if inst['InstanceID'] not in assoc_list:
+                    logger.error("Did not find association id=%s in assoc_list",
+                                 inst['InstanceID'])
+            # Thankfully the alternative is not possible - after all how
+            # could there be something in the found list that isn't in the
+            # assoc_info list to start with...
+
 
     except  Exception, detail :
         logger.error("Exception in assoc_values function: %s", detail)
