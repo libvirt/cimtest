@@ -53,6 +53,8 @@ from XenKvmLib.const import get_provider_version
 
 vsms_graphics_sup = 763
 vsms_inputdev_sup = 771
+vsms_controller_sup = 1310
+
 
 class XMLClass:
     xml_string = ""
@@ -598,7 +600,8 @@ class VirtCIM:
     def __init__(self, virt, dom_name, uuid, pae, acpi, apic, disk_dev, 
                  disk_source, net_type, net_name, net_mac, vcpus, mem,
                  mem_allocunits, emu_type, grstype, ip,
-                 is_ipv6_only, port_num, kmap, irstype, btype, vnc_passwd):
+                 is_ipv6_only, port_num, kmap, irstype, btype, vnc_passwd,
+                 ctltype, ctlindex, ctlmodel):
         self.virt = virt
         self.domain_name = dom_name
         self.err_rc = None
@@ -629,6 +632,14 @@ class VirtCIM:
         self.iasd = vsms.get_iasd_class(virt)(name=dom_name, 
                                               res_sub_type=irstype, 
                                               bus_type=btype)
+        if virt == 'KVM':
+            self.ctlasd = vsms.get_ctlasd_class(virt)(name=dom_name,
+                                                      ctl_sub_type=ctltype,
+                                                      ctl_index=ctlindex,
+                                                      ctl_model=ctlmodel)
+        else:
+            self.ctlasd = None
+
         self.res_settings = []
 
     def cim_define(self, ip, ref_conf=None):
@@ -657,6 +668,9 @@ class VirtCIM:
         if curr_cim_rev >= vsms_inputdev_sup:
             if self.iasd is not None:
                 res_settings.append(str(self.iasd))
+
+        if curr_cim_rev > vsms_controller_sup and self.ctlasd is not None:
+            res_settings.append(str(self.ctlasd))
 
         if ref_conf is None:
              ref_conf = ' '
@@ -849,7 +863,8 @@ class XenXML(VirtXML, VirtCIM):
                        emu_type=None, grstype="vnc", address=None,
                        is_ipv6_only=None,
                        port_num='-1', keymap="en-us", irstype="mouse", 
-                       btype="xen", vnc_passwd=None): 
+                       btype="xen", vnc_passwd=None,
+                       ctltype=None, ctlindex=-1, ctlmodel=None):
         if not (os.path.exists(const.Xen_kernel_path) \
                 and os.path.exists(const.Xen_init_path)):
             logger.error('ERROR: Either the kernel image '
@@ -863,7 +878,7 @@ class XenXML(VirtXML, VirtCIM):
                          disk_file_path, ntype, net_name, mac, vcpus, mem, 
                          mem_allocunits, emu_type, grstype, address, 
                          is_ipv6_only, port_num, keymap, irstype, btype, 
-                         vnc_passwd)
+                         vnc_passwd, ctltype, ctlindex, ctlmodel)
 
     def _os(self, os_kernel, os_initrd):
         os = self.get_node('/domain/os')
@@ -920,7 +935,10 @@ class KVMXML(VirtXML, VirtCIM):
                        emu_type=None, grstype="vnc", address=None,
                        is_ipv6_only=None,
                        port_num='-1', keymap="en-us", irstype="mouse", 
-                       btype="ps2", vnc_passwd=None):
+                       btype="ps2", vnc_passwd=None,
+                       ctltype="pci", ctlindex=0, ctlmodel="pci-root"):
+                       # Optionally the following works too:
+                       #ctltype="usb", ctlindex=0, ctlmodel=None):
         if not os.path.exists(disk_file_path):
             logger.error('Error: Disk image %s does not exist', disk_file_path)
             sys.exit(1)
@@ -929,7 +947,7 @@ class KVMXML(VirtXML, VirtCIM):
                          disk_file_path, ntype, net_name, mac, vcpus, mem, 
                          mem_allocunits, emu_type, grstype, address, 
                          is_ipv6_only, port_num, keymap, irstype, btype, 
-                         vnc_passwd)
+                         vnc_passwd, ctltype, ctlindex, ctlmodel)
         self._os()
         self._devices(const.KVM_default_emulator, ntype,
                       disk_file_path, disk, mac, net_name)
@@ -983,7 +1001,8 @@ class XenFVXML(VirtXML, VirtCIM):
                        emu_type=None, grstype="vnc", 
                        address=None, is_ipv6_only=None, port_num='-1', 
                        keymap="en-us",
-                       irstype="mouse", btype="ps2", vnc_passwd=None):
+                       irstype="mouse", btype="ps2", vnc_passwd=None,
+                       ctltype=None, ctlindex=-1, ctlmodel=None):
         if not os.path.exists(disk_file_path):
             logger.error('Error: Disk image %s does not exist', disk_file_path)
             sys.exit(1)
@@ -992,7 +1011,8 @@ class XenFVXML(VirtXML, VirtCIM):
                          disk_file_path, ntype, net_name, mac, vcpus, mem, 
                          mem_allocunits, emu_type, grstype, address, 
                          is_ipv6_only, port_num, 
-                         keymap, irstype, btype, vnc_passwd)
+                         keymap, irstype, btype, vnc_passwd,
+                         ctltype, ctlindex, ctlmodel)
         self._os(const.XenFV_default_loader)
         self._devices(const.XenFV_default_emulator,
                       ntype, mac, net_name, disk_file_path, disk) 
@@ -1036,7 +1056,8 @@ class LXCXML(VirtXML, VirtCIM):
                        tty=const.LXC_default_tty, grstype="vnc",
                        address=None, is_ipv6_only=None, port_num='-1', 
                        keymap="en-us",
-                       irstype="mouse", btype="usb", vnc_passwd=None):
+                       irstype="mouse", btype="usb", vnc_passwd=None,
+                       ctltype=None, ctlindex=-1, ctlmodel=None):
         VirtXML.__init__(self, 'lxc', test_dom, set_uuid(), mem, vcpus)
         # pae, acpi and apic parameters doesn't make sense here, so we
         # statically set them to False (a.k.a. ignore them)
@@ -1045,7 +1066,7 @@ class LXCXML(VirtXML, VirtCIM):
                          ntype, net_name, mac, vcpus, mem, 
                          const.default_mallocunits, None, grstype, 
                          address, is_ipv6_only, port_num, keymap, irstype, 
-                         btype, vnc_passwd)
+                         btype, vnc_passwd, ctltype, ctlindex, ctlmodel)
         self._os(const.LXC_init_path)
         self._devices(const.LXC_default_emulator, mac, ntype, net_name, const.LXC_default_tty)
         self.create_lxc_file(CIM_IP, const.LXC_init_path)

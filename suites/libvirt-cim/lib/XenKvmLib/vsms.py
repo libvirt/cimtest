@@ -36,6 +36,7 @@ RASD_TYPE_DISK = 17
 RASD_TYPE_GRAPHICS = 24
 RASD_TYPE_INPUT = 13
 RASD_TYPE_STOREVOL = 32768
+RASD_TYPE_CONTROLLER = 32771
 
 VIRT_DISK_TYPE_DISK = 0
 VIRT_DISK_TYPE_CDROM = 1
@@ -324,6 +325,29 @@ class LXC_InputResourceAllocationSettingData(CIM_InputResourceAllocationSettingD
 def get_iasd_class(virt):
     pass
   
+class CIM_ControllerResourceAllocationSettingData(CIMClassMOF):
+    def __init__(self, name, ctl_sub_type=None, ctl_index=-1, ctl_model=None):
+        self.InstanceID = '%s/controller:' % name
+        self.ResourceType = RASD_TYPE_CONTROLLER
+
+        if ctl_sub_type is not None:
+            self.ResourceSubType = ctl_sub_type
+            self.InstanceID += '%s' % ctl_sub_type
+
+        if ctl_index >= 0:
+            self.Index = ctl_index
+            self.InstanceID += ':%d' % ctl_index
+
+        if ctl_model is not None:
+            self.Model = ctl_model
+
+class KVM_ControllerResourceAllocationSettingData(CIM_ControllerResourceAllocationSettingData):
+    pass
+
+@eval_cls('ControllerResourceAllocationSettingData')
+def get_ctlasd_class(virt):
+    pass
+
 def default_vssd_rasd_str(dom_name='test_domain', 
                           disk_dev='xvda',
                           disk_source=const.Xen_disk_path,

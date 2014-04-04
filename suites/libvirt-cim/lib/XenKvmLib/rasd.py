@@ -40,6 +40,7 @@ dasd_cn = 'DiskResourceAllocationSettingData'
 masd_cn = 'MemResourceAllocationSettingData'
 dcrasd_cn = 'GraphicsResourceAllocationSettingData'
 irasd_cn = 'InputResourceAllocationSettingData'
+ctlrasd_cn = 'ControllerResourceAllocationSettingData'
 dpasd_cn = 'DiskPoolResourceAllocationSettingData'
 npasd_cn = 'NetPoolResourceAllocationSettingData'
 svrasd_cn = 'StorageVolumeResourceAllocationSettingData'
@@ -51,6 +52,7 @@ netcn  =  'NetworkPort'
 diskcn =  'LogicalDisk'
 dccn = 'DisplayController'
 pdcn = 'PointingDevice'
+ctlcn = 'Controller'
 
 libvirt_rasd_storagepool_changes = 934
 
@@ -65,12 +67,14 @@ def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem, server):
     disk_cn = get_typed_class(virt, diskcn)
     dc_cn = get_typed_class(virt, dccn)
     pd_cn = get_typed_class(virt, pdcn)
+    ctl_cn = get_typed_class(virt, ctlcn)
 
     in_list = { 'proc'    :      proc_cn,
                 'mem'     :      mem_cn,
                 'net'     :      net_cn,
                 'disk'    :      disk_cn,
                 'display' :      dc_cn,
+                'controller' :   ctl_cn,
                 'point'    :     pd_cn
                }
     try:
@@ -113,6 +117,18 @@ def rasd_init_list(vsxml, virt, t_disk, t_dom, t_mac, t_mem, server):
                         dc_cn   : {
                                     "InstanceID" : "%s/%s" %(t_dom, "vnc")
                                   },
+                        # There can be more than one controller defined for
+                        # any system - usually there are 3, one each for usb,
+                        # pci, and ide. The InstanceID is formatted using
+                        # the string "controller" and the type/string of the
+                        # controller, and the index id found.  That index can
+                        # vary. Thus our verify_controllerrasd_values will
+                        # just ensure the "base" is valid - that is the
+                        # guest name and "controller" string.
+                        ctl_cn   : {
+                                     "InstanceID" : "%s/%s:" \
+                                             %(t_dom, "controller")
+                                  },
                         pd_cn   : {
                                     "InstanceID" : point_device
                                   }
@@ -142,6 +158,15 @@ def InstId_err(assoc_info, list):
     logger.error("%s Mismatch", 'InstanceID')
     logger.error("Returned %s instead of %s", 
                   assoc_info['InstanceID'], list['InstanceID'])
+
+def verify_controllerrasd_values(assoc_info, controllerrasd_list):
+    status = PASS
+    print 'assoc', assoc_info['InstanceID']
+    print 'ctrlr', controllerrasd_list['InstanceID']
+    if controllerrasd_list['InstanceID'] not in assoc_info['InstanceID']:
+        InstId_err(assoc_info, controllerrasd_list)
+        status = FAIL
+    return status
 
 def verify_displayrasd_values(assoc_info, displayrasd_list):
     status = PASS

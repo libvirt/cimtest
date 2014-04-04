@@ -33,6 +33,7 @@ from XenKvmLib.enumclass import EnumInstances
 
 graphics_dev_rev = 725
 input_dev_rev = 745
+controller_dev_rev = 1310
 
 def get_class(classname):
     return eval(classname)
@@ -99,6 +100,8 @@ def dev_cn_to_rasd_cn(dev_cn, virt):
         return get_typed_class(virt, "GraphicsResourceAllocationSettingData")
     elif dev_cn.find('PointingDevice') >= 0:
         return get_typed_class(virt, "InputResourceAllocationSettingData")
+    elif dev_cn.find('Controller') >= 0:
+        return get_typed_class(virt, "ControllerResourceAllocationSettingData")
     else:
         return None
 
@@ -111,6 +114,9 @@ def enum_dev(virt, ip):
 
     if curr_cim_rev >= input_dev_rev:
         dev_list.append('PointingDevice')
+
+    if curr_cim_rev >= controller_dev_rev and virt == 'KVM':
+        dev_list.append('Controller')
 
     dev_insts = {}
 
